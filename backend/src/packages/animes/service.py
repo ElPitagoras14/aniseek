@@ -5,7 +5,6 @@ from ani_scrapy.async_api import JKAnimeScraper
 from loguru import logger
 from sqlalchemy import delete, desc, func, select, update
 from sqlalchemy.orm import selectinload
-from starlette import status
 from sqlalchemy.dialects.postgresql import insert
 from urllib.parse import unquote
 
@@ -184,7 +183,7 @@ async def add_new_anime(
 
 async def get_anime_controller(
     anime_id: str, user_id: str, force_update: bool
-) -> tuple[int, dict]:
+) -> dict:
     logger.debug(f"Getting anime with id: {anime_id}")
     base_url = f"https://jkanime.net/{anime_id}"
     current_time = datetime.now(timezone.utc)
@@ -332,7 +331,7 @@ async def get_anime_controller(
         )
         casted_anime = cast_anime_info(new_anime_info, saved_anime_info)
 
-        return status.HTTP_200_OK, casted_anime
+        return casted_anime
 
 
 async def search_anime_controller(query: str, user_id: str):
@@ -369,10 +368,10 @@ async def search_anime_controller(query: str, user_id: str):
         ]
 
         casted_animes = cast_search_anime_result_list(search_animes)
-        return status.HTTP_200_OK, casted_animes
+        return casted_animes
 
 
-async def get_saved_animes_controller(user_id: str) -> tuple[int, dict]:
+async def get_saved_animes_controller(user_id: str) -> dict:
     logger.debug("Getting saved animes")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -396,26 +395,15 @@ async def get_saved_animes_controller(user_id: str) -> tuple[int, dict]:
         ]
 
         casted_animes = cast_search_anime_result_list(animes)
-        return status.HTTP_200_OK, casted_animes
+        return casted_animes
 
 
 async def save_anime_controller(
-    anime_id: str, user_id: str, request_id: str
-) -> tuple[int, str]:
+    anime_id: str, user_id: str
+) -> str:
     logger.debug(f"Saving anime with id: {anime_id}")
     base_url = f"https://jkanime.net/{anime_id}"
     async with AsyncDatabaseSession() as db:
-        stmt = select(UserSaveAnime).where(
-            UserSaveAnime.user_id == user_id,
-            UserSaveAnime.anime_id == anime_id,
-        )
-        result = await db.execute(stmt)
-        saved_anime = result.scalar()
-        if saved_anime:
-            raise ConflictException(
-                "Anime already saved", request_id=request_id
-            )
-
         stmt = (
             select(Anime)
             .where(Anime.id == anime_id)
@@ -438,36 +426,27 @@ async def save_anime_controller(
         await db.flush()
         logger.debug(f"Saved anime with id: {anime_id}")
 
-        return status.HTTP_200_OK, "Anime saved successfully"
+        return "Anime saved successfully"
 
 
 async def unsave_anime_controller(
-    anime_id: str, user_id: str, request_id: str
-) -> tuple[int, str]:
+    anime_id: str, user_id: str
+) -> str:
     logger.debug(f"Unsaving anime with id: {anime_id}")
     async with AsyncDatabaseSession() as db:
-        stmt = select(Anime).where(Anime.id == anime_id)
-        result = await db.execute(stmt)
-        anime_db = result.scalar()
-        if not anime_db:
-            logger.debug(f"Anime with id: {anime_id} not found")
-            raise NotFoundException("Anime not found", request_id=request_id)
         stmt = select(UserSaveAnime).where(
             UserSaveAnime.user_id == user_id,
             UserSaveAnime.anime_id == anime_id,
         )
         result = await db.execute(stmt)
         saved_anime = result.scalar()
-        if not saved_anime:
-            logger.debug(f"Saved anime with id: {anime_id} not found")
-            raise NotFoundException("Anime not found", request_id=request_id)
         await db.delete(saved_anime)
         logger.debug(f"Unsaved anime with id: {anime_id}")
 
-        return status.HTTP_200_OK, "Anime unsaved successfully"
+        return "Anime unsaved successfully"
 
 
-async def get_in_emission_animes_controller(user_id: str) -> tuple[int, dict]:
+async def get_in_emission_animes_controller(user_id: str) -> dict:
     logger.debug("Getting in-emission animes")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -497,7 +476,7 @@ async def get_in_emission_animes_controller(user_id: str) -> tuple[int, dict]:
         ]
 
         casted_animes = cast_in_emission_anime_list(animes)
-        return status.HTTP_200_OK, casted_animes
+        return casted_animes
 
 
 async def get_download_episodes_controller(
@@ -553,12 +532,12 @@ async def get_download_episodes_controller(
             episode_downloads, count
         )
 
-    return status.HTTP_200_OK, casted_episode_downloads
+    return casted_episode_downloads
 
 
 async def get_last_downloaded_episodes_controller(
     user_id: str,
-) -> tuple[int, dict]:
+) -> dict:
     logger.debug("Getting last downloaded episodes")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -590,10 +569,10 @@ async def get_last_downloaded_episodes_controller(
         ]
         casted_episodes = cast_episode_download_list(episodes, len(episodes))
 
-        return status.HTTP_200_OK, casted_episodes
+        return casted_episodes
 
 
-async def get_downloaded_animes_controller(user_id: str) -> tuple[int, dict]:
+async def get_downloaded_animes_controller(user_id: str) -> dict:
     logger.debug("Getting downloaded animes")
 
     async with AsyncDatabaseSession() as db:
@@ -623,65 +602,22 @@ async def get_downloaded_animes_controller(user_id: str) -> tuple[int, dict]:
         ]
 
         casted_animes = cast_downloaded_anime_list(animes_info, len(animes))
-        return status.HTTP_200_OK, casted_animes
-
-
-async def get_download_episode_controller(episode_id: int) -> tuple[int, dict]:
-    logger.debug(f"Getting download episode with id: {episode_id}")
-    async with AsyncDatabaseSession() as db:
-        stmt = (
-            select(Episode)
-            .where(Episode.id == episode_id)
-            .options(selectinload(Episode.anime))
-        )
-        result = await db.execute(stmt)
-        episode = result.scalar()
-        if not episode:
-            return status.HTTP_404_NOT_FOUND, "Episode not found"
-
-        franchise_id = episode.anime.franchise_id
-        parsed_season = str(episode.anime.season).zfill(2)
-        anime_folder = (
-            ANIMES_FOLDER / episode.anime_id / f"Season {parsed_season}"
-        )
-        if franchise_id:
-            anime_folder = (
-                ANIMES_FOLDER / franchise_id / f"Season {parsed_season}"
-            )
-        if not anime_folder.exists():
-            return status.HTTP_404_NOT_FOUND, "Episode not found"
-
-        parsed_ep_number = str(episode.ep_number).zfill(2)
-        file_path = str(
-            anime_folder
-            / f"{episode.anime_id} - S{parsed_season}E{parsed_ep_number}.mp4"
-        )
-
-        casted_data = {
-            "path": file_path,
-            "filename": f"{episode.anime_id}-{episode.ep_number}.mp4",
-        }
-
-        return status.HTTP_200_OK, casted_data
+        return casted_animes
 
 
 async def download_anime_episode_controller(
-    anime_id: str,
-    episode_number: int,
+    episode_id: int,
     force_download: bool,
     user_id: str,
-    request_id: str,
-) -> tuple[int, str]:
-    logger.debug(f"Downloading anime with id: {anime_id} - {episode_number}")
+) -> str:
+    logger.debug(f"Downloading episode with id: {episode_id}")
 
     async with AsyncDatabaseSession() as db:
-        stmt = select(Episode).where(
-            Episode.anime_id == anime_id,
-            Episode.ep_number == episode_number,
-        )
+        stmt = select(Episode).where(Episode.id == episode_id)
         episode = await db.scalar(stmt)
-        if not episode:
-            raise NotFoundException("Episode not found", request_id=request_id)
+
+        anime_id = episode.anime_id
+        episode_number = episode.ep_number
 
         stmt = select(UserDownloadEpisode).where(
             UserDownloadEpisode.user_id == user_id,
@@ -689,22 +625,18 @@ async def download_anime_episode_controller(
         )
         download = await db.scalar(stmt)
         if download and not force_download:
-            raise ConflictException(
-                "Download already in progress", request_id=request_id
-            )
+            raise ConflictException("Download already in progress")
 
         stmt = select(UserDownloadEpisode).where(
             UserDownloadEpisode.episode_id == episode.id,
         )
         general_download = await db.scalar(stmt)
         if general_download and not force_download:
-            return status.HTTP_201_CREATED, cast_job_id(
-                general_download.episode.job_id
-            )
+            return cast_job_id(general_download.episode.job_id)
 
         result = celery_app.send_task(
             "tasks.download_anime_episode",
-            args=[anime_id, episode_number, user_id, request_id],
+            args=[anime_id, episode_number, user_id],
         )
 
         if not force_download:
@@ -720,26 +652,21 @@ async def download_anime_episode_controller(
 
         logger.debug(f"Enqueued download with job id: {result.id}")
 
-        return status.HTTP_201_CREATED, cast_job_id(result.id)
+        return cast_job_id(result.id)
 
 
 async def delete_download_episode_controller(
-    anime_id: str, episode_id: int, user_id: str, request_id: str
-) -> tuple[int, str]:
+    episode_id: int, user_id: str
+) -> str:
     logger.debug(f"Deleting download episode with id: {episode_id}")
     async with AsyncDatabaseSession() as db:
         stmt = (
             select(Episode)
-            .where(
-                Episode.anime_id == anime_id,
-                Episode.ep_number == episode_id,
-            )
+            .where(Episode.id == episode_id)
             .options(selectinload(Episode.anime))
         )
         result = await db.execute(stmt)
         episode = result.scalar()
-        if not episode:
-            raise NotFoundException("Episode not found", request_id=request_id)
 
         stmt = select(UserDownloadEpisode).where(
             UserDownloadEpisode.episode_id == episode.id,
@@ -748,9 +675,7 @@ async def delete_download_episode_controller(
         result = await db.execute(stmt)
         download = result.scalar()
         if not download:
-            raise NotFoundException(
-                "Download not found", request_id=request_id
-            )
+            raise NotFoundException("Download not found")
 
         await db.delete(download)
         await db.flush()
@@ -774,7 +699,7 @@ async def delete_download_episode_controller(
                     ANIMES_FOLDER / franchise_id / f"Season {parsed_season}"
                 )
             if not anime_folder.exists():
-                return status.HTTP_404_NOT_FOUND, "Episode not found"
+                raise NotFoundException("Episode file not found")
 
             ep_number = str(episode.ep_number).zfill(2)
             file_path = (
@@ -786,11 +711,11 @@ async def delete_download_episode_controller(
 
         logger.debug(f"Deleted download episode with id: {episode_id}")
 
-        return status.HTTP_200_OK, "Episode deleted successfully"
+        return "Episode deleted successfully"
 
 
 async def download_anime_episode_bulk_controller(
-    anime_id: str, episode_numbers: list[int], user_id: str, request_id: str
+    anime_id: str, episode_numbers: list[int], user_id: str
 ) -> tuple[int, list[dict]]:
     logger.debug(f"Downloading anime with id: {anime_id}")
     success_enqueued = []
@@ -804,9 +729,7 @@ async def download_anime_episode_bulk_controller(
                 )
                 episode = await db.scalar(stmt)
                 if not episode:
-                    raise NotFoundException(
-                        "Episode not found", request_id=request_id
-                    )
+                    raise NotFoundException("Episode not found")
 
                 stmt = select(UserDownloadEpisode).where(
                     UserDownloadEpisode.episode_id == episode.id,
@@ -831,7 +754,7 @@ async def download_anime_episode_bulk_controller(
 
                 result = celery_app.send_task(
                     "tasks.download_anime_episode",
-                    args=[anime_id, episode.ep_number, user_id, request_id],
+                    args=[anime_id, episode.ep_number, user_id],
                 )
                 logger.debug(f"Enqueued download with job id: {result.id}")
 
@@ -861,10 +784,12 @@ async def download_anime_episode_bulk_controller(
                 }
             )
         casted_data = cast_download_task_list(parsed_data, len(parsed_data))
-        return status.HTTP_201_CREATED, casted_data
+        return casted_data
 
 
-async def get_animes_storage_controller(limit: int = 10, page: int = 1):
+async def get_animes_storage_controller(
+    limit: int = 10, page: int = 1
+) -> dict:
     logger.info("Getting animes storage controller")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -897,12 +822,10 @@ async def get_animes_storage_controller(limit: int = 10, page: int = 1):
 
         casted_animes = cast_animes_storage_list(animes_info, count)
 
-        return status.HTTP_200_OK, casted_animes
+        return casted_animes
 
 
-async def delete_anime_storage_controller(
-    anime_id: str, user_id: str, request_id: str
-) -> tuple[int, str]:
+async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Deleting anime with id: {anime_id}")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -915,7 +838,7 @@ async def delete_anime_storage_controller(
         result = await db.execute(stmt)
         anime = result.scalar()
         if not anime:
-            raise NotFoundException("Anime not found", request_id=request_id)
+            raise NotFoundException("Anime not found")
 
         episode_ids = [ep.id for ep in anime.episodes]
 
@@ -955,4 +878,4 @@ async def delete_anime_storage_controller(
                 logger.debug(f"Deleted file: {file_path}")
                 logger.debug(f"Deleted episode: {episode.id}")
 
-        return status.HTTP_200_OK, "Anime storage deleted successfully"
+        return "Anime storage deleted successfully"

@@ -1,6 +1,6 @@
 opencollection: 1.0.0
 info:
-  name: "requests"
+  name: "anime-scraper"
   type: workspace
 
 collections:

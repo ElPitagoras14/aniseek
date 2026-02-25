@@ -16,6 +16,19 @@ from .responses import (
     RelatedInfo,
     DownloadTask,
 )
+from utils.cast import create_caster
+
+
+cast_search_anime_result = create_caster(SearchAnimeResult)
+cast_in_emission_anime = create_caster(InEmissionAnime)
+cast_episode_download = create_caster(EpisodeDownload)
+cast_download_task = create_caster(DownloadTaskStatus)
+cast_anime_download_info = create_caster(AnimeDownloadInfo)
+cast_anime_storage = create_caster(AnimeStorageInfo)
+
+
+def cast_job_id(job_id: str) -> DownloadTask:
+    return DownloadTask(job_id=job_id)
 
 
 def cast_anime_info(anime: dict, saved: dict) -> Anime:
@@ -54,17 +67,6 @@ def cast_anime_info(anime: dict, saved: dict) -> Anime:
     )
 
 
-def cast_search_anime_result(anime: dict) -> SearchAnimeResult:
-    return SearchAnimeResult(
-        id=anime["id"],
-        title=anime["title"],
-        type=anime["type"],
-        poster=anime["poster"],
-        is_saved=anime["is_saved"],
-        save_date=anime["save_date"],
-    )
-
-
 def cast_search_anime_result_list(
     animes: list[dict],
 ) -> SearchAnimeResultList:
@@ -74,42 +76,12 @@ def cast_search_anime_result_list(
     )
 
 
-def cast_in_emission_anime(anime: dict) -> InEmissionAnime:
-    return InEmissionAnime(
-        id=anime["id"],
-        title=anime["title"],
-        type=anime["type"],
-        poster=anime["poster"],
-        is_saved=anime["is_saved"],
-        save_date=anime["save_date"],
-        week_day=anime["week_day"],
-    )
-
-
 def cast_in_emission_anime_list(
     animes: list[dict],
 ) -> InEmissionAnimeList:
     return InEmissionAnimeList(
         items=[cast_in_emission_anime(anime) for anime in animes],
         total=len(animes),
-    )
-
-
-def cast_job_id(job_id: str) -> DownloadTask:
-    return DownloadTask(job_id=job_id)
-
-
-def cast_episode_download(episode_download: dict) -> EpisodeDownload:
-    return EpisodeDownload(
-        id=episode_download["id"],
-        anime_id=episode_download["anime_id"],
-        title=episode_download["title"],
-        episode_number=episode_download["episode_number"],
-        poster=episode_download["poster"],
-        job_id=episode_download["job_id"],
-        size=episode_download["size"],
-        status=episode_download["status"],
-        downloaded_at=episode_download["downloaded_at"],
     )
 
 
@@ -126,14 +98,6 @@ def cast_episode_download_list(
     )
 
 
-def cast_download_task(download_task: dict) -> DownloadTaskStatus:
-    return DownloadTaskStatus(
-        job_id=download_task["job_id"],
-        episode_number=download_task["episode_number"],
-        success=download_task["success"],
-    )
-
-
 def cast_download_task_list(
     download_tasks: list[dict],
     total: int,
@@ -147,13 +111,6 @@ def cast_download_task_list(
     )
 
 
-def cast_anime_download_info(anime: dict) -> AnimeDownloadInfo:
-    return AnimeDownloadInfo(
-        id=anime["id"],
-        title=anime["title"],
-    )
-
-
 def cast_downloaded_anime_list(
     animes: list[dict],
     total: int,
@@ -161,14 +118,6 @@ def cast_downloaded_anime_list(
     return AnimeDownloadInfoList(
         items=[cast_anime_download_info(anime) for anime in animes],
         total=total,
-    )
-
-
-def cast_anime_storage(anime: dict) -> AnimeStorageInfo:
-    return AnimeStorageInfo(
-        id=anime["id"],
-        title=anime["title"],
-        size=anime["size"],
     )
 
 

@@ -5,17 +5,11 @@ from .responses import (
     Franchise,
     FranchiseList,
 )
+from utils.cast import create_caster
 
 
-def cast_base_anime(anime: dict) -> BaseAnime:
-    return BaseAnime(
-        id=anime["id"],
-        title=anime["title"],
-        type=anime["type"],
-        poster=anime["poster"],
-        is_saved=anime["is_saved"],
-        save_date=anime["save_date"],
-    )
+cast_base_anime = create_caster(BaseAnime)
+cast_anime_franchise = create_caster(AnimeFranchise)
 
 
 def cast_franchise(franchise: dict) -> Franchise:
@@ -33,18 +27,6 @@ def cast_franchise_list(
     return FranchiseList(
         items=[cast_franchise(franchise) for franchise in franchises],
         total=total,
-    )
-
-
-def cast_anime_franchise(anime_franchise: dict) -> AnimeFranchise:
-    return AnimeFranchise(
-        id=anime_franchise["id"],
-        title=anime_franchise["title"],
-        type=anime_franchise["type"],
-        poster=anime_franchise["poster"],
-        is_saved=anime_franchise["is_saved"],
-        save_date=anime_franchise["save_date"],
-        franchise=anime_franchise["franchise"],
     )
 
 

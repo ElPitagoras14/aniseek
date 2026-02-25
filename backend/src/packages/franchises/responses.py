@@ -1,26 +1,7 @@
-from datetime import datetime
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
 
+from packages.animes.responses import BaseAnime
 from utils.responses import SuccessResponse
-
-
-class BaseAnime(BaseModel):
-    id: str
-    title: str
-    type: str
-    poster: str
-    is_saved: bool
-    save_date: datetime | None = None
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-        json_enconders={
-            datetime: lambda v: v.isoformat().replace("+00:00", "Z")
-        },
-    )
 
 
 class Franchise(BaseModel):

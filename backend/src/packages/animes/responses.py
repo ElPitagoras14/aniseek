@@ -1,7 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
 
+from utils.models import CamelCaseModel
 from utils.responses import SuccessResponse
 
 
@@ -11,36 +11,21 @@ class RelatedInfo(BaseModel):
     type: str
 
 
-class EpisodeInfo(BaseModel):
+class EpisodeInfo(CamelCaseModel):
     id: int
     anime_id: str
     image_preview: str | None = None
     is_user_downloaded: bool
     is_global_downloaded: bool
 
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
 
-
-class BaseAnime(BaseModel):
+class BaseAnime(CamelCaseModel):
     id: str
     title: str
     type: str
     poster: str
     is_saved: bool
     save_date: datetime | None = None
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-        json_enconders={
-            datetime: lambda v: v.isoformat().replace("+00:00", "Z")
-        },
-    )
 
 
 class SearchAnimeResult(BaseAnime):
@@ -69,15 +54,6 @@ class Anime(BaseAnime):
     last_scraped_at: datetime | None = None
     last_forced_update: datetime | None = None
 
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-        json_enconders={
-            datetime: lambda v: v.isoformat().replace("+00:00", "Z")
-        },
-    )
-
 
 class AnimeOut(SuccessResponse):
     payload: Anime | None
@@ -85,12 +61,6 @@ class AnimeOut(SuccessResponse):
 
 class InEmissionAnime(BaseAnime):
     week_day: str
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
 
 
 class InEmissionAnimeList(BaseModel):
@@ -102,7 +72,7 @@ class InEmissionAnimeListOut(SuccessResponse):
     payload: InEmissionAnimeList | None
 
 
-class EpisodeDownload(BaseModel):
+class EpisodeDownload(CamelCaseModel):
     id: int
     anime_id: str
     title: str
@@ -112,15 +82,6 @@ class EpisodeDownload(BaseModel):
     size: int | None = None
     status: str
     downloaded_at: datetime | None = None
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-        json_enconders={
-            datetime: lambda v: v.isoformat().replace("+00:00", "Z")
-        },
-    )
 
 
 class EpisodeDownloadList(BaseModel):

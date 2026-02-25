@@ -1,7 +1,6 @@
 from loguru import logger
 from sqlalchemy import asc, insert, select
 from sqlalchemy.orm import selectinload
-from starlette import status
 
 from worker import celery_app
 from databases.postgres import AsyncDatabaseSession, Anime, Franchise
@@ -11,7 +10,7 @@ from .schemas import CreateFranchise
 from .utils import cast_anime_franchise_list, cast_franchise_list
 
 
-async def get_franchises_controller(user_id: str) -> tuple[int, dict]:
+async def get_franchises_controller(user_id: str) -> dict:
     logger.debug("Getting franchises")
     async with AsyncDatabaseSession() as db:
         stmt = select(Franchise).options(
@@ -41,12 +40,10 @@ async def get_franchises_controller(user_id: str) -> tuple[int, dict]:
         total = len(franchises)
 
         casted_franchises = cast_franchise_list(franchises_info, total)
-        return status.HTTP_200_OK, casted_franchises
+        return casted_franchises
 
 
-async def create_franchise_controller(
-    franchise_info: CreateFranchise, request_id: str
-) -> tuple[int, dict]:
+async def create_franchise_controller(franchise_info: CreateFranchise) -> str:
     logger.debug("Creating franchise")
     async with AsyncDatabaseSession() as db:
         animes_ids = [anime.id for anime in franchise_info.animes]
@@ -62,9 +59,7 @@ async def create_franchise_controller(
         animes_ids = [anime.id for anime in franchise_info.animes]
         if franchise_id in animes_ids:
             logger.debug(f"Franchise name share by anime: {franchise_id}")
-            raise ConflictException(
-                "Franchise name share by anime", request_id=request_id
-            )
+            raise ConflictException("Franchise name share by anime")
 
         stmt = insert(Franchise).values(
             id=franchise_id, name=franchise_info.franchise
@@ -95,12 +90,12 @@ async def create_franchise_controller(
             args=[franchise_info],
         )
 
-        return status.HTTP_200_OK, "Franchise created successfully"
+        return "Franchise created successfully"
 
 
 async def get_animes_for_franchises_controller(
     user_id: str,
-) -> tuple[int, dict]:
+) -> dict:
     logger.debug("Getting animes")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -129,4 +124,4 @@ async def get_animes_for_franchises_controller(
         ]
 
         casted_animes = cast_anime_franchise_list(animes_info)
-        return status.HTTP_200_OK, casted_animes
+        return casted_animes

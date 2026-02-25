@@ -1,29 +1,23 @@
 import json
 from fastapi.responses import FileResponse, StreamingResponse
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, Request, Response
-from loguru import logger
+from fastapi import APIRouter, Depends
 
-from utils.responses import (
-    APIResponse,
-    ConflictResponse,
-    InternalServerErrorResponse,
-    NotFoundResponse,
-    SuccessResponse,
-)
-from utils.exceptions import (
-    InternalServerErrorException,
-    NotFoundException,
-    ConflictException,
-)
+from utils.responses import SuccessResponse
 from packages.auth import auth_scheme
+from .dependencies import (
+    valid_anime_id,
+    valid_episode_by_number,
+    anime_not_saved_by_user,
+    anime_is_saved_by_user,
+    valid_downloaded_episode,
+)
 from .service import (
     delete_anime_storage_controller,
     delete_download_episode_controller,
     download_anime_episode_bulk_controller,
     download_anime_episode_controller,
     get_animes_storage_controller,
-    get_download_episode_controller,
     get_download_episodes_controller,
     get_downloaded_animes_controller,
     get_in_emission_animes_controller,
@@ -52,358 +46,146 @@ animes_router = APIRouter()
 
 @animes_router.get(
     "/info/{anime_id}",
-    responses={
-        200: {"model": AnimeOut},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=AnimeOut,
+    summary="Get anime details",
+    description="Retrieve detailed information about an anime by ID",
 )
 async def get_anime(
     anime_id: str,
-    request: Request,
-    response: Response,
-    force_update: bool = False,
     current_user: dict = Depends(auth_scheme),
+    force_update: bool = False,
 ):
-    request.state.func = "get_anime"
-    try:
-        logger.info(f"Getting anime with id: {anime_id}")
-        status, data = await get_anime_controller(
-            anime_id, current_user["id"], force_update
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime retrieved",
-            func="get_anime",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting saved animes: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_anime_controller(
+        anime_id, current_user["id"], force_update
+    )
+    return SuccessResponse(payload=data, message="Anime retrieved")
 
 
 @animes_router.get(
     "/search",
-    responses={
-        200: {"model": SuccessResponse},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=SearchAnimeResultListOut,
+    summary="Search animes",
+    description="Search for animes by query string",
 )
 async def search_animes(
     query: str,
-    request: Request,
-    response: Response,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "search_animes"
-    try:
-        logger.info(f"Searching for {query}")
-        status, data = await search_anime_controller(query, current_user["id"])
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime searched",
-            func="search_animes",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting saved animes: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await search_anime_controller(query, current_user["id"])
+    return SuccessResponse(payload=data, message="Anime searched")
 
 
 @animes_router.get(
     "/saved",
-    responses={
-        200: {"model": SearchAnimeResultListOut},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=SearchAnimeResultListOut,
+    summary="Get saved animes",
+    description="Get all animes saved by the current user",
 )
 async def get_saved_animes(
-    request: Request,
-    response: Response,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "get_saved_animes"
-    try:
-        logger.info("Getting saved animes")
-        status, data = await get_saved_animes_controller(current_user["id"])
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Saved animes retrieved",
-            func="get_saved_animes",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting saved animes: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_saved_animes_controller(current_user["id"])
+    return SuccessResponse(payload=data, message="Saved animes retrieved")
 
 
 @animes_router.put(
     "/save/{anime_id}",
-    responses={
-        200: {"model": SuccessResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=SuccessResponse,
+    summary="Save anime",
+    description="Save an anime to user's list",
+    status_code=200,
 )
 async def save_anime(
-    anime_id: str,
-    request: Request,
-    response: Response,
-    current_user: dict = Depends(auth_scheme),
+    anime_data: dict = Depends(anime_not_saved_by_user),
 ):
-    request.state.func = "save_anime"
-    try:
-        logger.info(f"Saving anime with id: {anime_id}")
-        status, _ = await save_anime_controller(
-            anime_id, current_user["id"], request.state.request_id
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime saved successfully",
-            func="save_anime",
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error saving anime {anime_id}: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    await save_anime_controller(anime_data["anime_id"], anime_data["user_id"])
+    return SuccessResponse(payload=None, message="Anime saved successfully")
 
 
 @animes_router.put(
     "/unsave/{anime_id}",
-    responses={
-        200: {"model": SuccessResponse},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=SuccessResponse,
+    summary="Unsave anime",
+    description="Remove an anime from user's saved list",
+    status_code=200,
 )
 async def unsave_anime(
-    anime_id: str,
-    request: Request,
-    response: Response,
-    current_user: dict = Depends(auth_scheme),
+    anime_data: dict = Depends(anime_is_saved_by_user),
 ):
-    request.state.func = "unsave_anime"
-    try:
-        logger.info(f"Unsaving anime with id: {anime_id}")
-        status, _ = await unsave_anime_controller(
-            anime_id, current_user["id"], request.state.request_id
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime unsaved successfully",
-            func="unsave_anime",
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error unsaving anime {anime_id}: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    await unsave_anime_controller(
+        anime_data["anime_id"], anime_data["user_id"]
+    )
+    return SuccessResponse(payload=None, message="Anime unsaved successfully")
 
 
 @animes_router.get(
     "/in-emission",
-    responses={
-        200: {"model": InEmissionAnimeListOut},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=InEmissionAnimeListOut,
+    summary="Get in-emission animes",
+    description="Get animes that are currently airing",
 )
 async def get_in_emission_animes(
-    request: Request,
-    response: Response,
     current_user: dict = Depends(auth_scheme),
 ):
-    try:
-        logger.info("Getting in-emission animes")
-        status, data = await get_in_emission_animes_controller(
-            current_user["id"]
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="In-emission animes retrieved",
-            func="get_in_emission_animes",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error downloading anime: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_in_emission_animes_controller(current_user["id"])
+    return SuccessResponse(
+        payload=data, message="In-emission animes retrieved"
+    )
 
 
 @animes_router.get(
     "/download",
-    responses={
-        200: {"model": EpisodeDownloadListOut},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=EpisodeDownloadListOut,
+    summary="Get download episodes",
+    description="Get list of downloaded episodes",
 )
 async def get_download_episodes(
-    request: Request,
-    response: Response,
     anime_id: str | None = None,
     limit: int = 10,
     page: int = 1,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "get_download_episodes"
-    try:
-        logger.info("Getting downloads")
-        status, data = await get_download_episodes_controller(
-            current_user["id"], anime_id, limit, page
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Downloads retrieved",
-            func="get_download_episodes",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting downloads: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_download_episodes_controller(
+        current_user["id"], anime_id, limit, page
+    )
+    return SuccessResponse(payload=data, message="Downloads retrieved")
 
 
 @animes_router.get(
     "/download/last",
-    responses={
-        200: {"model": EpisodeDownloadListOut},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=EpisodeDownloadListOut,
+    summary="Get last downloaded episodes",
+    description="Get recently downloaded episodes",
 )
 async def get_last_downloaded_episodes(
-    request: Request,
-    response: Response,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "get_last_downloaded_episodes"
-    try:
-        logger.info("Getting last downloaded episodes")
-        status, data = await get_last_downloaded_episodes_controller(
-            current_user["id"]
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Last downloaded episodes retrieved",
-            func="get_last_downloaded_episodes",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting last downloaded episodes: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_last_downloaded_episodes_controller(current_user["id"])
+    return SuccessResponse(
+        payload=data, message="Last downloaded episodes retrieved"
+    )
 
 
 @animes_router.get(
     "/download/anime",
-    responses={
-        200: {"model": AnimeDownloadInfoListOut},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=AnimeDownloadInfoListOut,
+    summary="Get downloaded animes",
+    description="Get list of animes with downloads",
 )
 async def get_downloaded_animes(
-    request: Request,
-    response: Response,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "get_downloaded_animes"
-    try:
-        logger.info("Getting downloaded animes")
-        status, data = await get_downloaded_animes_controller(
-            current_user["id"]
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Downloaded animes retrieved",
-            func="get_downloaded_animes",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting downloaded animes: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_downloaded_animes_controller(current_user["id"])
+    return SuccessResponse(payload=data, message="Downloaded animes retrieved")
 
 
 @animes_router.get(
     "/stream/download",
+    summary="Stream download status",
+    description="SSE stream for download job status updates",
 )
 async def get_download_status(job_ids: str):
     ids = set(job_ids.split(","))
-    logger.info(f"Getting download status for jobs: {ids}")
 
     async def event_generator():
         redis_sub = aioredis.from_url(f"{REDIS_URL}/2")
@@ -422,258 +204,116 @@ async def get_download_status(job_ids: str):
 
 @animes_router.get(
     "/download/episode/{episode_id}",
-    responses={
-        404: {"model": NotFoundResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    summary="Download episode file",
+    description="Get the downloaded episode file",
 )
 async def get_download_episode(
-    episode_id: int,
-    request: Request,
-    response: Response,
+    episode_data: dict = Depends(valid_downloaded_episode),
 ):
-    request.state.func = "get_download_episode"
-    try:
-        logger.info(f"Getting download episode with id: {episode_id}")
-        status, data = await get_download_episode_controller(episode_id)
-
-        response.status_code = status
-
-        response_data = FileResponse(
-            data["path"],
-            media_type="video/mp4",
-            headers={
-                "Content-Disposition": "attachment; "
-                + f"filename={data['filename']}"
-            },
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(
-            f"Error getting download episode with id: {episode_id}: {e}"
-        )
-        response.status_code = 500
-        return InternalServerErrorResponse(
-            request_id=request.state.request_id,
-            message=str(e),
-            func="get_download_episode",
-        )
+    return FileResponse(
+        episode_data["file_path"],
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": "attachment; "
+            + f"filename={episode_data['filename']}"
+        },
+    )
 
 
 @animes_router.post(
     "/download/single/{anime_id}/{episode_number}",
-    responses={
-        201: {"model": DownloadTaskOut},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=DownloadTaskOut,
+    summary="Download single episode",
+    description="Download a single anime episode",
+    status_code=201,
 )
 async def download_anime_episode(
-    anime_id: str,
-    episode_number: int,
-    request: Request,
-    response: Response,
+    episode_data: dict = Depends(valid_episode_by_number),
     force_download: bool = False,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "download_anime_episode"
-
-    try:
-        logger.info(f"Downloading anime with id: {anime_id}")
-
-        status, data = await download_anime_episode_controller(
-            anime_id,
-            episode_number,
-            force_download,
-            current_user["id"],
-            request.state.request_id,
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime downloaded successfully",
-            func="download_anime_episode",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(
-            f"Error downloading anime {anime_id} - {episode_number}: {e}"
-        )
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await download_anime_episode_controller(
+        episode_data["episode_id"],
+        force_download,
+        current_user["id"],
+    )
+    return SuccessResponse(
+        payload=data, message="Anime download enqueued successfully"
+    )
 
 
 @animes_router.delete(
     "/download/single/{anime_id}/{episode_number}",
-    responses={
-        200: {"model": SuccessResponse},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=SuccessResponse,
+    summary="Delete downloaded episode",
+    description="Delete a downloaded episode",
+    status_code=200,
 )
 async def delete_download_episode(
-    anime_id: str,
-    episode_number: int,
-    request: Request,
-    response: Response,
+    episode_data: dict = Depends(valid_episode_by_number),
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "delete_download_episode"
-    try:
-        logger.info(f"Deleting download episode with id: {episode_number}")
-        status, _ = await delete_download_episode_controller(
-            anime_id,
-            episode_number,
-            current_user["id"],
-            request.state.request_id,
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Download episode deleted successfully",
-            func="delete_download_episode",
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(
-            f"Error deleting download episode with id: {episode_number}: {e}"
-        )
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    await delete_download_episode_controller(
+        episode_data["episode_id"],
+        current_user["id"],
+    )
+    return SuccessResponse(
+        payload=None, message="Download episode deleted successfully"
+    )
 
 
 @animes_router.post(
     "/download/bulk/{anime_id}",
-    responses={
-        201: {"model": DownloadTaskListOut},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=DownloadTaskListOut,
+    summary="Bulk download episodes",
+    description="Download multiple episodes of an anime",
+    status_code=201,
 )
 async def download_anime_episode_bulk(
     anime_id: str,
-    request: Request,
-    response: Response,
     episodes: list[int],
     current_user: dict = Depends(auth_scheme),
+    anime_data: dict = Depends(valid_anime_id),
 ):
-    request.state.func = "download_anime_episode_bulk"
-
-    try:
-        logger.info(f"Downloading anime with id: {anime_id}")
-
-        status, data = await download_anime_episode_bulk_controller(
-            anime_id,
-            episodes,
-            current_user["id"],
-            request.state.request_id,
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime downloaded successfully",
-            func="download_anime_episode_bulk",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error downloading anime {anime_id}: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await download_anime_episode_bulk_controller(
+        anime_data["anime_id"],
+        episodes,
+        current_user["id"],
+    )
+    return SuccessResponse(
+        payload=data, message="Anime downloaded successfully"
+    )
 
 
 @animes_router.get(
     "/storage",
-    responses={
-        200: {"model": AnimeDownloadInfoListOut},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=AnimeDownloadInfoListOut,
+    summary="Get storage info",
+    description="Get anime storage usage information",
 )
 async def get_animes_storage(
-    request: Request,
-    response: Response,
     limit: int = 10,
     page: int = 1,
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "get_animes_storage"
-    try:
-        logger.info("Getting animes storage")
-        status, data = await get_animes_storage_controller(limit, page)
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Animes storage retrieved",
-            func="get_animes_storage",
-            payload=data,
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error getting animes storage: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    data = await get_animes_storage_controller(limit, page)
+    return SuccessResponse(payload=data, message="Animes storage retrieved")
 
 
 @animes_router.delete(
     "/storage/{anime_id}",
-    responses={
-        200: {"model": SuccessResponse},
-        409: {"model": ConflictResponse},
-        500: {"model": InternalServerErrorResponse},
-    },
+    response_model=SuccessResponse,
+    summary="Delete anime storage",
+    description="Delete all downloaded episodes for an anime",
+    status_code=200,
 )
 async def delete_anime_storage(
-    anime_id: str,
-    request: Request,
-    response: Response,
+    anime_data: dict = Depends(valid_anime_id),
     current_user: dict = Depends(auth_scheme),
 ):
-    request.state.func = "delete_anime_storage"
-    try:
-        logger.info(f"Deleting anime with id: {anime_id}")
-        status, _ = await delete_anime_storage_controller(
-            anime_id, current_user["id"], request.state.request_id
-        )
-
-        response.status_code = status
-
-        response_data = APIResponse(
-            success=True,
-            message="Anime storage deleted successfully",
-            func="delete_anime_storage",
-        )
-
-        return response_data
-    except Exception as e:
-        logger.error(f"Error deleting anime storage: {e}")
-        if not isinstance(e, (NotFoundException, ConflictException)):
-            raise InternalServerErrorException(
-                "Internal server error", request_id=request.state.request_id
-            )
-        raise
+    await delete_anime_storage_controller(
+        anime_data["anime_id"], current_user["id"]
+    )
+    return SuccessResponse(
+        payload=None, message="Anime storage deleted successfully"
+    )

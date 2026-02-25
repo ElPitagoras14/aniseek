@@ -227,7 +227,6 @@ def download_anime_episode_controller(
     anime_id: str,
     episode_number: int,
     user_id: str,
-    request_id: str,
 ):
     is_firt_try = self.request.retries == 0
 
@@ -245,6 +244,8 @@ def download_anime_episode_controller(
         logger.info(f"Incrementing download key: {download_key}")
         redis_db.incr(download_key)
 
+    # Usar self.request.id como request_id para tracking
+    request_id = self.request.id
     logger.contextualize(request_id=request_id, user_id=user_id)
     logger.info(
         f"Trying to download anime with id: {anime_id} - {episode_number}"

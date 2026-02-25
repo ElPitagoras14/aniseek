@@ -1,13 +1,12 @@
 from pydantic import BaseModel, ConfigDict
 from starlette import status
 from pydantic.alias_generators import to_camel
-from typing import Optional, Any
+from typing import Any, Optional
 
 
 class APIResponse(BaseModel):
     success: bool
     message: str
-    func: str
     payload: Optional[Any] = None
     error_code: Optional[int] = None
 
@@ -20,7 +19,6 @@ class APIResponse(BaseModel):
 
 class SuccessResponse(APIResponse):
     success: bool = True
-    error_code: int = None
 
 
 class NotFoundResponse(APIResponse):

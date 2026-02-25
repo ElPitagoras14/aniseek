@@ -21,6 +21,9 @@ from middleware import add_logging_and_timing
 
 ADMIN_USER = general_settings.ADMIN_USER
 ADMIN_PASS = general_settings.ADMIN_PASS
+ENVIRONMENT = general_settings.ENVIRONMENT
+
+SHOW_DOCS_ENVIRONMENT = ("local", "staging")
 
 
 configure_logs()
@@ -68,12 +71,17 @@ async def lifespan(app: FastAPI):
 
 version = "1.0.0"
 
-app = FastAPI(
-    title="Ani Seek API",
-    description="API for scraped anime data from various sources.",
-    version=version,
-    lifespan=lifespan,
-)
+app_configs = {
+    "title": "Ani Seek API",
+    "description": "API for scraped anime data from various sources.",
+    "version": version,
+    "lifespan": lifespan,
+}
+
+if ENVIRONMENT not in SHOW_DOCS_ENVIRONMENT:
+    app_configs["openapi_url"] = None
+
+app = FastAPI(**app_configs)
 
 app.middleware("http")(add_logging_and_timing)
 

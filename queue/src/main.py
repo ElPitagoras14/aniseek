@@ -56,7 +56,6 @@ def download_anime_episode(
     anime_id: str,
     episode_number: int,
     user_id: str,
-    request_id: str,
 ):
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -66,7 +65,6 @@ def download_anime_episode(
         anime_id,
         episode_number,
         user_id,
-        request_id,
     )
 
 

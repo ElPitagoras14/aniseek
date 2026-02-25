@@ -15,6 +15,7 @@ dependencies = [
     "psycopg2>=2.9.11",
     "pydantic-settings>=2.11.0",
     "python-jose>=3.5.0",
+    "pytz>=2025.2",
     "redis>=6.4.0",
     "scalar-fastapi>=1.4.3",
     "sqlalchemy>=2.0.44",
