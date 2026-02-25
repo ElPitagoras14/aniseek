@@ -1,4 +1,3 @@
-# exceptions_handler.py
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from .exceptions import CustomHTTPException

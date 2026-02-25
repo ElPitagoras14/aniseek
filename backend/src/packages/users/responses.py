@@ -1,11 +1,11 @@
 from datetime import datetime
-import uuid
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
+
+from utils.models import CamelCaseModel
 
 
-class User(BaseModel):
-    id: uuid.UUID
+class User(CamelCaseModel):
+    id: str
     username: str
     avatar_url: str | None = None
     avatar_label: str | None = None
@@ -13,12 +13,6 @@ class User(BaseModel):
     is_active: bool
     created_at: datetime | None = None
     updated_at: datetime | None = None
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
 
 
 class UserOut(BaseModel):
@@ -49,16 +43,10 @@ class AvatarListOut(BaseModel):
     payload: AvatarList | None
 
 
-class Statistics(BaseModel):
+class Statistics(CamelCaseModel):
     saved_animes: int
     downloaded_episodes: int
     in_emission_animes: int
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
 
 
 class StatisticsOut(BaseModel):

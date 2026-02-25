@@ -56,7 +56,7 @@ async def get_users_controller(user_id: str):
         return status.HTTP_200_OK, casted_users
 
 
-async def get_me_controller(user_id: str, request_id: str):
+async def get_me_controller(user_id: str):
     logger.debug("Getting me")
     async with AsyncDatabaseSession() as db:
         stmt = (
@@ -67,12 +67,12 @@ async def get_me_controller(user_id: str, request_id: str):
         result = await db.execute(stmt)
         user = result.scalar()
         if not user:
-            raise NotFoundException("User not found", request_id=request_id)
+            raise NotFoundException("User not found")
         stmt = select(Avatar).where(Avatar.id == user.avatar_id)
         result = await db.execute(stmt)
         avatar = result.scalar()
         if not avatar:
-            raise NotFoundException("Avatar not found", request_id=request_id)
+            raise NotFoundException("Avatar not found")
 
         user_data = {
             "id": user.id,
@@ -120,16 +120,14 @@ async def get_avatars_controller():
         return status.HTTP_200_OK, casted_avatars
 
 
-async def update_user_controller(
-    user_info: UserInfo, user_id: str, request_id: str
-):
+async def update_user_controller(user_info: UserInfo, user_id: str):
     logger.debug(f"Updating user with id: {user_id}")
     async with AsyncDatabaseSession() as db:
         stmt = select(User).where(User.id == user_id)
         result = await db.execute(stmt)
         user = result.scalar()
         if not user:
-            raise NotFoundException("User not found", request_id=request_id)
+            raise NotFoundException("User not found")
 
         if user_info.username:
             user.username = user_info.username
@@ -138,9 +136,7 @@ async def update_user_controller(
             if not verify_password(
                 user_info.password.current_password, user.password
             ):
-                raise ConflictException(
-                    "Current password is incorrect", request_id=request_id
-                )
+                raise ConflictException("Current password is incorrect")
             user.password = get_hash(user_info.password.new_password)
 
         if user_info.avatar_id:
