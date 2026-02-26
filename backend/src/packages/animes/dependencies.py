@@ -16,6 +16,43 @@ from databases.postgres import (
 from .config import anime_settings
 
 
+async def valid_anime_for_update(
+    anime_id: str,
+    current_user: dict = Depends(auth_scheme),
+) -> dict:
+    """Valida que el anime existe y puede ser actualizado (cooldown 5 min)."""
+    async with AsyncDatabaseSession() as db:
+        stmt = select(Anime).where(Anime.id == anime_id)
+        anime = await db.scalar(stmt)
+
+        if not anime or not anime.last_scraped_at:
+            raise NotFoundException(
+                "Anime not found or not yet created. "
+                "Use GET /animes/info/{anime_id} to create it first."
+            )
+
+        from datetime import datetime, timezone, timedelta
+        current_time = datetime.now(timezone.utc)
+        last_scraped = anime.last_scraped_at.replace(tzinfo=timezone.utc)
+        cooldown_minutes = 5
+
+        time_diff = current_time - last_scraped
+        if time_diff < timedelta(minutes=cooldown_minutes):
+            remaining_seconds = int(
+                (timedelta(minutes=cooldown_minutes) - time_diff).total_seconds()
+            )
+            raise NotFoundException(
+                f"Anime was updated recently. "
+                f"Please wait {remaining_seconds} seconds before updating."
+            )
+
+        return {
+            "anime_id": anime_id,
+            "user_id": current_user["id"],
+            "anime_db": anime
+        }
+
+
 async def valid_anime_id(
     anime_id: str,
     current_user: dict = Depends(auth_scheme),

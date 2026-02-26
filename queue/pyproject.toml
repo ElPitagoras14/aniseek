@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10.14"
 dependencies = [
-    "ani-scrapy==0.1.18",
+    "ani-scrapy",
     "celery>=5.5.3",
     "dotenv>=0.9.9",
     "flower>=2.0.1",

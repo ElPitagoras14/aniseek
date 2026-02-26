@@ -1,17 +1,21 @@
 meta {
-  name: Get Last Downloaded Episodes
+  name: Update Anime Info
   type: http
-  seq: 10
+  seq: 4
 }
 
-get {
-  url: {{scraper-host}}/api/animes/download/last
+put {
+  url: {{scraper-host}}/api/animes/info/{{anime-id}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{auth-token}}
+}
+
+vars:pre-request {
+  anime-id: gachiakuta
 }
 
 settings {

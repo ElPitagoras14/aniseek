@@ -5,9 +5,9 @@ from celery import Celery
 from celery.signals import worker_ready
 from loguru import logger
 
-from tasks import download_anime_episode_controller, order_franchise_controller
 from config import general_settings
 from schemas import FranchiseInfo
+from tasks import download_anime_episode_controller, order_franchise_controller
 
 if sys.platform == "win32":
     loop = asyncio.ProactorEventLoop()
@@ -42,7 +42,7 @@ celery_app.conf.update(
 
 @worker_ready.connect
 def on_worker_ready(**kwargs):
-    logger.info("Celery workers are ready")
+    logger.info("Celery worker ready")
 
 
 @celery_app.task(
@@ -60,11 +60,13 @@ def download_anime_episode(
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-    download_anime_episode_controller(
-        self,
-        anime_id,
-        episode_number,
-        user_id,
+    asyncio.run(
+        download_anime_episode_controller(
+            self,
+            anime_id,
+            episode_number,
+            user_id,
+        )
     )
 
 
