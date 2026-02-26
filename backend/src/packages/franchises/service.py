@@ -2,7 +2,7 @@ from loguru import logger
 from sqlalchemy import asc, insert, select
 from sqlalchemy.orm import selectinload
 
-from worker import celery_app
+from worker import order_franchise
 from databases.postgres import AsyncDatabaseSession, Anime, Franchise
 from utils.utils import to_kebab_case
 from utils.exceptions import ConflictException
@@ -85,10 +85,7 @@ async def create_franchise_controller(franchise_info: CreateFranchise) -> str:
             ],
         }
 
-        celery_app.send_task(
-            "tasks.order_franchise",
-            args=[franchise_info],
-        )
+        order_franchise.send(franchise_info)
 
         return "Franchise created successfully"
 

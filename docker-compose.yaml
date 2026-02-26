@@ -57,10 +57,8 @@ services:
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - ACCESS_TOKEN_EXP_MIN=${ACCESS_TOKEN_EXP_MIN}
       - REFRESH_TOKEN_EXP_DAY=${REFRESH_TOKEN_EXP_DAY}
-      # - LOG_FOLDER=${LOG_FOLDER}
     volumes:
       - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
-      # - ${DOCKER_DATA_FOLDER}/logs:${LOG_FOLDER}
     depends_on:
       db:
         condition: service_healthy
@@ -72,12 +70,14 @@ services:
       - 8.8.8.8
       - 1.1.1.1
 
-  celery-worker:
+  dramatiq-worker:
     build:
       context: ./queue
       dockerfile: Dockerfile
       args:
         - ANIMES_FOLDER=${ANIMES_FOLDER}
+        - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
+        - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
     init: true
     environment:
       - REDIS_URL=redis://redis:6379
@@ -85,6 +85,8 @@ services:
       - RETRY_DOWNLOAD_INTERVAL=${RETRY_DOWNLOAD_INTERVAL}
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
+      - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
     volumes:
       - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
     depends_on:
@@ -92,25 +94,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    container_name: "${COMPOSE_PROJECT_NAME}-celery"
+    container_name: "${COMPOSE_PROJECT_NAME}-dramatiq"
     restart: unless-stopped
     dns:
       - 8.8.8.8
       - 1.1.1.1
-
-  flower:
-    image: mher/flower
-    command: celery flower --persistent=True
-    ports:
-      - "${FLOWER_PORT:-4005}:5555"
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379
-      - FLOWER_PORT=5555
-    container_name: "${COMPOSE_PROJECT_NAME}-flower"
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
 
   db:
     image: postgres:18.1-bookworm

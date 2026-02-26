@@ -3,7 +3,7 @@ from loguru import logger
 
 from config import general_settings
 
-LOG_PATH = general_settings.LOG_PATH
+APP_LOG_PATH = general_settings.APP_LOG_PATH
 ERROR_PATH = general_settings.ERROR_PATH
 
 
@@ -25,20 +25,11 @@ def configure_logs():
         format=logger_format,
     )
 
-    if LOG_PATH:
+    if APP_LOG_PATH:
         logger.add(
-            LOG_PATH,
+            APP_LOG_PATH,
             rotation="10 MB",
             retention="30 days",
             level="INFO",
-            format=logger_format,
-        )
-
-    if ERROR_PATH:
-        logger.add(
-            ERROR_PATH,
-            rotation="1 day",
-            retention="30 days",
-            level="ERROR",
             format=logger_format,
         )

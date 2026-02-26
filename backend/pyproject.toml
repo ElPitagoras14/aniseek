@@ -8,7 +8,7 @@ dependencies = [
     "ani-scrapy",
     "asyncpg>=0.31.0",
     "bcrypt>=4.0,<4.1",
-    "celery>=5.5.3",
+    "dramatiq[redis]>=1.19.0",
     "fastapi[standard]>=0.119.0",
     "loguru>=0.7.3",
     "passlib<1.8",

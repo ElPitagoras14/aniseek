@@ -36,7 +36,7 @@ from src.notifications import service as notification_service
 ### Rules
 - `async def` routes: Use ONLY non-blocking I/O (`await` calls)
 - `def` routes (sync): Use for blocking I/O (runs in threadpool automatically)
-- CPU-intensive work: Offload to Celery or multiprocessing
+- CPU-intensive work: Offload to Dramatiq or multiprocessing
 
 ### Common Mistakes to Avoid
 ```python
@@ -243,7 +243,7 @@ ruff format src
 | Non-blocking I/O | `async def` route with `await` |
 | Blocking I/O | `def` route (sync) |
 | Sync library in async | `run_in_threadpool()` |
-| CPU-intensive | Celery/multiprocessing |
+| CPU-intensive | Dramatiq/multiprocessing |
 | Request validation | Dependencies with DB checks |
 | Shared validation | Chain dependencies |
 | Config per domain | Separate `BaseSettings` classes |

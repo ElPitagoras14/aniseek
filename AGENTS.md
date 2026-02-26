@@ -4,7 +4,7 @@
 
 This is a modular monorepo composed of 4 isolated, self-contained folders. Each project has its own dependencies, configuration, and Dockerfile. There is no shared code between them.
 
-External services (PostgreSQL, Redis, Flower) are managed via Docker Compose.
+External services (PostgreSQL, Redis) are managed via Docker Compose.
 
 ---
 
@@ -13,14 +13,14 @@ External services (PostgreSQL, Redis, Flower) are managed via Docker Compose.
 ```
 /
 ├── backend/       # FastAPI REST API (Python 3.10.14)
-├── queue/         # Celery workers (Python 3.10.14)
+├── queue/         # Dramatiq workers (Python 3.10.14)
 ├── frontend/      # Next.js 15 / React 19 application
 ├── requests/      # Bruno API collection — DOCUMENTATION ONLY, do not modify
 └── docker-compose.yaml
 ```
 
-- **`backend/`**: Main API. Handles business logic, auth, database access, and dispatches tasks to the queue via Celery.
-- **`queue/`**: Celery workers that consume tasks from Redis. Communicates with backend exclusively through Celery/Redis.
+- **`backend/`**: Main API. Handles business logic, auth, database access, and dispatches tasks to the queue via Dramatiq.
+- **`queue/`**: Dramatiq workers that consume tasks from Redis. Communicates with backend exclusively through Dramatiq/Redis.
 - **`frontend/`**: Next.js app that consumes the backend API.
 - **`requests/`**: Bruno API request collection for documentation purposes. **Never modify any file in this folder.**
 
@@ -32,7 +32,6 @@ Services are orchestrated via `docker-compose.yaml` in the root. Startup depende
 
 - `backend` and `queue` depend on **postgres** and **redis**
 - `frontend` depends on **backend**
-- `flower` depends on **queue**
 
 To start only the external services needed for local development, run from the root:
 
@@ -65,8 +64,8 @@ uv run src/main.py
 # Install / sync dependencies
 uv sync
 
-# Run Celery worker
-uv run src/main.py
+# Run Dramatiq worker
+uv run dramatiq main --processes 2 --threads 4
 ```
 
 - Python version: **3.10.14**
@@ -110,9 +109,9 @@ packages/
 
 ---
 
-## 6. Queue Architecture (Celery)
+## 6. Queue Architecture (Dramatiq)
 
-- The queue communicates with the backend **exclusively via Celery/Redis**. No direct HTTP calls or shared imports between `backend/` and `queue/`.
+- The queue communicates with the backend **exclusively via Dramatiq/Redis**. No direct HTTP calls or shared imports between `backend/` and `queue/`.
 - Task definitions used by the backend are in `backend/src/worker.py`.
 - Worker execution logic lives in `queue/src/main.py`.
 
@@ -168,7 +167,7 @@ git commit -m "feat: add episode download endpoint"
 Commit with title and optional description:
 
 ```bash
-git commit -m "feat: add episode download endpoint" -m "Supports both single and bulk downloads. Dispatches tasks to the queue via Celery."
+git commit -m "feat: add episode download endpoint" -m "Supports both single and bulk downloads. Dispatches tasks to the queue via Dramatiq."
 ```
 
 ---

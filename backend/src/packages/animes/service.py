@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.dialects.postgresql import insert
 from urllib.parse import unquote
 
-from worker import celery_app
+from worker import download_anime_episode
 from utils.exceptions import NotFoundException, ConflictException
 from databases.postgres import (
     AsyncDatabaseSession,
@@ -252,10 +252,7 @@ async def add_new_anime(
 
 
 async def update_anime_info(
-    db: AsyncDatabaseSession,
-    anime_db: Anime,
-    base_url: str,
-    anime_id: str
+    db: AsyncDatabaseSession, anime_db: Anime, base_url: str, anime_id: str
 ) -> Anime:
     """Actualiza la información de un anime existente."""
     current_time = datetime.now(timezone.utc)
@@ -318,9 +315,9 @@ async def update_anime_controller(anime_id: str, user_id: str) -> dict:
         # Actualizar info (añade nuevos episodios a la relación episodes)
         anime_db = await update_anime_info(db, anime_db, base_url, anime_id)
         await db.commit()
-        
+
         # Refrescar el anime para cargar los episodios nuevos en la relación
-        await db.refresh(anime_db, attribute_names=['episodes'])
+        await db.refresh(anime_db, attribute_names=["episodes"])
 
         # Obtener datos de usuario
         user_data = await get_user_anime_data(db, user_id, anime_id)
@@ -336,9 +333,7 @@ async def update_anime_controller(anime_id: str, user_id: str) -> dict:
     return response
 
 
-async def get_anime_controller(
-    anime_id: str, user_id: str
-) -> dict:
+async def get_anime_controller(anime_id: str, user_id: str) -> dict:
     """Obtiene información de un anime. Crea si no existe, devuelve sin actualizar."""
     logger.debug(f"Getting anime with id: {anime_id}")
     base_url = f"https://jkanime.net/{anime_id}"
@@ -686,10 +681,7 @@ async def download_anime_episode_controller(
         if general_download and not force_download:
             return cast_job_id(general_download.episode.job_id)
 
-        result = celery_app.send_task(
-            "tasks.download_anime_episode",
-            args=[anime_id, episode_number, user_id],
-        )
+        result = download_anime_episode.send(anime_id, episode_number, user_id)
 
         if not force_download:
             new_download = UserDownloadEpisode(
@@ -698,13 +690,13 @@ async def download_anime_episode_controller(
             )
             db.add(new_download)
 
-        episode.job_id = result.id
+        episode.job_id = result.message_id
         episode.status = "PENDING"
         db.add(episode)
 
-        logger.debug(f"Enqueued download with job id: {result.id}")
+        logger.debug(f"Enqueued download with job id: {result.message_id}")
 
-        return cast_job_id(result.id)
+        return cast_job_id(result.message_id)
 
 
 async def delete_download_episode_controller(
@@ -804,16 +796,15 @@ async def download_anime_episode_bulk_controller(
                 episode.status = "PENDING"
                 db.add(episode)
 
-                result = celery_app.send_task(
-                    "tasks.download_anime_episode",
-                    args=[anime_id, episode.ep_number, user_id],
+                result = download_anime_episode.send(
+                    anime_id, episode.ep_number, user_id
                 )
-                logger.debug(f"Enqueued download with job id: {result.id}")
+                logger.debug(f"Enqueued download with job id: {result.message_id}")
 
-                episode.job_id = result.id
+                episode.job_id = result.message_id
                 db.add(episode)
                 await db.commit()
-                success_enqueued.append([result.id, ep_number])
+                success_enqueued.append([result.message_id, ep_number])
             except Exception as e:
                 logger.error(f"Error downloading episode: {e}")
                 failed_enqueued.append([None, ep_number])

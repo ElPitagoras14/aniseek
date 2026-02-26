@@ -38,6 +38,8 @@ RUN pip install --no-cache-dir playwright \
   && playwright install chromium
 
 ARG ANIMES_FOLDER
+ARG DRAMATIQ_PROCESSES
+ARG DRAMATIQ_THREADS
 
 RUN useradd -m appuser \
   && mkdir -p ${ANIMES_FOLDER} \
@@ -47,5 +49,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Execute main.py (Celery worker)
-CMD ["python", "main.py"]
+CMD ["sh", "-c", "dramatiq main --processes ${DRAMATIQ_PROCESSES} --threads ${DRAMATIQ_THREADS}"]
+

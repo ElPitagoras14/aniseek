@@ -6,9 +6,8 @@ readme = "README.md"
 requires-python = ">=3.10.14"
 dependencies = [
     "ani-scrapy",
-    "celery>=5.5.3",
+    "dramatiq[redis]>=1.19.0",
     "dotenv>=0.9.9",
-    "flower>=2.0.1",
     "psycopg2>=2.9.11",
     "pydantic-settings>=2.11.0",
     "redis>=6.4.0",
