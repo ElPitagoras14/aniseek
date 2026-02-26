@@ -11,6 +11,7 @@ from .dependencies import (
     anime_not_saved_by_user,
     anime_is_saved_by_user,
     valid_downloaded_episode,
+    valid_anime_for_update,
 )
 from .service import (
     delete_anime_storage_controller,
@@ -27,6 +28,7 @@ from .service import (
     search_anime_controller,
     get_anime_controller,
     unsave_anime_controller,
+    update_anime_controller,
 )
 from .responses import (
     AnimeDownloadInfoListOut,
@@ -53,12 +55,26 @@ animes_router = APIRouter()
 async def get_anime(
     anime_id: str,
     current_user: dict = Depends(auth_scheme),
-    force_update: bool = False,
 ):
-    data = await get_anime_controller(
-        anime_id, current_user["id"], force_update
-    )
+    data = await get_anime_controller(anime_id, current_user["id"])
     return SuccessResponse(payload=data, message="Anime retrieved")
+
+
+@animes_router.put(
+    "/info/{anime_id}",
+    response_model=AnimeOut,
+    summary="Update anime info",
+    description="Force update anime information (5 min cooldown required)",
+    status_code=200,
+)
+async def update_anime(
+    anime_data: dict = Depends(valid_anime_for_update),
+):
+    anime_id = anime_data["anime_id"]
+    user_id = anime_data["user_id"]
+
+    data = await update_anime_controller(anime_id, user_id)
+    return SuccessResponse(payload=data, message="Anime updated successfully")
 
 
 @animes_router.get(

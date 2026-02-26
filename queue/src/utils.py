@@ -1,3 +1,4 @@
+from loguru import logger
 from redis_client import redis_db
 
 
@@ -16,6 +17,7 @@ def stream_add_event(franchise_id: str, event: str):
 def stream_wait_event(franchise_id: str, event_type: str):
     stream_key = f"stream:franchise:{franchise_id}"
     last_id = "$"
+    logger.debug(f"Waiting for event '{event_type}' on {stream_key}")
 
     while True:
         messages = redis_db.xread(
