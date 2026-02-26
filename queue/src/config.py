@@ -8,6 +8,7 @@ class GeneralSettings(BaseSettings):
     MAX_DOWNLOAD_RETRIES: int
     RETRY_DOWNLOAD_INTERVAL: int
     ANIMES_FOLDER: str
+    WORKER_LOG_PATH: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),

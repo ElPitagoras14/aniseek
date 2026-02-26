@@ -3,7 +3,7 @@ variables:
   - name: scraper-host
     value: http://localhost:8000
   - name: auth-token
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDI5NWI3LWVkYTktNDExNS1iMjE4LWExNjBjZmQwZDM0NCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FjdGl2ZSI6dHJ1ZSwicm9sZSI6ImFkbWluIiwiYXZhdGFyVXJsIjpudWxsLCJhdmF0YXJMYWJlbCI6bnVsbCwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc3MjAxMTY1MH0.QcOcixLbWBv246Q87YIxTtVjvnTu11gQ0rxVdVilcTo
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDI5NWI3LWVkYTktNDExNS1iMjE4LWExNjBjZmQwZDM0NCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FjdGl2ZSI6dHJ1ZSwicm9sZSI6ImFkbWluIiwiYXZhdGFyVXJsIjpudWxsLCJhdmF0YXJMYWJlbCI6bnVsbCwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc3MjA4MDY1OH0.dbP299CUdapjFahxudCmICuyohxZDZQ6Kf0nYBWefDw
   - name: username
     value: admin
   - name: password

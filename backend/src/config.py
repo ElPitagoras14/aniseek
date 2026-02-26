@@ -6,7 +6,7 @@ class GeneralSettings(BaseSettings):
     ADMIN_USER: str
     ADMIN_PASS: str
 
-    LOG_PATH: str | None = None
+    APP_LOG_PATH: str | None = None
     ERROR_PATH: str | None = None
 
     SECRET_KEY: str

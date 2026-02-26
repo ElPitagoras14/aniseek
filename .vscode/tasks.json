@@ -34,19 +34,10 @@
       }
     },
     {
-      "label": "Run Celery",
+      "label": "Run Dramatiq",
       "type": "shell",
       "command": "uv",
-      "args": ["run", "main.py"],
-      "options": {
-        "cwd": "${workspaceFolder}/queue/src"
-      }
-    },
-    {
-      "label": "Run Flower",
-      "type": "shell",
-      "command": "uv",
-      "args": ["run", "celery", "-A", "main", "flower", "--port=5555"],
+      "args": ["run", "dramatiq", "main", "--processes", "2", "--threads", "4"],
       "options": {
         "cwd": "${workspaceFolder}/queue/src"
       }

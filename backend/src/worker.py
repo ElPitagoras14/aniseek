@@ -1,17 +1,21 @@
-from celery import Celery
-from celery.signals import worker_ready
+import dramatiq
+from dramatiq.brokers.redis import RedisBroker
 from config import general_settings
 from loguru import logger
 
 REDIS_URL = general_settings.REDIS_URL
 
-celery_app = Celery(
-    "worker_client",
-    broker=f"{REDIS_URL}/0",
-    backend=f"{REDIS_URL}/1",
-)
+broker = RedisBroker(url=REDIS_URL)
+dramatiq.set_broker(broker)
 
 
-@worker_ready.connect
-def on_worker_ready(**kwargs):
-    logger.info("Celery published worker ready")
+@dramatiq.actor
+def download_anime_episode(anime_id: str, episode_number: int, user_id: str):
+    parsed_episode = str(episode_number).zfill(2)
+    logger.info(f"Downloading {anime_id} E{parsed_episode}")
+
+
+@dramatiq.actor
+def order_franchise(franchise_info: dict):
+    logger.info(f"Ordering franchise {franchise_info['id']}")
+    pass

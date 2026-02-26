@@ -22,7 +22,7 @@
 
 - **Anime Scraper API** (`backend`): A backend service built with FastAPI. It handles data scraping, processing, and storage (PostgreSQL/Redis). It provides the structured API endpoints for data retrieval and management.
 - **Anime Scraper Frontend** (`frontend`): A web application developed with Next.js. It offers an intuitive interface for users to interact with the scraped data, manage collections, and access download features.
-- **Celery Workers** (`queue`): The asynchronous task processing system utilizing Celery and Redis. It is responsible for heavy operations like web scraping and server-side downloading tasks.
+- **Dramatiq Workers** (`queue`): The asynchronous task processing system utilizing Dramatiq and Redis. It is responsible for heavy operations like web scraping and server-side downloading tasks.
 
 Together, these components create a seamless solution for anime enthusiasts, simplifying the discovery and management of anime-related resources.
 
@@ -30,7 +30,7 @@ Together, these components create a seamless solution for anime enthusiasts, sim
 
 This project leverages a variety of modern technologies:
 
-*   **Backend:** Python 3.10+, FastAPI, PostgreSQL, Redis, Celery, ani-scrapy
+*   **Backend:** Python 3.10+, FastAPI, PostgreSQL, Redis, Dramatiq, ani-scrapy
 *   **Frontend:** Next.js, React, TypeScript, NextAuth.js (AuthJS), npm/yarn
 *   **Containerization:** Docker, Docker Compose
 *   **Development Tools:** VS Code Tasks, uv (Python package manager)
@@ -41,7 +41,7 @@ This system leverages several technologies to provide a seamless experience:
 
 - **Scraping**: The core scraping logic is handled by the external Python library [ani-scrapy](https://pypi.org/project/ani-scrapy/), which performs web scraping on anime websites (like AnimeFLV and JKAnime) to extract metadata and download links.
 - **Data Persistence**: Anime metadata and user information are stored in a **PostgreSQL** database.
-- **Asynchronous Processing**: Heavy tasks, such as initial data scraping and server-side episode downloads, are queued and processed asynchronously using **Celery** workers, with **Redis** acting as the message broker.
+- **Asynchronous Processing**: Heavy tasks, such as initial data scraping and server-side episode downloads, are queued and processed asynchronously using **Dramatiq** workers, with **Redis** acting as the message broker.
 - **User Interface**: The data is served via the FastAPI backend to the **Next.js** frontend, which provides the user interface. Authentication is managed using **NextAuth.js (AuthJS)**.
 
 ## Setup
@@ -61,7 +61,7 @@ To run this project, you need the following tools installed on your system:
 The easiest way to get the entire system running is by using Docker Compose.
 
 1.  Ensure Docker is running on your system.
-2.  Build the images and start all services (API, Web, DB, Redis, Workers, Flower) using the following command at the root of the project:
+2.  Build the images and start all services (API, Web, DB, Redis, Workers) using the following command at the root of the project:
 
     ```bash
     docker-compose up -d
@@ -70,7 +70,6 @@ The easiest way to get the entire system running is by using Docker Compose.
 3.  Access the services:
     -   **Web Frontend**: `http://localhost:4000` (or the port defined in `WEB_PORT`)
     -   **API Backend**: `http://localhost:4002` (or the port defined in `API_PORT`)
-    -   **Flower Dashboard (Celery)**: `http://localhost:4005` (or the port defined in `FLOWER_PORT`)
 
 > [!TIP]
 > If you are using `VSCode`, you can utilize the `Deploy with docker-compose` task.

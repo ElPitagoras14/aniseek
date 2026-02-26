@@ -5,7 +5,6 @@ from loguru import logger
 import requests
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from celery.exceptions import MaxRetriesExceededError
 
 from ani_scrapy import JKAnimeScraper
 from database import DatabaseSession, Anime, Episode
@@ -37,7 +36,7 @@ def server_supports_range(url, headers=None):
         if accept_ranges == "bytes" and content_length > 0:
             return True, content_length
     except Exception as e:
-        print(f"Error checking Range support: {e}")
+        logger.warning(f"Error checking Range support: {e}")
     return False, None
 
 
@@ -50,15 +49,14 @@ def update_episode_status(
         )
         episode = db.execute(stmt).scalar_one_or_none()
         if not episode:
-            logger.error(f"Episode {anime_id} - {episode_number} not found")
+            logger.error(
+                f"[{job_id}] Episode {anime_id} - {episode_number} not found"
+            )
             return
         episode.status = status
         if job_id is not None:
             episode.job_id = job_id
         db.add(episode)
-        logger.info(
-            f"Episode {anime_id} - {episode_number} updated to {status}"
-        )
 
 
 def notify_job(job_id: str, state: str, meta: dict):
@@ -86,7 +84,7 @@ def download_episode(
     server: str,
 ):
     start_time = time.time()
-    logger.info(
+    logger.debug(
         f"[{job_id}] Starting download: {anime_id} S{season:02d}E{episode_number:02d} from {server}"
     )
 
@@ -126,7 +124,7 @@ def download_episode(
             if downloaded < total_size:
                 resume_mode = True
                 headers = {"Range": f"bytes={downloaded}-"}
-                logger.info(
+                logger.debug(
                     f"[{job_id}] Resuming from byte {downloaded}/{total_size}"
                 )
             else:
@@ -193,7 +191,7 @@ def download_episode(
             db.add(episode)
 
         elapsed = time.time() - start_time
-        logger.info(
+        logger.debug(
             f"[{job_id}] Downloaded: {anime_id} S{season:02d}E{episode_number:02d} ({total_size} bytes, {elapsed:.1f}s)"
         )
         return True
@@ -208,33 +206,28 @@ def download_episode(
         logger.error(
             f"[{job_id}] Error downloading {anime_id} E{episode_number}: {e}"
         )
-        if save_path.exists():
-            logger.info(f"[{job_id}] Partial file remains: {save_path}")
         return False
 
 
 async def download_anime_episode_controller(
-    self,
+    message,
     anime_id: str,
     episode_number: int,
     user_id: str,
 ):
-    job_id = self.request.id
-    logger.contextualize(job_id=job_id, user_id=user_id)
-    logger.info(f"[{job_id}] Starting download: {anime_id} E{episode_number}")
+    job_id = message.message_id
+    retry_count = message.options.get("retry_count", 0)
 
-    is_firt_try = self.request.retries == 0
+    is_firt_try = retry_count == 0
     franchise_id = get_anime_episode_franchise(anime_id)
 
     if franchise_id and is_firt_try:
         ordering_key = get_ordering_key(franchise_id)
         if redis_db.exists(ordering_key):
-            logger.info(f"[{job_id}] Waiting for ordering to complete")
             stream_wait_event(franchise_id, "ordering_done")
         redis_db.incr(get_download_key(franchise_id))
 
     try:
-        self.update_state(state="GETTING-LINK")
         update_episode_status(anime_id, episode_number, "GETTING-LINK", job_id)
         notify_job(job_id, "GETTING-LINK", {})
 
@@ -255,7 +248,6 @@ async def download_anime_episode_controller(
                     f"No download links found for {anime_id} E{episode_number}"
                 )
 
-            self.update_state(state="GETTING-FILE-LINK")
             update_episode_status(
                 anime_id, episode_number, "GETTING-FILE-LINK"
             )
@@ -264,7 +256,7 @@ async def download_anime_episode_controller(
             valid_download_link = None
             selected_download_info = None
             for download_info in download_links:
-                logger.info(
+                logger.debug(
                     f"[{job_id}] Trying server: {download_info.server}"
                 )
                 file_download_link = await scraper.get_file_download_link(
@@ -279,7 +271,6 @@ async def download_anime_episode_controller(
                     f"Could not get file link for {anime_id} E{episode_number}"
                 )
 
-            self.update_state(state="DOWNLOADING")
             update_episode_status(anime_id, episode_number, "DOWNLOADING")
             notify_job(job_id, "DOWNLOADING", {})
 
@@ -297,12 +288,8 @@ async def download_anime_episode_controller(
                     f"Download failed for {anime_id} E{episode_number}"
                 )
 
-            self.update_state(state="SUCCESS")
             update_episode_status(anime_id, episode_number, "SUCCESS", None)
             notify_job(job_id, "SUCCESS", {})
-            logger.info(
-                f"[{job_id}] Download completed: {anime_id} E{episode_number}"
-            )
 
             if franchise_id:
                 count = redis_db.decr(get_download_key(franchise_id))
@@ -312,7 +299,7 @@ async def download_anime_episode_controller(
     except Exception as e:
         logger.error(f"[{job_id}] Error: {e}")
 
-        if self.request.retries >= MAX_DOWNLOAD_RETRIES:
+        if retry_count >= MAX_DOWNLOAD_RETRIES:
             logger.error(f"[{job_id}] Max retries exceeded")
             update_episode_status(anime_id, episode_number, "FAILED", job_id)
             notify_job(job_id, "FAILED", {})
@@ -320,22 +307,18 @@ async def download_anime_episode_controller(
                 count = redis_db.decr(get_download_key(franchise_id))
                 if count == 0:
                     stream_add_event(franchise_id, "downloads_done")
-            raise MaxRetriesExceededError(
-                f"Max retries for {anime_id} E{episode_number}"
-            )
+            raise e
 
-        countdown = RETRY_DOWNLOAD_INTERVAL * (2**self.request.retries)
         logger.warning(
-            f"[{job_id}] Retrying in {countdown}s (attempt {self.request.retries + 1})"
+            f"[{job_id}] Retrying (attempt {retry_count + 1}/{MAX_DOWNLOAD_RETRIES})"
         )
         update_episode_status(anime_id, episode_number, "RETRYING")
         notify_job(
             job_id,
             "RETRYING",
             {
-                "retry_count": self.request.retries + 1,
-                "max_retries": self.max_retries,
-                "next_retry_in": countdown,
+                "retry_count": retry_count + 1,
+                "max_retries": MAX_DOWNLOAD_RETRIES,
             },
         )
-        raise self.retry(countdown=countdown, exc=e, throw=False)
+        raise e

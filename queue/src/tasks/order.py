@@ -46,7 +46,7 @@ def get_started_download_count(franchise_id: str):
 def order_franchise_controller(franchise_info: FranchiseInfo):
     start_time = time.time()
     franchise_id = franchise_info["id"]
-    logger.info(f"[ordering:{franchise_id}] Starting franchise ordering")
+    logger.debug(f"Starting franchise ordering: {franchise_id}")
 
     ordering_key = get_ordering_key(franchise_id)
     redis_db.set(ordering_key, 1)
@@ -56,8 +56,8 @@ def order_franchise_controller(franchise_info: FranchiseInfo):
     redis_db.set(download_key, count)
 
     if count > 0:
-        logger.info(
-            f"[ordering:{franchise_id}] Waiting for {count} downloads to finish"
+        logger.debug(
+            f"Waiting for {count} downloads to finish: {franchise_id}"
         )
         stream_wait_event(franchise_id, "downloads_done")
 
@@ -76,7 +76,7 @@ def order_franchise_controller(franchise_info: FranchiseInfo):
             )
             if not anime_folder.exists():
                 logger.warning(
-                    f"[ordering:{franchise_id}] Folder not found: {anime_folder}"
+                    f"Folder not found: {anime_folder}"
                 )
                 continue
 
@@ -105,12 +105,12 @@ def order_franchise_controller(franchise_info: FranchiseInfo):
                 new_file_path = file.with_name(new_file_name)
                 file.rename(new_file_path)
 
-            logger.info(
-                f"[ordering:{franchise_id}] Ordered: {anime_id} S{parsed_season} -> S{new_parsed_season}"
+            logger.debug(
+                f"Ordered: {anime_id} S{parsed_season} -> S{new_parsed_season}"
             )
 
     elapsed = time.time() - start_time
-    logger.info(f"[ordering:{franchise_id}] Completed in {elapsed:.1f}s")
+    logger.debug(f"Completed ordering: {franchise_id} in {elapsed:.1f}s")
 
     stream_add_event(franchise_id, "ordering_done")
     redis_db.delete(ordering_key)
