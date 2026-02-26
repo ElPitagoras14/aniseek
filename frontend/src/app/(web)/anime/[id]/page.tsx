@@ -10,6 +10,8 @@ import apiClient from "@/lib/api-client";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface RelatedInfo {
@@ -26,14 +28,49 @@ interface EpisodeInfo {
   isGlobalDownloaded: boolean;
 }
 
-const getAnimeInfo = async (id: string, forceUpdate: boolean = false) => {
+const getAnimeInfo = async (id: string) => {
   const options = {
     method: "GET",
     url: `/animes/info/${id}`,
-    params: { force_update: forceUpdate },
   };
 
   return await apiClient(options);
+};
+
+const updateAnimeInfo = async (id: string) => {
+  const options = {
+    method: "PUT",
+    url: `/animes/info/${id}`,
+  };
+
+  return await apiClient(options);
+};
+
+const formatLastUpdate = (lastScrapedAt: string): string => {
+  const date = new Date(lastScrapedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minutes ago`;
+  } else if (diffDays < 1) {
+    const hours = Math.floor(diffMinutes / 60);
+    const mins = diffMinutes % 60;
+    return `${hours}h ${mins}m ago`;
+  } else if (diffDays < 5) {
+    const days = diffDays;
+    const hours = diffHours % 24;
+    return `${days}d ${hours}h ago`;
+  } else {
+    const day = date.getDate().toString().padStart(2, "0");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  }
 };
 
 export interface AnimeInfo {
@@ -52,14 +89,14 @@ export interface AnimeInfo {
   episodes: EpisodeInfo[];
   isFinished: boolean;
   lastScrapedAt: string;
-  lastForcedUpdate: string;
 }
 
 export default function Anime() {
   const params = useParams();
   const id = params.id as string;
-  const [minutesAgo, setMinutesAgo] = useState<number | null>(null);
+  const [lastUpdateFormatted, setLastUpdateFormatted] = useState<string>("");
   const [minutesToWait, setMinutesToWait] = useState<number | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["anime", id],
@@ -74,8 +111,8 @@ export default function Anime() {
     if (!anime) return;
 
     const updateTimes = () => {
-      setMinutesAgo(Math.max(0, getMinutesAgo(new Date(anime.lastScrapedAt))));
-      setMinutesToWait(3 - getMinutesAgo(new Date(anime.lastForcedUpdate)));
+      setLastUpdateFormatted(formatLastUpdate(anime.lastScrapedAt));
+      setMinutesToWait(5 - getMinutesAgo(new Date(anime.lastScrapedAt)));
     };
 
     updateTimes();
@@ -84,7 +121,7 @@ export default function Anime() {
     return () => clearInterval(interval);
   }, [anime]);
 
-  if (isLoading || !anime || minutesAgo === null || minutesToWait === null) {
+  if (isLoading || !anime || !lastUpdateFormatted || minutesToWait === null) {
     return (
       <>
         <div className="lg:hidden mb-4">
@@ -134,25 +171,30 @@ export default function Anime() {
               {anime.title}
             </span>
             <span className="text-sm text-muted-foreground">
-              Last update {minutesAgo} minutes ago
+              Last update {lastUpdateFormatted}
             </span>
           </div>
           <div className="flex flex-col gap-y-1 justify-center text-center">
             <Button
               variant="destructive"
               className="cursor-pointer"
-              disabled={minutesToWait > 0}
+              disabled={minutesToWait > 0 || isUpdating}
               onClick={async () => {
-                const freshData = await getAnimeInfo(id, true);
-                queryClient.setQueryData(["anime", id], freshData);
+                setIsUpdating(true);
+                try {
+                  const freshData = await updateAnimeInfo(id);
+                  queryClient.setQueryData(["anime", id], freshData);
+                  toast.success("Información actualizada");
+                } finally {
+                  setIsUpdating(false);
+                }
               }}
             >
-              Force update
+              {isUpdating ? <Spinner className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Update Info
             </Button>
             <span className="text-sm text-muted-foreground">
-              {minutesToWait > 0
-                ? `Wait ${minutesToWait} minutes to use`
-                : "Ready to use"}
+              {minutesToWait > 0 && `Wait ${minutesToWait} minutes to use`}
             </span>
           </div>
         </div>
