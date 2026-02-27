@@ -1,39 +1,29 @@
 version: "3.9"
 
 services:
+  # Development: Nginx proxy pointing to localhost services
+  nginx:
+    image: nginx:alpine
+    container_name: "${COMPOSE_PROJECT_NAME}-nginx"
+    ports:
+      - "4000:80"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-        - NEXTAUTH_URL=${NEXTAUTH_URL}
-    ports:
-      - "${WEB_PORT:-4000}:3000"
+    expose:
+      - "3000"
     environment:
-      - API_URL=http://api:8000
       - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_TRUST_HOST=true
     container_name: "${COMPOSE_PROJECT_NAME}-web"
     restart: unless-stopped
-    depends_on:
-      - api
-
-  web-remote:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL_REMOTE}
-        - NEXTAUTH_URL=${NEXTAUTH_URL_REMOTE}
-    ports:
-      - "${WEB_REMOTE_PORT:-4001}:3000"
-    environment:
-      - API_URL=http://api:8000
-      - AUTH_SECRET=${AUTH_SECRET}
-    container_name: "${COMPOSE_PROJECT_NAME}-web-remote"
-    restart: unless-stopped
-    profiles:
-      - remote
     depends_on:
       - api
 
@@ -44,8 +34,8 @@ services:
       args:
         - ANIMES_FOLDER=${ANIMES_FOLDER}
     init: true
-    ports:
-      - "${API_PORT:-4002}:8000"
+    expose:
+      - "8000"
     environment:
       - API_PORT=8000
       - ADMIN_USER=${ADMIN_USER}
@@ -57,6 +47,7 @@ services:
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - ACCESS_TOKEN_EXP_MIN=${ACCESS_TOKEN_EXP_MIN}
       - REFRESH_TOKEN_EXP_DAY=${REFRESH_TOKEN_EXP_DAY}
+      - BRAVE_PATH=/usr/bin/brave-browser
     volumes:
       - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
     depends_on:
@@ -87,6 +78,7 @@ services:
       - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
       - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
+      - BRAVE_PATH=/usr/bin/brave-browser
     volumes:
       - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
     depends_on:
@@ -103,7 +95,7 @@ services:
   db:
     image: postgres:18.1-bookworm
     ports:
-      - "${POSTGRES_PORT:-}:5432"
+      - "${POSTGRES_PORT:-4003}:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -121,7 +113,7 @@ services:
   redis:
     image: redis:8.4.0-bookworm
     ports:
-      - "${REDIS_PORT:-}:6379"
+      - "${REDIS_PORT:-4004}:6379"
     container_name: "${COMPOSE_PROJECT_NAME}-redis"
     restart: unless-stopped
     healthcheck:

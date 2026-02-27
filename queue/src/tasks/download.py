@@ -237,7 +237,7 @@ async def download_anime_episode_controller(
             anime = db.execute(stmt).scalar_one()
             season = anime.season
 
-        async with JKAnimeScraper() as scraper:
+        async with JKAnimeScraper(executable_path=general_settings.BRAVE_PATH) as scraper:
             download_info = await scraper.get_table_download_links(
                 anime_id, episode_number
             )

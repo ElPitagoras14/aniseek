@@ -76,6 +76,7 @@ app_configs = {
     "description": "API for scraped anime data from various sources.",
     "version": version,
     "lifespan": lifespan,
+    "root_path": "/api/v1",
 }
 
 if ENVIRONMENT not in SHOW_DOCS_ENVIRONMENT:
@@ -96,18 +97,19 @@ app.add_middleware(
 app.add_exception_handler(CustomHTTPException, custom_http_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
-app.include_router(router, prefix="/api")
+app.include_router(router)
 
 
-@app.get("/api/health")
+@app.get("/health")
 async def health_check():
     return {"status": "healthy", "version": version, "service": "Ani Seek API"}
 
 
 @app.get("/scalar", include_in_schema=False)
 async def scalar_html():
+    openapi_url = f"{app.root_path}{app.openapi_url}"
     return get_scalar_api_reference(
-        openapi_url=app.openapi_url,
+        openapi_url=openapi_url,
         title=app.title,
     )
 

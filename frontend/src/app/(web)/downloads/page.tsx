@@ -26,8 +26,6 @@ import { useDownloadProgress } from "@/providers/progress-provider";
 import { EpisodeDownload } from "@/lib/interfaces";
 import { DownloadTable } from "./components/table/download-table";
 
-// const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 interface QueryParams {
   sorting?: {
     id: string;

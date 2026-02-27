@@ -3,15 +3,13 @@
 import axios from "axios";
 import { getSession } from "next-auth/react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL_REMOTE;
-
-if (!API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not defined");
-}
+const baseURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:4000/api/v1"
+    : "/api/v1";
 
 const apiClient = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL,
 });
 
 apiClient.interceptors.request.use(async (config) => {

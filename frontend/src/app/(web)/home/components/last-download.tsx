@@ -19,7 +19,10 @@ import { DownloadIcon, SearchIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const apiBaseURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:4000"
+    : "";
 
 const getLastDownloadEpisodes = () => {
   const options = {
@@ -98,7 +101,7 @@ export default function LastDownload({ role, className }: LastDownloadProps) {
                   size="icon"
                   disabled={role === "guest"}
                   onClick={() =>
-                    (window.location.href = `${API_URL}/api/animes/download/episode/${episode.id}`)
+                    (window.location.href = `${apiBaseURL}/api/v1/animes/download/episode/${episode.id}`)
                   }
                   className="cursor-pointer"
                 >
