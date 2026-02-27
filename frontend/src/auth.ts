@@ -9,9 +9,8 @@ import type {
 import Credentials from "next-auth/providers/credentials";
 import { jwtDecode } from "jwt-decode";
 import type { JWT } from "next-auth/jwt";
-import axios from "axios";
+import { getApiServer } from "@/lib/api-server";
 
-const API_URL = process.env.API_URL;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -23,16 +22,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       authorize: async (credentials) => {
         try {
-          const loginOptions = {
-            method: "POST",
-            url: `${API_URL}/api/auth/login`,
-            data: {
-              username: credentials.username,
-              password: credentials.password,
-            },
-          };
+          const api = await getApiServer();
+          const response = await api.post("/auth/login", {
+            username: credentials.username,
+            password: credentials.password,
+          });
 
-          const response = await axios(loginOptions);
           const tokens: BackendJWT = response.data.payload;
 
           const access: DecodedJWT = jwtDecode(tokens.access);
@@ -75,15 +70,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update") {
         console.log("Update user");
         try {
-          const userInfoOptions = {
-            method: "GET",
-            url: `${API_URL}/api/users/me`,
-            headers: {
-              Authorization: `Bearer ${token.data.tokens.access}`,
-            },
-          };
-
-          const response = await axios(userInfoOptions);
+          const api = await getApiServer();
+          const response = await api.get("/users/me");
           const updatedUser = response.data.payload;
 
           token.data.user = {
@@ -117,14 +105,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           "AUTH: Refresh token",
           new Date(token.data.validity.refreshUntil * 1000).toLocaleString()
         );
-        const refreshOptions = {
-          method: "POST",
-          url: `${API_URL}/api/auth/refresh`,
-          params: {
-            refresh_token: token.data.tokens.refresh,
-          },
-        };
-        const response = await axios(refreshOptions);
+        const api = await getApiServer();
+        const response = await api.post("/auth/refresh", null, {
+          params: { refresh_token: token.data.tokens.refresh },
+        });
         const newToken: BackendAccessJWT = response.data.payload;
         const { exp }: DecodedJWT = jwtDecode(newToken.access);
         token.data.validity.validUntil = Math.min(

@@ -7,7 +7,10 @@ import { DownloadIcon } from "lucide-react";
 import { useJobProgress } from "@/hooks/use-job-progress";
 import { memo } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const apiBaseURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:4000"
+    : "";
 
 interface ProgressCellProps {
   status: string;
@@ -20,8 +23,6 @@ interface ProgressCellProps {
 export const ProgressCell = memo(
   ({ status, progress, id, jobId, role }: ProgressCellProps) => {
     const jobProgress = useJobProgress(jobId);
-
-    console.log("ProgressCell re-render for job:", jobId); // Para debug
 
     const effectiveStatus = jobProgress?.state || status;
     const effectiveProgress = jobProgress?.progress || progress;
@@ -46,7 +47,7 @@ export const ProgressCell = memo(
             size="icon"
             disabled={role !== "admin" && role !== "member"}
             onClick={() =>
-              (window.location.href = `${API_URL}/api/animes/download/episode/${id}`)
+              (window.location.href = `${apiBaseURL}/api/v1/animes/download/episode/${id}`)
             }
             className="cursor-pointer"
           >

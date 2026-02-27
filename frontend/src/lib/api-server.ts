@@ -1,14 +1,16 @@
 import axios from "axios";
 import { auth } from "@/auth";
 
-const API_URL = process.env.API_URL;
-
+const baseURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:4000/api/v1"
+    : "http://nginx:80/api/v1";
 
 export async function getApiServer() {
   const session = await auth();
 
   const instance = axios.create({
-    baseURL: `${API_URL}/api`,
+    baseURL,
   });
 
   instance.interceptors.request.use((config) => {

@@ -9,8 +9,6 @@ import React, {
   useState,
 } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 interface ProgressMeta {
   jobId: string;
   state: string;
@@ -46,6 +44,11 @@ export const DownloadProgressProvider = ({
   const [jobIds, setJobIds] = useState<string[]>([]);
   const sourceRef = useRef<EventSource | null>(null);
 
+  const sseBaseURL =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:4000/sse"
+      : "/sse";
+
   useEffect(() => {
     if (jobIds.length === 0) return;
 
@@ -54,7 +57,7 @@ export const DownloadProgressProvider = ({
     }
 
     const source = new EventSource(
-      `${API_URL}/api/animes/stream/download?job_ids=${jobIds.join(",")}`
+      `${sseBaseURL}/animes/stream/download?job_ids=${jobIds.join(",")}`
     );
     sourceRef.current = source;
 

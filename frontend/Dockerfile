@@ -12,12 +12,6 @@ RUN npm ci
 # Copy the rest of the application code
 COPY . .
 
-# Build-time environment variables
-ARG NEXT_PUBLIC_API_URL
-ARG NEXTAUTH_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NEXTAUTH_URL=${NEXTAUTH_URL}
-
 # Build Next.js application
 RUN npm run build
 
@@ -32,11 +26,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
-# Runtime environment variables
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ARG NEXTAUTH_URL
-ENV NEXTAUTH_URL=${NEXTAUTH_URL}
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
+
+USER nextjs
 
 # Expose the default Next.js port
 EXPOSE 3000

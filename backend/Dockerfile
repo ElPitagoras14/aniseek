@@ -17,6 +17,8 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
+ARG ANIMES_FOLDER
+
 # Needed libraries for Playwright/Chromium and psycopg2 in runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
   libasound2 libatk-bridge2.0-0 libatk1.0-0 libcairo2 libcups2 libdbus-1-3 \
@@ -32,12 +34,14 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy the application code
 COPY src /app
 
-# Install Chromium for Playwright
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN pip install --no-cache-dir playwright \
-  && playwright install chromium
+# Install Brave browser
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && curl -fsS https://dl.brave.com/install.sh | sh \
+    && rm -rf /var/lib/apt/lists/*
 
-ARG ANIMES_FOLDER
+# Install Playwright (without browser - Brave is used instead)
+RUN pip install --no-cache-dir playwright
 
 RUN useradd -m appuser \
   && mkdir -p ${ANIMES_FOLDER} \
