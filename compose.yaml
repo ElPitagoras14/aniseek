@@ -1,25 +1,20 @@
-version: "3.9"
-
 services:
-  # Development: Nginx proxy pointing to localhost services
   nginx:
     image: nginx:alpine
     container_name: "${COMPOSE_PROJECT_NAME}-nginx"
     ports:
       - "4000:80"
     volumes:
-      # To use with web and api service running locally
-      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      # To use with all services in the compose.dev.yaml file
-      # - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
 
   web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: elpitagoras14/aniseek-web:latest
     expose:
       - "3000"
     environment:
@@ -28,14 +23,17 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME}-web"
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        - ANIMES_FOLDER=${ANIMES_FOLDER}
+    image: elpitagoras14/aniseek-api:latest
     init: true
     expose:
       - "8000"
@@ -60,18 +58,15 @@ services:
         condition: service_healthy
     container_name: "${COMPOSE_PROJECT_NAME}-api"
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   dramatiq-worker:
-    build:
-      context: ./queue
-      dockerfile: Dockerfile
-      args:
-        - ANIMES_FOLDER=${ANIMES_FOLDER}
-        - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
-        - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
+    image: elpitagoras14/aniseek-worker:latest
     init: true
     environment:
       - REDIS_URL=redis://redis:6379
@@ -91,20 +86,23 @@ services:
         condition: service_healthy
     container_name: "${COMPOSE_PROJECT_NAME}-dramatiq"
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "dramatiq"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   postgres:
     image: postgres:18.1-bookworm
-    ports:
-      - "${POSTGRES_PORT:-4003}:5432"
+    expose:
+      - "5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     container_name: "${COMPOSE_PROJECT_NAME}-db"
     restart: unless-stopped
     healthcheck:
@@ -115,8 +113,10 @@ services:
 
   redis:
     image: redis:8.4.0-bookworm
-    ports:
-      - "${REDIS_PORT:-4004}:6379"
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
     container_name: "${COMPOSE_PROJECT_NAME}-redis"
     restart: unless-stopped
     healthcheck:
@@ -124,3 +124,7 @@ services:
       interval: 5s
       retries: 5
       timeout: 5s
+
+volumes:
+  postgres_data:
+  redis_data:

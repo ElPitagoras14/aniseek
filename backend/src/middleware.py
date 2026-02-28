@@ -1,4 +1,3 @@
-# middleware.py
 import time
 from fastapi import Request
 import uuid

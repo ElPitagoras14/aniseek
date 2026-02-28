@@ -63,12 +63,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     jwt: async ({ token, user, account, trigger }) => {
       if (user && account) {
-        console.log("Initial signin");
         return { ...token, data: user };
       }
 
       if (trigger === "update") {
-        console.log("Update user");
         try {
           const api = await getApiServer();
           const response = await api.get("/users/me");
@@ -81,8 +79,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             username: updatedUser.username,
             role: updatedUser.role,
           };
-
-          console.log("Updated user info:", updatedUser);
         } catch (error) {
           console.error("Error fetching updated user info:", error);
         }
@@ -93,18 +89,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (Date.now() < token.data.validity.validUntil * 1000) {
-        console.log(
-          "AUTH: Valid token",
-          new Date(token.data.validity.validUntil * 1000).toLocaleString()
-        );
         return token;
       }
 
       if (Date.now() < token.data.validity.refreshUntil * 1000) {
-        console.log(
-          "AUTH: Refresh token",
-          new Date(token.data.validity.refreshUntil * 1000).toLocaleString()
-        );
         const api = await getApiServer();
         const response = await api.post("/auth/refresh", null, {
           params: { refresh_token: token.data.tokens.refresh },
