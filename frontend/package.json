@@ -1,6 +1,7 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "aniseek-web",
+  "version": "1.0.0",
+  "description": "Web interface for anime streaming platform",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

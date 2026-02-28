@@ -1,0 +1,143 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      api_version: ${{ steps.api_version.outputs.version }}
+      worker_version: ${{ steps.worker_version.outputs.version }}
+      web_version: ${{ steps.web_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: api_version
+        run: echo "version=$(grep -m1 '^version' backend/pyproject.toml | cut -d'=' -f2 | tr -d ' "')" >> $GITHUB_OUTPUT
+
+      - id: worker_version
+        run: echo "version=$(grep -m1 '^version' queue/pyproject.toml | cut -d'=' -f2 | tr -d ' "')" >> $GITHUB_OUTPUT
+
+      - id: web_version
+        run: echo "version=$(grep -m1 '\"version\"' frontend/package.json | cut -d':' -f2 | tr -d ' ,"')" >> $GITHUB_OUTPUT
+
+  build-api:
+    needs: get-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        env:
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+        with:
+          provenance: false
+          sbom: false
+          context: ./backend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/elpitagoras14/aniseek-api:${{ needs.get-version.outputs.api_version }}
+            ghcr.io/elpitagoras14/aniseek-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-worker:
+    needs: get-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        env:
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+        with:
+          provenance: false
+          sbom: false
+          context: ./queue
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/elpitagoras14/aniseek-worker:${{ needs.get-version.outputs.worker_version }}
+            ghcr.io/elpitagoras14/aniseek-worker:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-web:
+    needs: get-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        env:
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+        with:
+          provenance: false
+          sbom: false
+          context: ./frontend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/elpitagoras14/aniseek-web:${{ needs.get-version.outputs.web_version }}
+            ghcr.io/elpitagoras14/aniseek-web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [build-api, build-worker, build-web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Dokploy
+        id: dokploy
+        if: success()
+        continue-on-error: true
+        run: |
+          curl -X 'POST' \
+            'https://dokploy.elpitagoras14.xyz/api/compose.deploy' \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' \
+            -d '{
+              "composeId": "${{ vars.DOKPLOY_COMPOSE_ID }}",
+              "title": "Deployment v${{ needs.get-version.outputs.api_version }}",
+              "description": "Automatic deployment from GitHub Actions"
+            }'
+
+      - name: Deploy to Dokploy status check
+        if: always() && success()
+        run: |
+          echo "Dokploy deployment completed"

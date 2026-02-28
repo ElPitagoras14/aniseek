@@ -1,4 +1,3 @@
-// hooks/use-job-progress.ts
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -23,7 +22,6 @@ export const useJobProgress = (jobId: string | null) => {
       return;
     }
 
-    // Solo actualizar si el jobId cambió o si el progressMap para este jobId cambió
     const currentProgress = progressMap[jobId];
     const prevJobId = prevJobIdRef.current;
 
@@ -31,7 +29,7 @@ export const useJobProgress = (jobId: string | null) => {
       setProgress(currentProgress);
       prevJobIdRef.current = jobId;
     }
-  }, [progressMap, jobId, progress]); // Dependencias correctas
+  }, [progressMap, jobId, progress]);
 
   return progress;
 };

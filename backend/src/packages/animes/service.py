@@ -85,7 +85,6 @@ async def get_user_anime_data(
     db: AsyncDatabaseSession, user_id: str, anime_id: str
 ) -> dict:
     """Obtiene datos de usuario para un anime específico."""
-    # Obtener info de guardado
     stmt = select(UserSaveAnime).where(
         UserSaveAnime.user_id == user_id,
         UserSaveAnime.anime_id == anime_id,
@@ -93,13 +92,11 @@ async def get_user_anime_data(
     result = await db.execute(stmt)
     saved_anime = result.scalar()
 
-    # Obtener episodios del anime para sus IDs
     stmt = select(Episode).where(Episode.anime_id == anime_id)
     result = await db.execute(stmt)
     episodes = result.scalars().all()
     episode_ids = [ep.id for ep in episodes]
 
-    # Descargas del usuario
     stmt = select(UserDownloadEpisode).where(
         UserDownloadEpisode.user_id == user_id,
         UserDownloadEpisode.episode_id.in_(episode_ids),
@@ -107,7 +104,6 @@ async def get_user_anime_data(
     result = await db.execute(stmt)
     downloaded_user_episodes = result.scalars().all()
 
-    # Descargas globales
     stmt = select(UserDownloadEpisode).where(
         UserDownloadEpisode.episode_id.in_(episode_ids)
     )
@@ -257,10 +253,8 @@ async def update_anime_info(
     """Actualiza la información de un anime existente."""
     current_time = datetime.now(timezone.utc)
 
-    # 1. Scrapear info básica (sin episodios)
     anime_info = await scrape_anime_info(anime_id, include_episodes=False)
 
-    # 2. Actualizar campos del anime
     anime_db.title = anime_info.title
     anime_db.description = anime_info.synopsis
     anime_db.poster = anime_info.poster
@@ -275,8 +269,7 @@ async def update_anime_info(
     anime_db.last_forced_update = current_time
     db.add(anime_db)
 
-    # 3. Scrapear nuevos episodios
-    await asyncio.sleep(1.5)  # Rate limiting
+    await asyncio.sleep(1.5)
     last_ep_number = max([ep.ep_number for ep in anime_db.episodes], default=0)
     new_episodes = await scrape_new_episodes(anime_id, last_ep_number)
 
@@ -298,7 +291,6 @@ async def update_anime_controller(anime_id: str, user_id: str) -> dict:
     base_url = f"https://jkanime.net/{anime_id}"
 
     async with AsyncDatabaseSession() as db:
-        # Obtener anime con relaciones (episodes ya se carga aquí)
         stmt = (
             select(Anime)
             .where(Anime.id == anime_id)
@@ -312,17 +304,13 @@ async def update_anime_controller(anime_id: str, user_id: str) -> dict:
         result = await db.execute(stmt)
         anime_db = result.scalar()
 
-        # Actualizar info (añade nuevos episodios a la relación episodes)
         anime_db = await update_anime_info(db, anime_db, base_url, anime_id)
         await db.commit()
 
-        # Refrescar el anime para cargar los episodios nuevos en la relación
         await db.refresh(anime_db, attribute_names=["episodes"])
 
-        # Obtener datos de usuario
         user_data = await get_user_anime_data(db, user_id, anime_id)
 
-        # Construir respuesta usando anime_db (ya tiene episodes actualizados)
         response = build_anime_response(
             anime_db,
             user_data["downloaded_user_episodes_ids"],
@@ -339,7 +327,6 @@ async def get_anime_controller(anime_id: str, user_id: str) -> dict:
     base_url = f"https://jkanime.net/{anime_id}"
 
     async with AsyncDatabaseSession() as db:
-        # Obtener anime con relaciones
         stmt = (
             select(Anime)
             .where(Anime.id == anime_id)
@@ -353,11 +340,9 @@ async def get_anime_controller(anime_id: str, user_id: str) -> dict:
         result = await db.execute(stmt)
         anime_db = result.scalar()
 
-        # Si no existe o dummy row → crear
         if not anime_db or not anime_db.last_scraped_at:
             logger.debug("Anime not in DB or dummy row found, creating...")
             await add_new_anime(db, base_url, anime_id)
-            # Recargar anime después de crear
             stmt = (
                 select(Anime)
                 .where(Anime.id == anime_id)
@@ -371,10 +356,8 @@ async def get_anime_controller(anime_id: str, user_id: str) -> dict:
             result = await db.execute(stmt)
             anime_db = result.scalar()
 
-        # Obtener datos de usuario usando helper
         user_data = await get_user_anime_data(db, user_id, anime_id)
 
-        # Construir respuesta usando helper
         response = build_anime_response(
             anime_db,
             user_data["downloaded_user_episodes_ids"],

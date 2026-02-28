@@ -1,133 +1,189 @@
-# Anime Scraper Monorepo
+# Ani Seek
 
-## Table of Contents
+## Disclaimer
 
-*   [Description](#description)
-*   [Technologies](#technologies)
-*   [How It Works](#how-it-works)
-*   [Setup](#setup)
-    *   [Requirements](#requirements)
-    *   [Docker Setup](#docker-setup)
-*   [Development Use](#development-use)
-    *   [Backend (`backend`) and Queue (`queue`)](#backend-backend-and-queue-queue)
-    *   [Frontend (`frontend`)](#frontend-frontend)
-    *   [VS Code Tasks](#vs-code-tasks)
-*   [Ports Used](#ports-used)
-*   [Roadmap](#roadmap)
-*   [Author](#author)
-
-## Description
-
-**Anime Scraper** is a comprehensive system for scraping, managing, and interacting with anime data. This monorepo is structured around three main components working together:
-
-- **Anime Scraper API** (`backend`): A backend service built with FastAPI. It handles data scraping, processing, and storage (PostgreSQL/Redis). It provides the structured API endpoints for data retrieval and management.
-- **Anime Scraper Frontend** (`frontend`): A web application developed with Next.js. It offers an intuitive interface for users to interact with the scraped data, manage collections, and access download features.
-- **Dramatiq Workers** (`queue`): The asynchronous task processing system utilizing Dramatiq and Redis. It is responsible for heavy operations like web scraping and server-side downloading tasks.
-
-Together, these components create a seamless solution for anime enthusiasts, simplifying the discovery and management of anime-related resources.
-
-## Technologies
-
-This project leverages a variety of modern technologies:
-
-*   **Backend:** Python 3.10+, FastAPI, PostgreSQL, Redis, Dramatiq, ani-scrapy
-*   **Frontend:** Next.js, React, TypeScript, NextAuth.js (AuthJS), npm/yarn
-*   **Containerization:** Docker, Docker Compose
-*   **Development Tools:** VS Code Tasks, uv (Python package manager)
-
-## How It Works
-
-This system leverages several technologies to provide a seamless experience:
-
-- **Scraping**: The core scraping logic is handled by the external Python library [ani-scrapy](https://pypi.org/project/ani-scrapy/), which performs web scraping on anime websites (like AnimeFLV and JKAnime) to extract metadata and download links.
-- **Data Persistence**: Anime metadata and user information are stored in a **PostgreSQL** database.
-- **Asynchronous Processing**: Heavy tasks, such as initial data scraping and server-side episode downloads, are queued and processed asynchronously using **Dramatiq** workers, with **Redis** acting as the message broker.
-- **User Interface**: The data is served via the FastAPI backend to the **Next.js** frontend, which provides the user interface. Authentication is managed using **NextAuth.js (AuthJS)**.
-
-## Setup
-
-### Requirements
-
-To run this project, you need the following tools installed on your system:
-
--   **Docker** (Recommended for easy setup and deployment)
--   **Python 3.10+** (For backend and queue development without Docker)
--   **uv** or **pip** (Python package managers)
--   **Node.js 14+** (For frontend development without Docker)
--   **npm** or **yarn** (Node.js package managers)
-
-### Docker Setup
-
-The easiest way to get the entire system running is by using Docker Compose.
-
-1.  Ensure Docker is running on your system.
-2.  Build the images and start all services (API, Web, DB, Redis, Workers) using the following command at the root of the project:
-
-    ```bash
-    docker-compose up -d
-    ```
-
-3.  Access the services:
-    -   **Web Frontend**: `http://localhost:4000` (or the port defined in `WEB_PORT`)
-    -   **API Backend**: `http://localhost:4002` (or the port defined in `API_PORT`)
-
-> [!TIP]
-> If you are using `VSCode`, you can utilize the `Deploy with docker-compose` task.
-
-## Development Use
-
-> [!IMPORTANT]
-> You need running `postgres` and `redis` databases for the backend services. These can be started via Docker Compose (`docker-compose up -d postgres redis`) or run locally.
-
-#### Backend (`backend`) and Queue (`queue`)
-
-1.  Navigate to the `backend` or `queue` directory:
-    ```bash
-    cd backend # or cd queue
-    ```
-2.  Install dependencies using `uv` (recommended) or `pip`:
-    ```bash
-    uv install # or pip install -r requirements.txt
-    ```
-
-#### Frontend (`frontend`)
-
-1.  Navigate to the `frontend` directory:
-    ```bash
-    cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Run the development server:
-    ```bash
-    npm run dev
-    ```
-    The frontend will be accessible at `http://localhost:4000`.
-
-#### VS Code Tasks
-
-For easier development, VS Code tasks are defined in `.vscode/tasks.json`. You can run these tasks using `Ctrl+Shift+P` and typing `Run Task`.
-
-## Ports Used
-
-| Service                   | Port Used |
-| ------------------------- | --------- |
-| Web                       | `4000`    |
-| Web Remote (Personal Use) | `4001`    |
-| Api                       | `4002`    |
-| PostgresSQL               | `4003`    |
-| Redis                     | `4004`    |
-| Flower                    | `4005`    |
-
-## Roadmap
-
-- [x] Get download link with web scraping
-- [x] Create a web platform to manage and download anime epiosdes
-- [x] Change to server side downloading
-- [x] Upload anime scraper code as a library
+This project is intended for **educational purposes only**. The scraping functionality is designed to work with anime sources that permit such access. Users are responsible for ensuring compliance with applicable laws and the terms of service of the websites being scraped. The author assumes no liability for any misuse of this software.
 
 ## Author
 
 - [Jonathan García](https://github.com/ElPitagoras14) - Computer Science Engineer
+
+## Description
+
+Ani Seek is a comprehensive system for scraping, managing, and streaming anime content. This monorepo is structured around three main components:
+
+- **Ani Seek Web**: Frontend web application built with Next.js. Provides the user interface for browsing, searching, and managing anime collections.
+- **Ani Seek API**: Backend REST API built with FastAPI. Handles authentication, data management, and dispatches scraping tasks to workers.
+- **Ani Seek Worker**: Background processing service built with Dramatiq. Handles heavy operations like web scraping and episode downloads.
+
+## Technologies
+
+- **Backend**: Python 3.10, FastAPI, PostgreSQL, Redis, Dramatiq, ani-scrapy
+- **Frontend**: Next.js 15, React 19, TypeScript, NextAuth.js
+- **DevOps**: Docker, Docker Compose, GitHub Actions
+
+## Quick Start
+
+```bash
+docker compose up -d
+```
+
+Access the application at: **http://localhost:4000**
+
+A more robust configuration is available in `compose.yaml`.
+
+## Architecture
+
+This diagram illustrates the high-level architecture of Ani Seek, showing how the different components interact within the Docker network.
+
+```mermaid
+flowchart TB
+    User[👤 User]
+
+    subgraph Edge
+        Nginx[Nginx Reverse Proxy :4000]
+    end
+
+    subgraph Services
+        Web[Ani Seek Web :3000]
+        API[Ani Seek API :8000]
+        Worker[Ani Seek Worker]
+    end
+
+    subgraph Infrastructure
+        DB[(PostgreSQL :5432)]
+        Redis[(Redis :6379)]
+    end
+
+    User --> Nginx
+    Nginx --> Web
+    Nginx --> API
+
+    API --> Worker
+    API --> DB
+    API --> Redis
+
+    Worker --> DB
+    Worker --> Redis
+```
+
+## Download Flow
+
+This sequence diagram shows the typical flow when a user requests to download an anime episode, from the frontend request to the worker processing the download.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Web as Ani Seek Web
+    participant API as Ani Seek API
+    participant Worker as Ani Seek Worker
+    participant DB as PostgreSQL
+
+    User->>Web: Request episode download
+    Web->>API: POST /download
+    API->>DB: Create download task
+    API->>Worker: Dispatch task (Redis)
+    API-->>Web: Task queued
+    Web-->>User: Download started
+
+    Worker->>Worker: Process download task
+    Worker->>Worker: Scrape & download episode
+    Worker->>DB: Update task status
+    Worker-->>User: Download complete (SSE)
+```
+
+## Ports
+
+| Service    | Port | Exposure |
+| ---------- | ---- | -------- |
+| Nginx      | 4000 | External |
+| Web        | 3000 | Internal |
+| API        | 8000 | Internal |
+| PostgreSQL | 5432 | Internal |
+| Redis      | 6379 | Internal |
+
+**Nginx Routing:**
+
+- `/` → Routes to frontend (Next.js)
+- `/api/v1/` → Routes to backend API (FastAPI)
+- `/sse/` → Routes to backend for Server-Sent Events
+
+---
+
+## Development
+
+### Ani Seek API
+
+Backend REST API built with FastAPI. Handles authentication, anime data management, and dispatches scraping tasks to workers.
+
+```bash
+# Navigate to the backend directory
+cd backend
+
+# Install dependencies using uv (or pip if preferred)
+uv sync
+
+# Start the development server with auto-reload
+uv run src/main.py
+```
+
+### Ani Seek Worker
+
+Background processing service built with Dramatiq. Consumes tasks from Redis to perform web scraping and episode downloads.
+
+```bash
+# Navigate to the queue directory
+cd queue
+
+# Install dependencies using uv
+uv sync
+
+# Start the worker with 2 processes and 4 threads each
+uv run dramatiq main --processes 2 --threads 4
+```
+
+### Ani Seek Web
+
+Frontend web application built with Next.js. Provides the user interface for browsing and managing anime content.
+
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install project dependencies
+npm install
+
+# Start the development server with hot-reload
+npm run dev
+```
+
+### Docker Services for Development
+
+For local development without Docker, you need PostgreSQL and Redis running. Start only the required services:
+
+```bash
+# Start PostgreSQL and Redis containers in detached mode
+docker compose up postgres redis -d
+```
+
+These services are required for the API and Worker to function properly.
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure your environment:
+
+```bash
+# Create .env from the example file
+cp .env.example .env
+```
+
+Edit `.env` with your local settings (database credentials, secrets, etc.). See `.env.example` for available options.
+
+## Deployment
+
+Currently, this project is designed for **local deployment only** and does not support HTTPS natively. For production deployments:
+
+- Configure a reverse proxy (nginx, Traefik, etc.)
+- Or use a service like Cloudflare to handle HTTPS termination
+
+The containers should be placed behind a secure proxy for any internet-facing deployment.
