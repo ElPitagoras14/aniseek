@@ -158,7 +158,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    needs: [build-api, build-worker, build-web, get-version]
+    needs: get-version
     if: needs.get-version.outputs.api_changed == 'true' || needs.get-version.outputs.worker_changed == 'true' || needs.get-version.outputs.web_changed == 'true'
     runs-on: ubuntu-latest
     steps:
