@@ -41,8 +41,6 @@ RUN pip install --no-cache-dir playwright
 
 RUN useradd -m appuser
 
-USER appuser
-
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000

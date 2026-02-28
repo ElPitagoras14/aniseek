@@ -24,13 +24,16 @@ Ani Seek is a comprehensive system for scraping, managing, and streaming anime c
 
 ## Quick Start
 
+1. Copy `compose.yaml` and `.env.example` to your local machine
+
+2. Rename `.env.example` to `.env` and fill in the required variables
+
+3. Start the services:
 ```bash
-docker compose up -d
+docker compose -f compose.yaml up -d
 ```
 
-Access the application at: **http://localhost:4000**
-
-A more robust configuration is available in `compose.yaml`.
+4. Access the application at: **http://localhost:4000**
 
 ## Architecture
 
