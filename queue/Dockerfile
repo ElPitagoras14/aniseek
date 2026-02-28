@@ -14,9 +14,9 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-ARG ANIMES_FOLDER
-ARG DRAMATIQ_PROCESSES
-ARG DRAMATIQ_THREADS
+ARG ANIMES_FOLDER=/animes
+ARG DRAMATIQ_PROCESSES=2
+ARG DRAMATIQ_THREADS=4
 
 # Libraries for Playwright/Chromium and psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY src /app
+COPY entrypoint.sh /entrypoint.sh
 
 # Brave browser
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,11 +39,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir playwright
 
-RUN useradd -m appuser \
-  && mkdir -p ${ANIMES_FOLDER} \
-  && chown -R appuser:appuser ${ANIMES_FOLDER}
+RUN useradd -m appuser
 
 USER appuser
 
-CMD ["sh", "-c", "dramatiq main --processes ${DRAMATIQ_PROCESSES} --threads ${DRAMATIQ_THREADS}"]
+RUN chmod +x /entrypoint.sh
 
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]

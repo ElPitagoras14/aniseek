@@ -34,8 +34,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      args:
-        - ANIMES_FOLDER=${ANIMES_FOLDER}
     init: true
     expose:
       - "8000"
@@ -68,10 +66,6 @@ services:
     build:
       context: ./queue
       dockerfile: Dockerfile
-      args:
-        - ANIMES_FOLDER=${ANIMES_FOLDER}
-        - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
-        - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
     init: true
     environment:
       - REDIS_URL=redis://redis:6379
