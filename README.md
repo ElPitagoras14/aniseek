@@ -24,16 +24,18 @@ Ani Seek is a comprehensive system for scraping, managing, and streaming anime c
 
 ## Quick Start
 
-1. Copy `compose.yaml` and `.env.example` to your local machine
+1. Copy `compose.yaml`, `.env.example` and `postgres/init.sql` to your local machine
 
 2. Rename `.env.example` to `.env` and fill in the required variables
 
-3. Start the services:
+3. Ensure `postgres/init.sql` is mounted to the PostgreSQL container (configured in compose.yaml)
+
+4. Start the services:
 ```bash
 docker compose -f compose.yaml up -d
 ```
 
-4. Access the application at: **http://localhost:4000**
+5. Access the application at: **http://localhost:4000**
 
 ## Architecture
 
