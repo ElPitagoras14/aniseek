@@ -15,7 +15,7 @@ import type { JWT } from "next-auth/jwt";
 const API_BASE_URL =
   process.env.NODE_ENV === "development"
     ? "http://localhost:4000/api/v1"
-    : "/api/v1";
+    : "http://nginx:80/api/v1";
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({

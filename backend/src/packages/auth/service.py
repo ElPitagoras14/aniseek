@@ -1,7 +1,6 @@
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from starlette import status
 
 from databases.postgres import AsyncDatabaseSession, User
 from utils.exceptions import NotFoundException, ConflictException
