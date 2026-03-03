@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import axios from "axios";
 import type {
   AuthValidity,
   BackendAccessJWT,
@@ -9,7 +10,12 @@ import type {
 import Credentials from "next-auth/providers/credentials";
 import { jwtDecode } from "jwt-decode";
 import type { JWT } from "next-auth/jwt";
-import { getApiServer } from "@/lib/api-server";
+
+
+const API_BASE_URL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:4000/api/v1"
+    : "/api/v1";
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -22,8 +28,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       authorize: async (credentials) => {
         try {
-          const api = await getApiServer();
-          const response = await api.post("/auth/login", {
+          const response = await axios.post(`${API_BASE_URL}/auth/login`, {
             username: credentials.username,
             password: credentials.password,
           });
@@ -68,8 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (trigger === "update") {
         try {
-          const api = await getApiServer();
-          const response = await api.get("/users/me");
+          const response = await axios.get(`${API_BASE_URL}/users/me`);
           const updatedUser = response.data.payload;
 
           token.data.user = {
@@ -93,8 +97,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (Date.now() < token.data.validity.refreshUntil * 1000) {
-        const api = await getApiServer();
-        const response = await api.post("/auth/refresh", null, {
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
           params: { refresh_token: token.data.tokens.refresh },
         });
         const newToken: BackendAccessJWT = response.data.payload;

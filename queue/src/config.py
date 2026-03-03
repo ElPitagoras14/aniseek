@@ -10,7 +10,7 @@ class GeneralSettings(BaseSettings):
     ANIMES_FOLDER: str
     WORKER_LOG_PATH: str | None = None
 
-    BRAVE_PATH: str = "/usr/bin/brave-browser"
+    BRAVE_PATH: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),

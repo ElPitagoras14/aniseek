@@ -42,7 +42,7 @@ async def register(register_info: CreateInfo):
     description="Refresh the access token using a refresh token",
 )
 async def refresh_token(refresh_token: str):
-    _, data = refresh_controller(refresh_token)
+    data = refresh_controller(refresh_token)
     return SuccessResponse(
         payload=data, message="Token refreshed successfully"
     )

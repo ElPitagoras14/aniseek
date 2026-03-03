@@ -75,14 +75,15 @@ async def register_controller(username: str, password: str):
 
 
 def refresh_controller(refresh_token: str):
-    logger.debug("Refreshing token")
+    logger.info("Refreshing access token")
     if not refresh_token:
-        logger.debug("No refresh token provided")
+        logger.warning("Refresh token missing in request")
         raise ConflictException("No refresh token provided")
     payload = verify_token(refresh_token)
     if not payload:
-        logger.debug("Invalid refresh token")
+        logger.warning("Invalid refresh token provided")
         raise ConflictException("Invalid refresh token")
     new_access_token = create_access_token(payload)
     casted_access_token = cast_access_token(new_access_token)
+    logger.info(f"Access token refreshed successfully for user: {payload.get('username')}")
     return casted_access_token

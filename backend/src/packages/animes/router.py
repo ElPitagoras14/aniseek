@@ -10,7 +10,7 @@ from .dependencies import (
     valid_episode_by_number,
     anime_not_saved_by_user,
     anime_is_saved_by_user,
-    valid_downloaded_episode,
+    valid_downloaded_episode_public,
     valid_anime_for_update,
 )
 from .service import (
@@ -224,7 +224,7 @@ async def get_download_status(job_ids: str):
     description="Get the downloaded episode file",
 )
 async def get_download_episode(
-    episode_data: dict = Depends(valid_downloaded_episode),
+    episode_data: dict = Depends(valid_downloaded_episode_public),
 ):
     return FileResponse(
         episode_data["file_path"],

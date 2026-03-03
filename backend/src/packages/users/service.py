@@ -1,6 +1,5 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
-from starlette import status
 from loguru import logger
 
 from databases.postgres import (
@@ -53,7 +52,7 @@ async def get_users_controller(user_id: str):
 
         casted_users = cast_users(all_users, len(all_users))
 
-        return status.HTTP_200_OK, casted_users
+        return casted_users
 
 
 async def get_me_controller(user_id: str):
@@ -86,7 +85,7 @@ async def get_me_controller(user_id: str):
         }
 
         casted_user = cast_user(user_data)
-        return status.HTTP_200_OK, casted_user
+        return casted_user
 
 
 async def check_username_controller(username: str):
@@ -95,8 +94,8 @@ async def check_username_controller(username: str):
         stmt = select(User).where(User.username == username)
         user = await db.scalar(stmt)
         if user:
-            return status.HTTP_200_OK, False
-        return status.HTTP_200_OK, True
+            return False
+        return True
 
 
 async def get_avatars_controller():
@@ -117,7 +116,7 @@ async def get_avatars_controller():
 
         casted_avatars = cast_avatars(avatars, len(avatars))
 
-        return status.HTTP_200_OK, casted_avatars
+        return casted_avatars
 
 
 async def update_user_controller(user_info: UserInfo, user_id: str):
@@ -143,7 +142,7 @@ async def update_user_controller(user_info: UserInfo, user_id: str):
             user.avatar_id = user_info.avatar_id
 
         db.add(user)
-        return status.HTTP_200_OK, "User updated successfully"
+        return "User updated successfully"
 
 
 async def get_user_statistics_controller(user_id: str):
@@ -185,4 +184,4 @@ async def get_user_statistics_controller(user_id: str):
 
         casted_statistics = cast_statistics(statistics)
 
-        return status.HTTP_200_OK, casted_statistics
+        return casted_statistics
