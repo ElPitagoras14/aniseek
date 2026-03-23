@@ -184,7 +184,7 @@ export default function EpisodesTab({ anime }: EpisodesTabProps) {
   const isDownloadDisabled =
     !downloadRangeValue || downloadBulkMutation.isPending;
 
-  const baseUrl = `https://jkanime.net/${anime.id}`;
+  const baseUrl = `https://animeav1.com/media/${anime.id}`;
 
   const sortedEpisodes = anime.episodes.sort((a, b) => {
     const idA = a.id;

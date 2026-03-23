@@ -40,7 +40,7 @@ def cast_anime_info(anime: dict, saved: dict) -> Anime:
         is_saved=saved["is_saved"],
         save_date=saved["save_date"],
         season=1,
-        platform="JKAnime",
+        platform="AnimeAV1",
         description=anime["description"],
         genres=anime["genres"],
         related_info=[
