@@ -151,7 +151,7 @@ wheels = [
 
 [[package]]
 name = "ani-scrapy"
-version = "0.5.1"
+version = "0.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -163,9 +163,9 @@ dependencies = [
     { name = "rich" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d4/2c/13d846f212c91d99dacaca778128d458c1710fa3982533ee68d04630a2ff/ani_scrapy-0.5.1.tar.gz", hash = "sha256:f95b0c512d9aded633d957bb4c4c711fc09c2252fddd00c5245bd52ca88c89a4", size = 33599, upload-time = "2026-03-14T04:33:57.184Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/57/68/1b4b77f7c2de7a4be7c276cfffc00300d568622f9ee982db4dafbbe6f52b/ani_scrapy-0.5.2.tar.gz", hash = "sha256:0fb1c9df2fc8e1e5f6e7d0eb803c41f09b0ce688b3a7e45bea0e00374471e0aa", size = 33653, upload-time = "2026-03-23T00:44:53.278Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/1d/398eb609f220650da3026d392d0141003fa4ed235d2936953bf82819170a/ani_scrapy-0.5.1-py3-none-any.whl", hash = "sha256:b8199ed1c1b8b9fc4bf860184fe906dca6180c8b19f20e39ea99429e022be21b", size = 37018, upload-time = "2026-03-14T04:33:57.961Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/e2/a216da6a255044faf0cc2f3c6f83984a5141a7bd99e7f3ad6eb3fba8ea4e/ani_scrapy-0.5.2-py3-none-any.whl", hash = "sha256:c9a632a658eedb87c8000d96c03eeb7c2aecc00903659aa94799702fc5bbb2d5", size = 37010, upload-time = "2026-03-23T00:44:54.473Z" },
 ]
 
 [[package]]

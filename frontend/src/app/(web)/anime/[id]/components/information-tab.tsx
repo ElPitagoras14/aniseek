@@ -39,16 +39,7 @@ export default function InformationTab({ anime }: InformationTabProps) {
           ))}
         </ul>
       </div>
-      <div className="flex flex-col gap-y-2">
-        <span className="text-lg font-semibold">Other titles</span>
-        <div className="flex flex-row flex-wrap gap-x-2 gap-y-2">
-          {anime.otherTitles.map((title) => (
-            <Badge key={title} className="py-1 px-4 text-sm">
-              {title}
-            </Badge>
-          ))}
-        </div>
-      </div>
+
     </div>
   );
 }

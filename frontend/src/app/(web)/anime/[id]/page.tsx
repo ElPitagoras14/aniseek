@@ -83,7 +83,6 @@ export interface AnimeInfo {
   platform: string;
   description: string;
   genres: string[];
-  otherTitles: string[];
   relatedInfo: RelatedInfo[];
   weekDay: string;
   episodes: EpisodeInfo[];

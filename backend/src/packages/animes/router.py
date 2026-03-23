@@ -8,8 +8,8 @@ from packages.auth import auth_scheme
 from .dependencies import (
     valid_anime_id,
     valid_episode_by_number,
-    anime_not_saved_by_user,
     anime_is_saved_by_user,
+    user_not_saved_anime,
     valid_downloaded_episode_public,
     valid_anime_for_update,
 )
@@ -112,7 +112,7 @@ async def get_saved_animes(
     status_code=200,
 )
 async def save_anime(
-    anime_data: dict = Depends(anime_not_saved_by_user),
+    anime_data: dict = Depends(user_not_saved_anime),
 ):
     await save_anime_controller(anime_data["anime_id"], anime_data["user_id"])
     return SuccessResponse(payload=None, message="Anime saved successfully")

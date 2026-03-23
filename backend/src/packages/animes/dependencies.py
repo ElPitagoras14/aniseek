@@ -195,6 +195,28 @@ async def anime_not_saved_by_user(
         return anime_data
 
 
+async def user_not_saved_anime(
+    anime_id: str,
+    current_user: dict = Depends(auth_scheme),
+) -> dict:
+    """Verifica que el usuario NO tenga el anime guardado (sin requerir que el anime exista en DB)."""
+    async with AsyncDatabaseSession() as db:
+        stmt = select(UserSaveAnime).where(
+            UserSaveAnime.user_id == current_user["id"],
+            UserSaveAnime.anime_id == anime_id,
+        )
+        result = await db.execute(stmt)
+        saved_anime = result.scalar()
+
+        if saved_anime:
+            raise ConflictException("Anime already saved by user")
+
+    return {
+        "anime_id": anime_id,
+        "user_id": current_user["id"],
+    }
+
+
 async def episode_not_downloaded_by_user(
     episode_data: dict = Depends(valid_episode_by_number),
     force_download: bool = False,
