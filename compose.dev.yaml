@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # Development: Nginx proxy pointing to localhost services
   nginx:
