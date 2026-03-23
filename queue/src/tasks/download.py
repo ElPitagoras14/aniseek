@@ -6,7 +6,7 @@ import requests
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ani_scrapy import AnimeAV1Scraper
+from ani_scrapy import JKAnimeScraper
 from database import DatabaseSession, Anime, Episode
 from redis_client import redis_db
 from config import general_settings
@@ -237,7 +237,9 @@ async def download_anime_episode_controller(
             anime = db.execute(stmt).scalar_one()
             season = anime.season
 
-        async with AnimeAV1Scraper(executable_path=general_settings.BRAVE_PATH) as scraper:
+        async with JKAnimeScraper(
+            executable_path=general_settings.BRAVE_PATH
+        ) as scraper:
             download_info = await scraper.get_table_download_links(
                 anime_id, episode_number
             )
