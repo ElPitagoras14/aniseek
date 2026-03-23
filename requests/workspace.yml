@@ -5,12 +5,12 @@ info:
 
 collections:
   - name: "auth"
-    path: "collections\\auth"
+    path: "collections/auth"
   - name: "Anime"
-    path: "collections\\Anime"
+    path: "collections/Anime"
 
 specs:
 
 docs: ''
 
-activeEnvironmentUid: f8dumt000000000000000
+activeEnvironmentUid: 6ar2vy000000000000000
