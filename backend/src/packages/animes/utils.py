@@ -40,20 +40,16 @@ def cast_anime_info(anime: dict, saved: dict) -> Anime:
         is_saved=saved["is_saved"],
         save_date=saved["save_date"],
         season=1,
-        other_titles=[title for title in anime["other_titles"]],
         platform="JKAnime",
         description=anime["description"],
         genres=anime["genres"],
         related_info=[
-            RelatedInfo(
-                id=related["id"], title=related["title"], type=related["type"]
-            )
+            RelatedInfo(id=related["id"], title=related["title"], type=related["type"])
             for related in anime["related_info"]
         ],
         week_day=anime["week_day"],
         is_finished=anime["is_finished"],
         last_scraped_at=anime["last_scraped_at"],
-        last_forced_update=anime["last_forced_update"],
         episodes=[
             EpisodeInfo(
                 id=episode["id"],
@@ -103,10 +99,7 @@ def cast_download_task_list(
     total: int,
 ) -> DownloadTaskList:
     return DownloadTaskList(
-        items=[
-            cast_download_task(download_task)
-            for download_task in download_tasks
-        ],
+        items=[cast_download_task(download_task) for download_task in download_tasks],
         total=total,
     )
 

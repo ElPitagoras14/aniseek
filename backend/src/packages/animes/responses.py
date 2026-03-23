@@ -46,13 +46,11 @@ class Anime(BaseAnime):
     platform: str
     description: str
     genres: list[str]
-    other_titles: list[str]
     related_info: list[RelatedInfo]
     week_day: str | None = None
     episodes: list[EpisodeInfo]
     is_finished: bool
     last_scraped_at: datetime | None = None
-    last_forced_update: datetime | None = None
 
 
 class AnimeOut(SuccessResponse):
