@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10.14"
 
 [[package]]
@@ -161,6 +161,33 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4a/16/5e29ac407affa9441207cb7a59787d2613ebcfe5f7cd1098873acc59e0d4/ani_scrapy-0.3.5.tar.gz", hash = "sha256:3308c14db83eb4c9a7e21f9f246c6cf5165b568b8ed6832f636c4a3d3b4e26cc", size = 38245, upload-time = "2026-02-26T00:38:40.168Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/53/177d16a46bd7f97166dfa7140f6eb00de78dec747541cd50e545a9351492/ani_scrapy-0.3.5-py3-none-any.whl", hash = "sha256:2734c4ae73755560ae86628db96e5f34b36864a0da574c1cf5149dfb31ae8473", size = 30731, upload-time = "2026-02-26T00:38:41.309Z" },
+]
+
+[[package]]
+name = "aniseek-worker"
+version = "1.0.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "ani-scrapy" },
+    { name = "dotenv" },
+    { name = "dramatiq", extra = ["redis"] },
+    { name = "psycopg2" },
+    { name = "pydantic-settings" },
+    { name = "redis" },
+    { name = "requests" },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ani-scrapy" },
+    { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "dramatiq", extras = ["redis"], specifier = ">=1.19.0" },
+    { name = "psycopg2", specifier = ">=2.9.11" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "redis", specifier = ">=6.4.0" },
+    { name = "requests", specifier = ">=2.32.5" },
+    { name = "sqlalchemy", specifier = ">=2.0.44" },
 ]
 
 [[package]]
@@ -1175,33 +1202,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f0/26/19cadc79a718c5edbec86fd4919a6b6d3f681039a2f6d66d14be94e75fb9/python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6", size = 44221, upload-time = "2025-10-26T15:12:10.434Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/14/1b/a298b06749107c305e1fe0f814c6c74aea7b2f1e10989cb30f544a1b3253/python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61", size = 21230, upload-time = "2025-10-26T15:12:09.109Z" },
-]
-
-[[package]]
-name = "queue"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "ani-scrapy" },
-    { name = "dotenv" },
-    { name = "dramatiq", extra = ["redis"] },
-    { name = "psycopg2" },
-    { name = "pydantic-settings" },
-    { name = "redis" },
-    { name = "requests" },
-    { name = "sqlalchemy" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ani-scrapy" },
-    { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "dramatiq", extras = ["redis"], specifier = ">=1.19.0" },
-    { name = "psycopg2", specifier = ">=2.9.11" },
-    { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "redis", specifier = ">=6.4.0" },
-    { name = "requests", specifier = ">=2.32.5" },
-    { name = "sqlalchemy", specifier = ">=2.0.44" },
 ]
 
 [[package]]

@@ -14,7 +14,7 @@ def configure_logs():
         "<level>{message}</level>"
     )
 
-    logger.remove(0)
+    logger.remove()
     logger.add(
         sys.stdout,
         level="DEBUG",
