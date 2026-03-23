@@ -22,7 +22,6 @@ export const response = {
       "Shounen",
       "Super Poderes",
     ],
-    otherTitles: ["OP", "One Piece", "ONE PIECE"],
     relatedInfo: [
       {
         id: "one-piece-taose-kaizoku-ganzack",
@@ -6983,6 +6982,5 @@ export const response = {
     ],
     isFinished: false,
     lastScrapedAt: "2025-08-25T01:58:01.118122Z",
-    lastForcedUpdate: "2025-08-25T01:58:01.118122Z",
   },
 };

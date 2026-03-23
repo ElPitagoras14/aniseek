@@ -46,16 +46,19 @@ const fields: FormField[] = [
         },
         {
           message: "Formato inválido. Ejemplo: 1-4,7,8-10,12",
-        }
+        },
       ),
   },
 ];
 
 const formSchema = z.object(
-  fields.reduce((acc, field) => {
-    acc[field.name] = field.validation;
-    return acc;
-  }, {} as Record<string, z.ZodType>)
+  fields.reduce(
+    (acc, field) => {
+      acc[field.name] = field.validation;
+      return acc;
+    },
+    {} as Record<string, z.ZodType>,
+  ),
 );
 
 interface DownloadEpisode {
@@ -143,7 +146,7 @@ export default function EpisodesTab({ anime }: EpisodesTabProps) {
         toast.error(
           `Episodes enqueued: ${success.length}. Failed ${failed
             .map((item: BulkEpisode) => item.episode_number)
-            .join(",")} episodes`
+            .join(",")} episodes`,
         );
       }
     },
@@ -176,6 +179,10 @@ export default function EpisodesTab({ anime }: EpisodesTabProps) {
       downloadRange: "",
     },
   });
+
+  const downloadRangeValue = form.watch("downloadRange");
+  const isDownloadDisabled =
+    !downloadRangeValue || downloadBulkMutation.isPending;
 
   const baseUrl = `https://jkanime.net/${anime.id}`;
 
@@ -211,7 +218,7 @@ export default function EpisodesTab({ anime }: EpisodesTabProps) {
         animeId: anime.id,
         episodeIds: episodes,
       });
-    }
+    },
   );
 
   return (
@@ -250,7 +257,7 @@ export default function EpisodesTab({ anime }: EpisodesTabProps) {
             </Tooltip>
           )}
           <Button
-            disabled={downloadBulkMutation.isPending}
+            disabled={isDownloadDisabled}
             onClick={onSubmit}
             type="button"
             className="cursor-pointer"

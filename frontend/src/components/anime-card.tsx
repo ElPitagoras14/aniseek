@@ -12,92 +12,91 @@ export interface AnimeInfo {
   saveDate: string;
 }
 
-// TODO: Enable save functionality after anime research is completed (saving happens in anime detail page)
-// import {
-//   Tooltip,
-//   TooltipContent,
-//   TooltipTrigger,
-// } from "@/components/ui/tooltip";
-// import { BookmarkIcon } from "lucide-react";
-// import { useState } from "react";
-// import apiClient from "@/lib/api-client";
-// import { useMutation } from "@tanstack/react-query";
-// import { toast } from "sonner";
-// import { AxiosError } from "axios";
-// import { Spinner } from "./ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { BookmarkIcon } from "lucide-react";
+import { useState } from "react";
+import apiClient from "@/lib/api-client";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
+import { Spinner } from "./ui/spinner";
 
-// const saveAnime = (animeId: string) => {
-//   const options = {
-//     method: "PUT",
-//     url: `/animes/save/${animeId}`,
-//   };
-//   return apiClient(options);
-// };
+const saveAnime = (animeId: string) => {
+  const options = {
+    method: "PUT",
+    url: `/animes/save/${animeId}`,
+  };
+  return apiClient(options);
+};
 
-// const unsaveAnime = (animeId: string) => {
-//   const options = {
-//     method: "PUT",
-//     url: `/animes/unsave/${animeId}`,
-//   };
-//   return apiClient(options);
-// };
+const unsaveAnime = (animeId: string) => {
+  const options = {
+    method: "PUT",
+    url: `/animes/unsave/${animeId}`,
+  };
+  return apiClient(options);
+};
 
 interface AnimeCardProps {
   animeInfo: AnimeInfo;
 }
 
 export default function AnimeCard({ animeInfo }: AnimeCardProps) {
-  // const [isSaved, setIsSaved] = useState<boolean>(animeInfo.isSaved);
+  const [isSaved, setIsSaved] = useState<boolean>(animeInfo.isSaved);
 
   const router = useRouter();
 
-  // const saveMutation = useMutation({
-  //   mutationFn: saveAnime,
-  //   onSuccess: () => {
-  //     toast.success(`${animeInfo.title} saved`);
-  //   },
-  //   onError: (error: AxiosError) => {
-  //     let message = error.message;
-  //     if (error.isAxiosError) {
-  //       const axiosError = error as AxiosError<{ message: string }>;
-  //       message = axiosError.response?.data?.message || axiosError.message;
-  //     } else if (error instanceof Error) {
-  //       message = error.message;
-  //     }
-  //     setIsSaved(false);
-  //     toast.error(message);
-  //   },
-  // });
+  const saveMutation = useMutation({
+    mutationFn: saveAnime,
+    onSuccess: () => {
+      toast.success(`${animeInfo.title} saved`);
+    },
+    onError: (error: AxiosError) => {
+      let message = error.message;
+      if (error.isAxiosError) {
+        const axiosError = error as AxiosError<{ message: string }>;
+        message = axiosError.response?.data?.message || axiosError.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      setIsSaved(false);
+      toast.error(message);
+    },
+  });
 
-  // const unsaveMutation = useMutation({
-  //   mutationFn: unsaveAnime,
-  //   onSuccess: () => {
-  //     toast.success(`${animeInfo.title} unsaved`);
-  //   },
-  //   onError: (error: AxiosError) => {
-  //     let message = error.message;
-  //     if (error.isAxiosError) {
-  //       const axiosError = error as AxiosError<{ message: string }>;
-  //       message = axiosError.response?.data?.message || axiosError.message;
-  //     } else if (error instanceof Error) {
-  //       message = error.message;
-  //     }
-  //     setIsSaved(true);
-  //     toast.error(message);
-  //   },
-  // });
+  const unsaveMutation = useMutation({
+    mutationFn: unsaveAnime,
+    onSuccess: () => {
+      toast.success(`${animeInfo.title} unsaved`);
+    },
+    onError: (error: AxiosError) => {
+      let message = error.message;
+      if (error.isAxiosError) {
+        const axiosError = error as AxiosError<{ message: string }>;
+        message = axiosError.response?.data?.message || axiosError.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      setIsSaved(true);
+      toast.error(message);
+    },
+  });
 
-  // const isLoading = saveMutation.isPending || unsaveMutation.isPending;
+  const isLoading = saveMutation.isPending || unsaveMutation.isPending;
 
-  // const handleSave = () => {
-  //   if (!isSaved) {
-  //     setIsSaved(true);
-  //     saveMutation.mutate(animeInfo.id);
-  //   } else {
-  //     setIsSaved(false);
-  //     unsaveMutation.mutate(animeInfo.id);
-  //   }
-  // };
+  const handleSave = () => {
+    if (!isSaved) {
+      setIsSaved(true);
+      saveMutation.mutate(animeInfo.id);
+    } else {
+      setIsSaved(false);
+      unsaveMutation.mutate(animeInfo.id);
+    }
+  };
 
   return (
     <div
@@ -111,7 +110,6 @@ export default function AnimeCard({ animeInfo }: AnimeCardProps) {
           fill
           className="rounded-md object-cover"
         />
-        {/* TODO: Enable save button after anime research is completed
         {isLoading ? (
           <div className="absolute top-1 right-1">
             <div
@@ -121,7 +119,7 @@ export default function AnimeCard({ animeInfo }: AnimeCardProps) {
                 handleSave();
               }}
             >
-              <Spinner className="size-6"/>
+              <Spinner className="size-6" />
             </div>
           </div>
         ) : (
@@ -149,7 +147,6 @@ export default function AnimeCard({ animeInfo }: AnimeCardProps) {
             </TooltipContent>
           </Tooltip>
         )}
-        */}
       </div>
       <div className="flex justify-center items-center">
         <div className="max-w-44 text-base text-wrap text-center">

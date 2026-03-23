@@ -9,9 +9,9 @@ services:
       - "4000:80"
     volumes:
       # To use with web and api service running locally
-      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      # - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
       # To use with all services in the compose.dev.yaml file
-      # - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

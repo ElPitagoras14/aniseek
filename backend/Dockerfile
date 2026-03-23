@@ -29,14 +29,6 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY src /app
 COPY entrypoint.sh /entrypoint.sh
 
-# Brave browser
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && curl -fsS https://dl.brave.com/install.sh | sh \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir playwright
-
 RUN useradd -m appuser
 
 RUN chmod +x /entrypoint.sh
