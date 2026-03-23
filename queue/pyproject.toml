@@ -1,6 +1,6 @@
 [project]
 name = "aniseek-worker"
-version = "1.1.0"
+version = "1.1.1"
 description = "Background worker for anime scraping tasks"
 readme = "README.md"
 requires-python = ">=3.10.14"
