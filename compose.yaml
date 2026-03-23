@@ -96,7 +96,7 @@ services:
       retries: 3
 
   postgres:
-    image: postgres:18.1-bookworm
+    image: postgres:18.1-alpine
     expose:
       - "5432"
     environment:
