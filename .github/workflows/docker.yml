@@ -3,23 +3,9 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      build_api:
-        description: "Build API"
-        type: boolean
-        default: false
-      build_worker:
-        description: "Build Worker"
-        type: boolean
-        default: false
-      build_web:
-        description: "Build Web"
-        type: boolean
-        default: false
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 concurrency:
@@ -30,68 +16,65 @@ jobs:
   get-version:
     runs-on: ubuntu-latest
     outputs:
-      api_version: ${{ steps.api_version.outputs.version }}
-      worker_version: ${{ steps.worker_version.outputs.version }}
-      web_version: ${{ steps.web_version.outputs.version }}
-      api_changed: ${{ steps.api_version.outputs.changed }}
-      worker_changed: ${{ steps.worker_version.outputs.changed }}
-      web_changed: ${{ steps.web_version.outputs.changed }}
-      force_api: ${{ steps.force.outputs.force_api }}
-      force_worker: ${{ steps.force.outputs.force_worker }}
-      force_web: ${{ steps.force.outputs.force_web }}
+      new-version: ${{ steps.compare.outputs.new-version }}
+      version-changed: ${{ steps.compare.outputs.version-changed }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - id: force
+      - id: current-version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "force_api=${{ github.event.inputs.build_api }}" >> $GITHUB_OUTPUT
-            echo "force_worker=${{ github.event.inputs.build_worker }}" >> $GITHUB_OUTPUT
-            echo "force_web=${{ github.event.inputs.build_web }}" >> $GITHUB_OUTPUT
-          else
-            echo "force_api=false" >> $GITHUB_OUTPUT
-            echo "force_worker=false" >> $GITHUB_OUTPUT
-            echo "force_web=false" >> $GITHUB_OUTPUT
-          fi
+          VERSION=$(grep -m1 '^version' backend/pyproject.toml | cut -d'=' -f2 | tr -d ' "')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - id: api_version
+      - id: latest-tag
         run: |
-          CURRENT=$(grep -m1 '^version' backend/pyproject.toml | cut -d'=' -f2 | tr -d ' "')
-          PREVIOUS=$(git show HEAD~1:backend/pyproject.toml 2>/dev/null | grep -m1 '^version' | cut -d'=' -f2 | tr -d ' "')
-          echo "version=$CURRENT" >> $GITHUB_OUTPUT
-          if [ "$CURRENT" != "$PREVIOUS" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          git fetch --tags
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
-      - id: worker_version
+      - id: compare
         run: |
-          CURRENT=$(grep -m1 '^version' queue/pyproject.toml | cut -d'=' -f2 | tr -d ' "')
-          PREVIOUS=$(git show HEAD~1:queue/pyproject.toml 2>/dev/null | grep -m1 '^version' | cut -d'=' -f2 | tr -d ' "')
-          echo "version=$CURRENT" >> $GITHUB_OUTPUT
-          if [ "$CURRENT" != "$PREVIOUS" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          CURRENT="${{ steps.current-version.outputs.version }}"
+          LATEST="${{ steps.latest-tag.outputs.tag }}"
 
-      - id: web_version
-        run: |
-          CURRENT=$(grep -m1 '"version"' frontend/package.json | cut -d':' -f2 | tr -d ' ,"')
-          PREVIOUS=$(git show HEAD~1:frontend/package.json 2>/dev/null | grep -m1 '"version"' | cut -d':' -f2 | tr -d ' ,"')
-          echo "version=$CURRENT" >> $GITHUB_OUTPUT
-          if [ "$CURRENT" != "$PREVIOUS" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "version-changed=false" >> $GITHUB_OUTPUT
           else
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "version-changed=true" >> $GITHUB_OUTPUT
           fi
+          echo "new-version=$CURRENT" >> $GITHUB_OUTPUT
+
+  release:
+    needs: get-version
+    if: needs.get-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.get-version.outputs.new-version }}
+
+      - name: Push Tag
+        run: git push origin ${{ needs.get-version.outputs.new-version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.new-version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-api:
-    needs: get-version
-    if: needs.get-version.outputs.force_api == 'true' || needs.get-version.outputs.api_changed == 'true'
+    needs: [get-version, release]
+    if: needs.get-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -116,14 +99,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/elpitagoras14/aniseek-api:${{ needs.get-version.outputs.api_version }}
+            ghcr.io/elpitagoras14/aniseek-api:${{ needs.get-version.outputs.new-version }}
             ghcr.io/elpitagoras14/aniseek-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-worker:
-    needs: get-version
-    if: needs.get-version.outputs.force_worker == 'true' || needs.get-version.outputs.worker_changed == 'true'
+    needs: [get-version, release]
+    if: needs.get-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -148,14 +131,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/elpitagoras14/aniseek-worker:${{ needs.get-version.outputs.worker_version }}
+            ghcr.io/elpitagoras14/aniseek-worker:${{ needs.get-version.outputs.new-version }}
             ghcr.io/elpitagoras14/aniseek-worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-web:
-    needs: get-version
-    if: needs.get-version.outputs.force_web == 'true' || needs.get-version.outputs.web_changed == 'true'
+    needs: [get-version, release]
+    if: needs.get-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -180,23 +163,18 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/elpitagoras14/aniseek-web:${{ needs.get-version.outputs.web_version }}
+            ghcr.io/elpitagoras14/aniseek-web:${{ needs.get-version.outputs.new-version }}
             ghcr.io/elpitagoras14/aniseek-web:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy:
     needs:
+      - get-version
       - build-api
       - build-worker
       - build-web
-    if: |
-      always() &&
-      (
-        needs.build-api.result == 'success' ||
-        needs.build-worker.result == 'success' ||
-        needs.build-web.result == 'success'
-      )
+    if: needs.get-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Dokploy
@@ -210,7 +188,7 @@ jobs:
             -H 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' \
             -d '{
               "composeId": "${{ vars.DOKPLOY_COMPOSE_ID }}",
-              "title": "Deployment v${{ needs.get-version.outputs.api_version }}",
+              "title": "Deployment v${{ needs.get-version.outputs.new-version }}",
               "description": "Automatic deployment from GitHub Actions"
             }'
 
