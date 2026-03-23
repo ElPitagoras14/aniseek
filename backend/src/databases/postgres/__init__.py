@@ -8,7 +8,6 @@ from .models import (
     UserDownloadEpisode,
     ApiKey,
     Genre,
-    OtherTitle,
     AnimeRelation,
     Avatar,
 )
