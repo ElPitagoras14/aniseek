@@ -31,6 +31,7 @@ Ani Seek is a comprehensive system for scraping, managing, and streaming anime c
 3. Ensure `postgres/init.sql` is mounted to the PostgreSQL container (configured in compose.yaml)
 
 4. Start the services:
+
 ```bash
 docker compose -f compose.yaml up -d
 ```
