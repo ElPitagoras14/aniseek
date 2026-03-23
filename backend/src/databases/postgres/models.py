@@ -58,8 +58,11 @@ class AnimeRelation(Base):
     anime = relationship(
         "Anime", foreign_keys=[anime_id], back_populates="relations"
     )
-    related_anime = relationship("Anime", foreign_keys=[related_anime_id])
-    type_related = relationship("RelatedType")
+    related_anime = relationship(
+        "Anime", foreign_keys=[related_anime_id], lazy="selectin"
+    )
+    type_related = relationship("RelatedType", lazy="selectin")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Anime(Base):
@@ -79,14 +82,10 @@ class Anime(Base):
     is_finished = Column(Boolean)
     week_day = Column(Text)
     last_scraped_at = Column(DateTime(timezone=True))
-    last_forced_update = Column(DateTime(timezone=True))
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    other_titles = relationship(
-        "OtherTitle", back_populates="anime", cascade="all, delete"
-    )
     genres = relationship(
         "Genre", back_populates="anime", cascade="all, delete"
     )
@@ -98,25 +97,11 @@ class Anime(Base):
         "AnimeRelation",
         back_populates="anime",
         foreign_keys="[AnimeRelation.anime_id]",
+        lazy="selectin",
     )
     saves = relationship(
         "UserSaveAnime", back_populates="anime", cascade="all, delete"
     )
-
-
-class OtherTitle(Base):
-    __tablename__ = "other_titles"
-
-    anime_id = Column(
-        String(255),
-        ForeignKey("animes.id", ondelete="CASCADE"),
-        primary_key=True,
-        nullable=False,
-    )
-    name = Column(String, primary_key=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    anime = relationship("Anime", back_populates="other_titles")
 
 
 class Genre(Base):
@@ -129,6 +114,7 @@ class Genre(Base):
         nullable=False,
     )
     name = Column(String(255), primary_key=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     anime = relationship("Anime", back_populates="genres")
 
@@ -138,6 +124,7 @@ class RelatedType(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Episode(Base):
@@ -175,6 +162,7 @@ class RoleType(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Avatar(Base):
@@ -203,7 +191,6 @@ class User(Base):
         nullable=False,
     )
     is_active = Column(Boolean, default=True)
-    timezone = Column(String(50), default="UTC")
     updated_at = Column(DateTime(timezone=True), default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -263,6 +250,7 @@ class ApiScope(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class ApiKey(Base):

@@ -9,24 +9,18 @@ CREATE TABLE franchises (
 
 CREATE TABLE animes (
   id VARCHAR(255) PRIMARY KEY,
-  franchise_id VARCHAR(255) REFERENCES franchises(id) ON DELETE SET NULL,
-  season INTEGER DEFAULT 1,
-  title VARCHAR(255),
-  description TEXT,
-  type TEXT,
-  poster TEXT,
-  is_finished BOOLEAN,
-  week_day TEXT,
-  last_scraped_at TIMESTAMP WITH TIME ZONE,
-  last_forced_update TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE other_titles (
-  anime_id VARCHAR(255) NOT NULL REFERENCES animes(id) ON DELETE CASCADE,
-  name VARCHAR NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (anime_id, name)
+  franchise_id VARCHAR(255) REFERENCES franchises(id) ON DELETE
+  SET
+    NULL,
+    season INTEGER DEFAULT 1,
+    title VARCHAR(255),
+    description TEXT,
+    type TEXT,
+    poster TEXT,
+    is_finished BOOLEAN,
+    week_day TEXT,
+    last_scraped_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE genres (
@@ -87,7 +81,6 @@ CREATE TABLE users (
     NULL,
     role_id INTEGER NOT NULL REFERENCES role_types(id) ON DELETE RESTRICT,
     is_active BOOLEAN DEFAULT TRUE,
-    timezone VARCHAR(50) DEFAULT 'UTC',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
