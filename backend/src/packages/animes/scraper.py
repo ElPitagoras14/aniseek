@@ -9,7 +9,6 @@ from .config import anime_settings
 
 
 def _normalize_anime_id(anime_id: str) -> str:
-    """Extract slug from full URL if needed."""
     if anime_id.startswith(("http://", "https://")):
         parsed = urlparse(anime_id)
         path = parsed.path.rstrip("/")
@@ -23,7 +22,6 @@ async def scrape_anime_info(
     anime_id: str,
     include_episodes: bool = True,
 ) -> AnimeInfo:
-    """Scrape anime info from JKAnime."""
     anime_id = _normalize_anime_id(anime_id)
     logger.debug(f"Scraping anime info: {anime_id}")
 
@@ -38,7 +36,6 @@ async def scrape_new_episodes(
     anime_id: str,
     last_episode_number: int,
 ) -> list[EpisodeInfo]:
-    """Get episodes newer than last_episode_number."""
     anime_id = _normalize_anime_id(anime_id)
     logger.debug(
         f"Scraping new episodes: {anime_id} after {last_episode_number}"
@@ -54,7 +51,6 @@ async def scrape_new_episodes(
 async def scrape_search_anime(
     query: str,
 ) -> PagedSearchAnimeInfo:
-    """Search anime on JKAnime."""
     logger.debug(f"Searching anime: {query}")
 
     async with AnimeAV1Scraper(executable_path=anime_settings.BRAVE_PATH) as scraper:

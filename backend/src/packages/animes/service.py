@@ -916,7 +916,6 @@ async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
                 / f"{anime.id} - S{parsed_season}E{parsed_ep_number}.mp4"
             )
 
-            print("file path", str(file_path))
 
             if file_path.exists():
                 file_path.unlink()
