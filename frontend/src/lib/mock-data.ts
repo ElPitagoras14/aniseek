@@ -11,7 +11,7 @@ export const response = {
     poster: "https://cdn.jkdesu.com/assets/images/animes/image/one-piece.jpg",
     isSaved: false,
     season: 1,
-    platform: "JKAnime",
+    platform: "AnimeAV1",
     description:
       'Una historia épica de piratas, donde narra la historia de "Monkey D. Luffy" quien cuando tenia 7 años, comió accidentalmente una "Akuma no mi"(Fruta del diablo) la cual le convirtió en un hombre de goma. Por otra parte "Gol D. Roger" conocido como "El rey de los Piratas" quien fuera ejecutado por la Marine, habló antes de morir, acerca de su mayor tesoro,el "One Piece" escondido en la "Gran line". Esta noticia desató la gran era de los piratas lanzando a incontables piratas a ese lugar, en busca del "One Piece" el tesoro perdido. Diez años después, Luffy inspirado en "Gol D. Roger" y un pirata de nombre Akagami no Shanks (Shanks el pelirrojo) se convierte en pirata deseando ser el próximo "Rey de los Piratas" y zarpar para conocer amigos y tener aventuras con ellos, teniendo como meta encontrar el "One Piece".',
     genres: [
