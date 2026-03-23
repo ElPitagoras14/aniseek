@@ -27,7 +27,13 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -61,7 +67,13 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME}-api"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/docs"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health').getcode() == 200 else 1)",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -115,7 +127,7 @@ services:
       timeout: 5s
 
   redis:
-    image: redis:8.4.0-bookworm
+    image: redis:8.4.0-alpine
     expose:
       - "6379"
     volumes:
