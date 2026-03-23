@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{scraper-host}}/api/animes/search?query=mush
+  url: {{scraper-host}}/api/v1/animes/search?query=fighter
   body: none
   auth: bearer
 }
 
 params:query {
-  query: mush
+  query: fighter
 }
 
 auth:bearer {

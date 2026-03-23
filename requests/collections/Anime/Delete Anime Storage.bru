@@ -4,8 +4,8 @@ meta {
   seq: 18
 }
 
-get {
-  url: {{scraper-host}}/api/animes/storage/{{anime-id}}
+delete {
+  url: {{scraper-host}}/api/v1/animes/storage/{{anime-id}}
   body: none
   auth: bearer
 }

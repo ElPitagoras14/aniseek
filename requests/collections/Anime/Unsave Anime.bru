@@ -5,7 +5,7 @@ meta {
 }
 
 put {
-  url: {{scraper-host}}/api/animes/unsave/{{anime-id}}
+  url: {{scraper-host}}/api/v1/animes/unsave/{{anime-id}}
   body: none
   auth: bearer
 }
@@ -15,7 +15,7 @@ auth:bearer {
 }
 
 vars:pre-request {
-  anime-id: dead-account
+  anime-id: gachiakuta
 }
 
 settings {

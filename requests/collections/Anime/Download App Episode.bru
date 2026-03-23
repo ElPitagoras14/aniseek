@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{scraper-host}}/api/animes/download/single/{{anime-id}}/{{episode-number}}
+  url: {{scraper-host}}/api/v1/animes/download/single/{{anime-id}}/{{episode-number}}
   body: none
   auth: bearer
 }
@@ -16,7 +16,7 @@ auth:bearer {
 
 vars:pre-request {
   anime-id: gachiakuta
-  episode-number: 13
+  episode-number: 12
 }
 
 settings {
