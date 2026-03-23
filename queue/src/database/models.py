@@ -23,9 +23,7 @@ class Franchise(Base):
     name = Column(String(255), nullable=False)
     created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
 
-    animes = relationship(
-        "Anime", back_populates="franchise", cascade="all, delete"
-    )
+    animes = relationship("Anime", back_populates="franchise", cascade="all, delete")
 
 
 class AnimeRelation(Base):
@@ -48,16 +46,13 @@ class AnimeRelation(Base):
     )
 
     __table_args__ = (
-        CheckConstraint(
-            "anime_id <> related_anime_id", name="chk_not_self_relation"
-        ),
+        CheckConstraint("anime_id <> related_anime_id", name="chk_not_self_relation"),
     )
 
-    anime = relationship(
-        "Anime", foreign_keys=[anime_id], back_populates="relations"
-    )
+    anime = relationship("Anime", foreign_keys=[anime_id], back_populates="relations")
     related_anime = relationship("Anime", foreign_keys=[related_anime_id])
     type_related = relationship("RelatedType")
+    created_at = Column(TIMESTAMP, default=func.now())
 
 
 class Anime(Base):
@@ -66,64 +61,41 @@ class Anime(Base):
     id = Column(String(255), primary_key=True)
     franchise_id = Column(
         String(255),
-        ForeignKey("franchises.id", ondelete="CASCADE"),
+        ForeignKey("franchises.id", ondelete="SET NULL"),
         nullable=True,
     )
     season = Column(Integer, default=1)
     title = Column(String(255))
     description = Column(Text)
     poster = Column(Text)
-    type = Column(String(255))
+    type = Column(Text)
     is_finished = Column(Boolean)
     week_day = Column(Text)
     last_scraped_at = Column(TIMESTAMP)
-    last_forced_update = Column(TIMESTAMP)
     created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
 
-    other_titles = relationship(
-        "OtherTitle", back_populates="anime", cascade="all, delete"
-    )
-    genres = relationship(
-        "Genre", back_populates="anime", cascade="all, delete"
-    )
-    episodes = relationship(
-        "Episode", back_populates="anime", cascade="all, delete"
-    )
+    genres = relationship("Genre", back_populates="anime", cascade="all, delete")
+    episodes = relationship("Episode", back_populates="anime", cascade="all, delete")
     franchise = relationship("Franchise", back_populates="animes")
     relations = relationship(
         "AnimeRelation",
         back_populates="anime",
         foreign_keys="[AnimeRelation.anime_id]",
     )
-    saves = relationship(
-        "UserSaveAnime", back_populates="anime", cascade="all, delete"
-    )
-
-
-class OtherTitle(Base):
-    __tablename__ = "other_titles"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    anime_id = Column(
-        String(255),
-        ForeignKey("animes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    name = Column(String, nullable=False)
-
-    anime = relationship("Anime", back_populates="other_titles")
+    saves = relationship("UserSaveAnime", back_populates="anime", cascade="all, delete")
 
 
 class Genre(Base):
     __tablename__ = "genres"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
     anime_id = Column(
         String(255),
         ForeignKey("animes.id", ondelete="CASCADE"),
+        primary_key=True,
         nullable=False,
     )
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), primary_key=True, nullable=False)
+    created_at = Column(TIMESTAMP, default=func.now())
 
     anime = relationship("Anime", back_populates="genres")
 
@@ -133,6 +105,7 @@ class RelatedType(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP, default=func.now())
 
 
 class Episode(Base):
@@ -150,6 +123,8 @@ class Episode(Base):
     job_id = Column(String)
     status = Column(String)
     size = Column(Integer)
+    created_at = Column(TIMESTAMP, default=func.now())
+    updated_at = Column(TIMESTAMP, default=func.now())
 
     anime = relationship("Anime", back_populates="episodes")
     downloads = relationship(
@@ -162,6 +137,7 @@ class RoleType(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, default=func.now())
 
 
 class Avatar(Base):
@@ -193,16 +169,12 @@ class User(Base):
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
 
-    saves = relationship(
-        "UserSaveAnime", back_populates="user", cascade="all, delete"
-    )
+    saves = relationship("UserSaveAnime", back_populates="user", cascade="all, delete")
     downloads = relationship(
         "UserDownloadEpisode", back_populates="user", cascade="all, delete"
     )
     role = relationship("RoleType")
-    api_keys = relationship(
-        "ApiKey", back_populates="user", cascade="all, delete"
-    )
+    api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete")
     avatar = relationship("Avatar", back_populates="users")
 
 
@@ -249,6 +221,7 @@ class ApiScope(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, default=func.now())
 
 
 class ApiKey(Base):
@@ -263,5 +236,6 @@ class ApiKey(Base):
     key = Column(String(255), unique=True, nullable=False)
     created_at = Column(TIMESTAMP, default=func.now())
     expired_at = Column(TIMESTAMP)
+    last_used_at = Column(TIMESTAMP)
 
     user = relationship("User", back_populates="api_keys")
