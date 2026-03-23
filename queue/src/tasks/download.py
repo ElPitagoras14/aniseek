@@ -6,7 +6,7 @@ import requests
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ani_scrapy import JKAnimeScraper
+from ani_scrapy import JKAnimeScraper, AnimeAV1Scraper
 from database import DatabaseSession, Anime, Episode
 from redis_client import redis_db
 from config import general_settings
@@ -237,66 +237,152 @@ async def download_anime_episode_controller(
             anime = db.execute(stmt).scalar_one()
             season = anime.season
 
-        async with JKAnimeScraper(
-            executable_path=general_settings.BRAVE_PATH
-        ) as scraper:
-            download_info = await scraper.get_table_download_links(
-                anime_id, episode_number
-            )
-            download_links = download_info.download_links
+        valid_download_link = None
+        selected_download_info = None
 
-            if len(download_links) == 0:
-                raise Exception(
-                    f"No download links found for {anime_id} E{episode_number}"
+        # Priority 1: AnimeAV1 -> PDrain -> table
+        try:
+            async with AnimeAV1Scraper(
+                executable_path=general_settings.BRAVE_PATH
+            ) as scraper:
+                download_info = await scraper.get_table_download_links(
+                    anime_id, episode_number
                 )
+                download_links = download_info.download_links
 
-            update_episode_status(
-                anime_id, episode_number, "GETTING-FILE-LINK"
-            )
-            notify_job(job_id, "GETTING-FILE-LINK", {})
-
-            valid_download_link = None
-            selected_download_info = None
-            for download_info in download_links:
                 logger.debug(
-                    f"[{job_id}] Trying server: {download_info.server}"
-                )
-                file_download_link = await scraper.get_file_download_link(
-                    download_info
-                )
-                if file_download_link:
-                    valid_download_link = file_download_link
-                    selected_download_info = download_info
-                    break
-            else:
-                raise Exception(
-                    f"Could not get file link for {anime_id} E{episode_number}"
+                    f"[{job_id}] AnimeAV1 returned servers: "
+                    f"{[link.server for link in download_links]}"
                 )
 
-            update_episode_status(anime_id, episode_number, "DOWNLOADING")
-            notify_job(job_id, "DOWNLOADING", {})
+                pdrain_links = [
+                    link
+                    for link in download_links
+                    if link.server.lower() == "pdrain"
+                ]
 
-            download_status = download_episode(
-                job_id,
-                anime_id,
-                season,
-                episode_number,
-                valid_download_link,
-                selected_download_info.server,
+                for link in pdrain_links:
+                    logger.debug(f"[{job_id}] Trying AnimeAV1/PDrain")
+                    file_download_link = await scraper.get_file_download_link(
+                        link
+                    )
+                    if file_download_link:
+                        valid_download_link = file_download_link
+                        selected_download_info = link
+                        break
+        except Exception as e:
+            logger.warning(f"[{job_id}] AnimeAV1/PDrain failed: {e}")
+
+        # Priority 2 & 3: JKAnime -> Mediafire/Streamwish -> table
+        if not valid_download_link:
+            try:
+                async with JKAnimeScraper(
+                    executable_path=general_settings.BRAVE_PATH
+                ) as scraper:
+                    download_info = await scraper.get_table_download_links(
+                        anime_id, episode_number
+                    )
+                    download_links = download_info.download_links
+
+                    logger.debug(
+                        f"[{job_id}] JKAnime returned servers: "
+                        f"{[link.server for link in download_links]}"
+                    )
+
+                    mediafire_links = [
+                        link
+                        for link in download_links
+                        if link.server.lower() == "mediafire"
+                    ]
+
+                    for link in mediafire_links:
+                        logger.debug(f"[{job_id}] Trying JKAnime/Mediafire")
+                        file_download_link = (
+                            await scraper.get_file_download_link(link)
+                        )
+                        if file_download_link:
+                            valid_download_link = file_download_link
+                            selected_download_info = link
+                            break
+
+                    streamwish_links = [
+                        link
+                        for link in download_links
+                        if link.server.lower() == "streamwish"
+                    ]
+
+                    for link in streamwish_links:
+                        logger.debug(
+                            f"[{job_id}] Trying JKAnime/Streamwish (table)"
+                        )
+                        file_download_link = (
+                            await scraper.get_file_download_link(link)
+                        )
+                        if file_download_link:
+                            valid_download_link = file_download_link
+                            selected_download_info = link
+                            break
+            except Exception as e:
+                logger.warning(f"[{job_id}] JKAnime failed: {e}")
+
+        # Priority 4: JKAnime -> Streamwish -> iframe
+        if not valid_download_link:
+            try:
+                async with JKAnimeScraper(
+                    executable_path=general_settings.BRAVE_PATH
+                ) as scraper:
+                    logger.debug(
+                        f"[{job_id}] Trying JKAnime/Streamwish (iframe)"
+                    )
+                    iframe_download_links = (
+                        await scraper.get_iframe_download_links(
+                            anime_id, episode_number
+                        )
+                    )
+                    for link in iframe_download_links.download_links:
+                        if link.server != "Streamwish":
+                            continue
+                        file_download_link = (
+                            await scraper.get_file_download_link(link)
+                        )
+                        if file_download_link:
+                            valid_download_link = file_download_link
+                            selected_download_info = link
+                            break
+            except Exception as e:
+                logger.warning(
+                    f"[{job_id}] JKAnime/Streamwish (iframe) failed: {e}"
+                )
+
+        if not valid_download_link:
+            raise Exception(
+                f"No download link available for {anime_id} E{episode_number}"
             )
 
-            if not download_status:
-                raise Exception(
-                    f"Download failed for {anime_id} E{episode_number}"
-                )
+        update_episode_status(anime_id, episode_number, "DOWNLOADING")
+        notify_job(job_id, "DOWNLOADING", {})
 
-            update_episode_status(anime_id, episode_number, "SUCCESS", None)
-            notify_job(job_id, "SUCCESS", {})
+        download_status = download_episode(
+            job_id,
+            anime_id,
+            season,
+            episode_number,
+            valid_download_link,
+            selected_download_info.server,
+        )
 
-            if franchise_id:
-                count = redis_db.decr(get_download_key(franchise_id))
-                if count == 0:
-                    stream_add_event(franchise_id, "downloads_done")
+        if not download_status:
+            raise Exception(
+                f"Download failed for {anime_id} E{episode_number}"
+            )
+
+        update_episode_status(anime_id, episode_number, "SUCCESS", None)
+        notify_job(job_id, "SUCCESS", {})
+
+        if franchise_id:
+            count = redis_db.decr(get_download_key(franchise_id))
+            if count == 0:
+                stream_add_event(franchise_id, "downloads_done")
 
     except Exception as e:
         logger.error(f"[{job_id}] Error: {e}")
