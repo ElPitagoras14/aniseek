@@ -1,11 +1,11 @@
 [project]
 name = "aniseek-worker"
-version = "1.1.4"
+version = "1.1.5"
 description = "Background worker for anime scraping tasks"
 readme = "README.md"
 requires-python = ">=3.10.14"
 dependencies = [
-    "ani-scrapy",
+    "ani-scrapy>=0.6.2",
     "dramatiq[redis]>=1.19.0",
     "dotenv>=0.9.9",
     "psycopg2>=2.9.11",
