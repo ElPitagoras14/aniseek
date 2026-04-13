@@ -182,7 +182,7 @@ jobs:
         continue-on-error: true
         run: |
           curl -X 'POST' \
-            'https://dokploy.elpitagoras14.xyz/api/compose.deploy' \
+            'https://dokploy.pitagoraslab.qzz.io/api/compose.deploy' \
             -H 'accept: application/json' \
             -H 'Content-Type: application/json' \
             -H 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' \
