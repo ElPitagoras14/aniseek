@@ -170,7 +170,7 @@ wheels = [
 
 [[package]]
 name = "aniseek-api"
-version = "1.1.4"
+version = "1.1.5"
 source = { virtual = "." }
 dependencies = [
     { name = "ani-scrapy" },
@@ -193,7 +193,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ani-scrapy" },
+    { name = "ani-scrapy", specifier = ">=0.6.2" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "bcrypt", specifier = ">=4.0,<4.1" },
     { name = "dramatiq", extras = ["redis"], specifier = ">=1.19.0" },
