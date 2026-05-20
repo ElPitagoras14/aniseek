@@ -170,3 +170,4 @@ docker-data/
 
 .vscode/settings.json
 .aider*
+/tasks/
