@@ -31,3 +31,8 @@ class UnauthorizedError(AppError):
 class ForbiddenError(AppError):
     status_code: int = 403
     code: str = "PROHIBIDO"
+
+
+class ConflictError(AppError):
+    status_code: int = 409
+    code: str = "CONFLICTO"
