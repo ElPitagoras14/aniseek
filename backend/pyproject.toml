@@ -5,20 +5,20 @@ description = "REST API for anime streaming and scraping management"
 readme = "README.md"
 requires-python = ">=3.10.14"
 dependencies = [
-    "ani-scrapy>=0.6.2",
-    "asyncpg>=0.31.0",
-    "bcrypt>=4.0,<4.1",
-    "dramatiq[redis]>=1.19.0",
-    "fastapi[standard]>=0.119.0",
+    "ani-scrapy==0.7.0",
+    "bcrypt>=5.0.0",
+    "databases[asyncpg]>=0.9.0",
+    "dramatiq>=2.1.0",
+    "fastapi[standard]>=0.136.1",
     "loguru>=0.7.3",
-    "passlib<1.8",
-    "psycopg2>=2.9.11",
-    "pydantic-settings>=2.11.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic-settings>=2.14.1",
+    "python-dotenv>=1.2.2",
     "python-jose>=3.5.0",
-    "pytz>=2025.2",
-    "redis>=6.4.0",
-    "scalar-fastapi>=1.4.3",
-    "sqlalchemy>=2.0.44",
-    "uvicorn>=0.37.0",
-    "watchgod>=0.8.2",
+]
+
+[dependency-groups]
+dev = [
+    "isort>=8.0.1",
+    "ruff>=0.15.13",
 ]

@@ -2,8 +2,8 @@ from dotenv import find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class PostgresSettings(BaseSettings):
-    POSTGRES_URL: str
+class DatabaseSettings(BaseSettings):
+    DB_URL: str
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),
@@ -12,4 +12,4 @@ class PostgresSettings(BaseSettings):
     )
 
 
-postgres_settings = PostgresSettings()
+database_settings = DatabaseSettings()

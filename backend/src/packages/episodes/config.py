@@ -2,8 +2,9 @@ from dotenv import find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class PostgresSettings(BaseSettings):
-    POSTGRES_URL: str
+class EpisodesSettings(BaseSettings):
+    REDIS_URL: str
+    ANIMES_FOLDER: str
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),
@@ -12,4 +13,4 @@ class PostgresSettings(BaseSettings):
     )
 
 
-postgres_settings = PostgresSettings()
+episodes_settings = EpisodesSettings()

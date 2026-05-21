@@ -1,17 +1,15 @@
 from fastapi import APIRouter, Depends
 
-from utils.responses import SuccessResponse
 from packages.auth import auth_scheme
+from utils.responses import SuccessResponse
+
+from .responses import AnimeFranchiseListOut, FranchiseListOut
+from .schemas import CreateFranchise
 from .service import (
     create_franchise_controller,
     get_animes_for_franchises_controller,
     get_franchises_controller,
 )
-from .responses import (
-    AnimeFranchiseListOut,
-    FranchiseListOut,
-)
-from .schemas import CreateFranchise
 
 franchises_router = APIRouter()
 
@@ -41,9 +39,7 @@ async def create_franchise(
     current_user: dict = Depends(auth_scheme),
 ):
     data = await create_franchise_controller(franchise_info)
-    return SuccessResponse(
-        payload=data, message="Franchise created successfully"
-    )
+    return SuccessResponse(payload=data, message="Franchise created successfully")
 
 
 @franchises_router.get(

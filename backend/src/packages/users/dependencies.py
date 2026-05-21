@@ -2,9 +2,9 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from databases.postgres import AsyncDatabaseSession, Avatar, User
 from packages.auth import auth_scheme
 from utils.exceptions import NotFoundException
-from databases.postgres import AsyncDatabaseSession, User, Avatar
 
 
 async def valid_user_id(

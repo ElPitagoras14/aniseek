@@ -2,10 +2,11 @@ from loguru import logger
 from sqlalchemy import asc, insert, select
 from sqlalchemy.orm import selectinload
 
-from worker import order_franchise
-from databases.postgres import AsyncDatabaseSession, Anime, Franchise
-from utils.utils import to_kebab_case
+from databases.postgres import Anime, AsyncDatabaseSession, Franchise
 from utils.exceptions import ConflictException
+from utils.utils import to_kebab_case
+from worker import order_franchise
+
 from .schemas import CreateFranchise
 from .utils import cast_anime_franchise_list, cast_franchise_list
 
@@ -61,9 +62,7 @@ async def create_franchise_controller(franchise_info: CreateFranchise) -> str:
             logger.debug(f"Franchise name share by anime: {franchise_id}")
             raise ConflictException("Franchise name share by anime")
 
-        stmt = insert(Franchise).values(
-            id=franchise_id, name=franchise_info.franchise
-        )
+        stmt = insert(Franchise).values(id=franchise_id, name=franchise_info.franchise)
         await db.execute(stmt)
 
         logger.debug(f"Inserted franchise: {franchise_id}")

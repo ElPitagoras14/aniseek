@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 
-from utils.responses import SuccessResponse
 from packages.auth import auth_scheme
+from utils.responses import SuccessResponse
+
+from .schemas import UserInfo
 from .service import (
     check_username_controller,
     get_avatars_controller,
@@ -10,7 +12,6 @@ from .service import (
     get_users_controller,
     update_user_controller,
 )
-from .schemas import UserInfo
 
 users_router = APIRouter()
 

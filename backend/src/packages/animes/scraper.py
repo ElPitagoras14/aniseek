@@ -2,7 +2,6 @@ from urllib.parse import urlparse
 
 from ani_scrapy import AnimeAV1Scraper
 from ani_scrapy.core import AnimeInfo, EpisodeInfo, PagedSearchAnimeInfo
-
 from loguru import logger
 
 from .config import anime_settings
@@ -37,9 +36,7 @@ async def scrape_new_episodes(
     last_episode_number: int,
 ) -> list[EpisodeInfo]:
     anime_id = _normalize_anime_id(anime_id)
-    logger.debug(
-        f"Scraping new episodes: {anime_id} after {last_episode_number}"
-    )
+    logger.debug(f"Scraping new episodes: {anime_id} after {last_episode_number}")
 
     async with AnimeAV1Scraper(executable_path=anime_settings.BRAVE_PATH) as scraper:
         return await scraper.get_new_episodes(

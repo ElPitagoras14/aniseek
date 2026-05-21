@@ -3,15 +3,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from databases.postgres import AsyncDatabaseSession, User
-from utils.exceptions import NotFoundException, ConflictException
+from utils.exceptions import ConflictException, NotFoundException
+
 from .utils import (
-    get_hash,
-    verify_password,
+    cast_access_token,
+    cast_tokens,
     create_access_token,
     create_refresh_token,
+    get_hash,
+    verify_password,
     verify_token,
-    cast_tokens,
-    cast_access_token,
 )
 
 
@@ -84,5 +85,7 @@ def refresh_controller(refresh_token: str):
         raise ConflictException("Invalid refresh token")
     new_access_token = create_access_token(payload)
     casted_access_token = cast_access_token(new_access_token)
-    logger.info(f"Access token refreshed successfully for user: {payload.get('username')}")
+    logger.info(
+        f"Access token refreshed successfully for user: {payload.get('username')}"
+    )
     return casted_access_token

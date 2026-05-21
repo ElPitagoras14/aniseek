@@ -1,3 +1,5 @@
+from utils.cast import create_caster
+
 from .responses import (
     AnimeFranchise,
     AnimeFranchiseList,
@@ -5,8 +7,6 @@ from .responses import (
     Franchise,
     FranchiseList,
 )
-from utils.cast import create_caster
-
 
 cast_base_anime = create_caster(BaseAnime)
 cast_anime_franchise = create_caster(AnimeFranchise)
