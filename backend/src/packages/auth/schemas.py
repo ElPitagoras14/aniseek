@@ -6,6 +6,6 @@ class LoginInfo(BaseModel):
     password: str
 
 
-class CreateInfo(BaseModel):
+class RegisterInfo(BaseModel):
     username: str
     password: str

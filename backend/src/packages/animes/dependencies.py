@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends
 
 from packages.auth import auth_scheme
-from utils.exceptions import ConflictException, NotFoundException
+from exceptions import ConflictError, NotFoundError
 
 from . import repository
 
@@ -16,7 +16,7 @@ async def valid_anime_for_update(
     anime = await repository.get_anime_by_id(anime_id)
 
     if not anime or not anime["last_scraped_at"]:
-        raise NotFoundException(
+        raise NotFoundError(
             "Anime not found or not yet created. "
             "Use GET /animes/info/{anime_id} to create it first."
         )
@@ -32,7 +32,7 @@ async def valid_anime_for_update(
         remaining_seconds = int(
             (timedelta(minutes=cooldown_minutes) - time_diff).total_seconds()
         )
-        raise NotFoundException(
+        raise NotFoundError(
             f"Anime was updated recently. "
             f"Please wait {remaining_seconds} seconds before updating."
         )
@@ -51,7 +51,7 @@ async def valid_anime_id(
     """Valida que el anime existe y retorna los datos necesarios."""
     anime = await repository.get_anime_by_id(anime_id)
     if not anime:
-        raise NotFoundException(f"Anime {anime_id} not found")
+        raise NotFoundError(f"Anime {anime_id} not found")
 
     return {
         "anime_id": anime_id,
@@ -68,7 +68,7 @@ async def anime_is_saved_by_user(
         anime_data["user_id"], anime_data["anime_id"]
     )
     if not saved:
-        raise NotFoundException("Anime not saved by user")
+        raise NotFoundError("Anime not saved by user")
     return anime_data
 
 
@@ -80,7 +80,7 @@ async def anime_not_saved_by_user(
         anime_data["user_id"], anime_data["anime_id"]
     )
     if saved:
-        raise ConflictException("Anime already saved by user")
+        raise ConflictError("Anime already saved by user")
     return anime_data
 
 
@@ -91,7 +91,7 @@ async def user_not_saved_anime(
     """Verifica que el usuario NO tenga el anime guardado (sin requerir que el anime exista en DB)."""
     saved = await repository.get_user_saved_anime(current_user["id"], anime_id)
     if saved:
-        raise ConflictException("Anime already saved by user")
+        raise ConflictError("Anime already saved by user")
 
     return {
         "anime_id": anime_id,

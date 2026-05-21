@@ -1,4 +1,4 @@
-from utils.models import CamelCaseModel
+from models import CamelCaseModel
 
 
 class PasswordInfo(CamelCaseModel):
@@ -6,7 +6,7 @@ class PasswordInfo(CamelCaseModel):
     new_password: str | None = None
 
 
-class UserInfo(CamelCaseModel):
+class UserUpdateInfo(CamelCaseModel):
     username: str | None = None
     password: PasswordInfo | None = None
     avatar_id: int | None = None

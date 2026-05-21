@@ -1,6 +1,6 @@
 from loguru import logger
 
-from utils.exceptions import ConflictException, NotFoundException
+from exceptions import ConflictError, NotFoundError
 
 from . import repository
 from .utils import (
@@ -19,13 +19,13 @@ async def login_controller(username: str, password: str):
     user = await repository.get_user_with_role_and_avatar_by_username(username)
     if not user:
         logger.debug(f"User {username} not found")
-        raise NotFoundException("User not found")
+        raise NotFoundError("User not found")
     if not verify_password(password, user["password"]):
         logger.debug(f"Password for user {username} is wrong")
-        raise ConflictException("Password is wrong")
+        raise ConflictError("Password is wrong")
     if not user["is_active"]:
         logger.debug(f"User {username} is not active")
-        raise ConflictException("User is not active")
+        raise ConflictError("User is not active")
     logger.info(f"User {username} logged in")
     token_payload = {
         "id": str(user["id"]),
@@ -45,7 +45,7 @@ async def register_controller(username: str, password: str):
     existing_id = await repository.get_user_id_by_username(username)
     if existing_id:
         logger.debug(f"User {username} already exists")
-        raise ConflictException("User already exists")
+        raise ConflictError("User already exists")
     hashed_password = get_hash(password)
     await repository.insert_user(username, hashed_password)
     logger.info(f"User {username} registered")
@@ -56,11 +56,11 @@ def refresh_controller(refresh_token: str):
     logger.info("Refreshing access token")
     if not refresh_token:
         logger.warning("Refresh token missing in request")
-        raise ConflictException("No refresh token provided")
+        raise ConflictError("No refresh token provided")
     payload = verify_token(refresh_token)
     if not payload:
         logger.warning("Invalid refresh token provided")
-        raise ConflictException("Invalid refresh token")
+        raise ConflictError("Invalid refresh token")
     new_access_token = create_access_token(payload)
     casted_access_token = cast_access_token(new_access_token)
     logger.info(

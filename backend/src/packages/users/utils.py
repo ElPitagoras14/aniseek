@@ -1,21 +1,23 @@
-from utils.cast import create_caster
-
 from .responses import Avatar, AvatarList, Statistics, User, UserList
 
-cast_user = create_caster(User)
-cast_avatar = create_caster(Avatar)
-cast_statistics = create_caster(Statistics)
+
+def cast_user(user: dict) -> User:
+    return User(**user)
+
+
+def cast_statistics(statistics: dict) -> Statistics:
+    return Statistics(**statistics)
 
 
 def cast_users(users: list[dict], total: int) -> UserList:
     return UserList(
-        items=[cast_user(user) for user in users],
+        items=[cast_user(u) for u in users],
         total=total,
     )
 
 
 def cast_avatars(avatars: list[dict], total: int) -> AvatarList:
     return AvatarList(
-        items=[cast_avatar(avatar) for avatar in avatars],
+        items=[Avatar(**a) for a in avatars],
         total=total,
     )

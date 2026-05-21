@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 
 from packages.auth import auth_scheme
-from utils.responses import SuccessResponse
+from responses import SuccessResponse
 
-from .schemas import UserInfo
+from .schemas import UserUpdateInfo
 from .service import (
     check_username_controller,
     get_avatars_controller,
@@ -20,46 +20,46 @@ users_router = APIRouter()
 async def get_users(
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await get_users_controller(current_user["id"])
-    return SuccessResponse(payload=data, message="Users retrieved")
+    payload = await get_users_controller(current_user["id"])
+    return SuccessResponse(payload=payload, message="Users retrieved")
 
 
 @users_router.get("/me")
 async def get_me(
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await get_me_controller(current_user["id"])
-    return SuccessResponse(payload=data, message="User retrieved")
+    payload = await get_me_controller(current_user["id"])
+    return SuccessResponse(payload=payload, message="User retrieved")
 
 
 @users_router.get("/username/{username}")
 async def check_username(
     username: str,
 ):
-    data = await check_username_controller(username)
-    return SuccessResponse(payload=data, message="Username checked")
+    payload = await check_username_controller(username)
+    return SuccessResponse(payload=payload, message="Username checked")
 
 
 @users_router.put("")
 async def update_user(
-    user_info: UserInfo,
+    user_info: UserUpdateInfo,
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await update_user_controller(user_info, current_user["id"])
-    return SuccessResponse(payload=data, message="User updated")
+    payload = await update_user_controller(user_info, current_user["id"])
+    return SuccessResponse(payload=payload, message="User updated")
 
 
 @users_router.get("/avatars")
 async def get_avatars(
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await get_avatars_controller()
-    return SuccessResponse(payload=data, message="Avatars retrieved")
+    payload = await get_avatars_controller()
+    return SuccessResponse(payload=payload, message="Avatars retrieved")
 
 
 @users_router.get("/statistics")
 async def get_user_statistics(
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await get_user_statistics_controller(current_user["id"])
-    return SuccessResponse(payload=data, message="User statistics retrieved")
+    payload = await get_user_statistics_controller(current_user["id"])
+    return SuccessResponse(payload=payload, message="User statistics retrieved")

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 
 from packages.auth import auth_scheme
-from utils.responses import SuccessResponse
+from responses import SuccessResponse
 
 from .responses import AnimeFranchiseListOut, FranchiseListOut
-from .schemas import CreateFranchise
+from .schemas import FranchiseCreate
 from .service import (
     create_franchise_controller,
     get_animes_for_franchises_controller,
@@ -14,42 +14,26 @@ from .service import (
 franchises_router = APIRouter()
 
 
-@franchises_router.get(
-    "",
-    response_model=FranchiseListOut,
-    summary="Get all franchises",
-    description="Retrieve all anime franchises",
-)
+@franchises_router.get("", response_model=FranchiseListOut)
 async def get_franchises(
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await get_franchises_controller(current_user["id"])
-    return SuccessResponse(payload=data, message="Franchises retrieved")
+    payload = await get_franchises_controller(current_user["id"])
+    return SuccessResponse(payload=payload, message="Franchises retrieved")
 
 
-@franchises_router.post(
-    "",
-    response_model=SuccessResponse,
-    summary="Create franchise",
-    description="Create a new anime franchise",
-    status_code=201,
-)
+@franchises_router.post("", response_model=SuccessResponse)
 async def create_franchise(
-    franchise_info: CreateFranchise,
+    franchise_info: FranchiseCreate,
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await create_franchise_controller(franchise_info)
-    return SuccessResponse(payload=data, message="Franchise created successfully")
+    payload = await create_franchise_controller(franchise_info)
+    return SuccessResponse(payload=payload, message="Franchise created successfully")
 
 
-@franchises_router.get(
-    "/animes",
-    response_model=AnimeFranchiseListOut,
-    summary="Get animes for franchises",
-    description="Get animes that can be added to franchises",
-)
+@franchises_router.get("/animes", response_model=AnimeFranchiseListOut)
 async def get_animes_for_franchises(
     current_user: dict = Depends(auth_scheme),
 ):
-    data = await get_animes_for_franchises_controller(current_user["id"])
-    return SuccessResponse(payload=data, message="Animes retrieved")
+    payload = await get_animes_for_franchises_controller(current_user["id"])
+    return SuccessResponse(payload=payload, message="Animes retrieved")

@@ -1,43 +1,27 @@
 from fastapi import APIRouter
 
-from utils.responses import SuccessResponse
+from responses import SuccessResponse
 
 from .responses import AccessTokenOut, TokenOut
-from .schemas import CreateInfo, LoginInfo
+from .schemas import LoginInfo, RegisterInfo
 from .service import login_controller, refresh_controller, register_controller
 
 auth_router = APIRouter()
 
 
-@auth_router.post(
-    "/login",
-    response_model=TokenOut,
-    summary="User login",
-    description="Authenticate user and get access token",
-)
+@auth_router.post("/login", response_model=TokenOut)
 async def login(login_info: LoginInfo):
-    data = await login_controller(login_info.username, login_info.password)
-    return SuccessResponse(payload=data, message="User logged in successfully")
+    payload = await login_controller(login_info.username, login_info.password)
+    return SuccessResponse(payload=payload, message="User logged in successfully")
 
 
-@auth_router.post(
-    "/register",
-    response_model=SuccessResponse,
-    summary="User registration",
-    description="Register a new user account",
-    status_code=201,
-)
-async def register(register_info: CreateInfo):
-    data = await register_controller(register_info.username, register_info.password)
-    return SuccessResponse(payload=data, message="User registered successfully")
+@auth_router.post("/register", response_model=SuccessResponse)
+async def register(register_info: RegisterInfo):
+    payload = await register_controller(register_info.username, register_info.password)
+    return SuccessResponse(payload=payload, message="User registered successfully")
 
 
-@auth_router.post(
-    "/refresh",
-    response_model=AccessTokenOut,
-    summary="Refresh access token",
-    description="Refresh the access token using a refresh token",
-)
+@auth_router.post("/refresh", response_model=AccessTokenOut)
 async def refresh_token(refresh_token: str):
-    data = refresh_controller(refresh_token)
-    return SuccessResponse(payload=data, message="Token refreshed successfully")
+    payload = refresh_controller(refresh_token)
+    return SuccessResponse(payload=payload, message="Token refreshed successfully")

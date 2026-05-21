@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from utils.responses import SuccessResponse
+from responses import SuccessResponse
 
 
 class Tokens(BaseModel):

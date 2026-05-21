@@ -6,6 +6,6 @@ class AnimeInfo(BaseModel):
     season: int
 
 
-class CreateFranchise(BaseModel):
+class FranchiseCreate(BaseModel):
     franchise: str
     animes: list[AnimeInfo]

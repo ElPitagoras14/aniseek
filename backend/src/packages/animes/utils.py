@@ -1,5 +1,3 @@
-from utils.cast import create_caster
-
 from .responses import (
     Anime,
     EpisodeInfo,
@@ -9,9 +7,6 @@ from .responses import (
     SearchAnimeResult,
     SearchAnimeResultList,
 )
-
-cast_search_anime_result = create_caster(SearchAnimeResult)
-cast_in_emission_anime = create_caster(InEmissionAnime)
 
 
 def cast_anime_info(anime: dict, saved: dict) -> Anime:
@@ -27,38 +22,34 @@ def cast_anime_info(anime: dict, saved: dict) -> Anime:
         description=anime["description"],
         genres=anime["genres"],
         related_info=[
-            RelatedInfo(id=related["id"], title=related["title"], type=related["type"])
-            for related in anime["related_info"]
+            RelatedInfo(id=r["id"], title=r["title"], type=r["type"])
+            for r in anime["related_info"]
         ],
         week_day=anime["week_day"],
         is_finished=anime["is_finished"],
         last_scraped_at=anime["last_scraped_at"],
         episodes=[
             EpisodeInfo(
-                id=episode["id"],
-                anime_id=episode["anime_id"],
-                image_preview=episode["image_preview"],
-                is_user_downloaded=episode["is_user_downloaded"],
-                is_global_downloaded=episode["is_global_downloaded"],
+                id=ep["id"],
+                anime_id=ep["anime_id"],
+                image_preview=ep["image_preview"],
+                is_user_downloaded=ep["is_user_downloaded"],
+                is_global_downloaded=ep["is_global_downloaded"],
             )
-            for episode in anime["episodes"]
+            for ep in anime["episodes"]
         ],
     )
 
 
-def cast_search_anime_result_list(
-    animes: list[dict],
-) -> SearchAnimeResultList:
+def cast_search_anime_result_list(animes: list[dict]) -> SearchAnimeResultList:
     return SearchAnimeResultList(
-        items=[cast_search_anime_result(anime) for anime in animes],
+        items=[SearchAnimeResult(**a) for a in animes],
         total=len(animes),
     )
 
 
-def cast_in_emission_anime_list(
-    animes: list[dict],
-) -> InEmissionAnimeList:
+def cast_in_emission_anime_list(animes: list[dict]) -> InEmissionAnimeList:
     return InEmissionAnimeList(
-        items=[cast_in_emission_anime(anime) for anime in animes],
+        items=[InEmissionAnime(**a) for a in animes],
         total=len(animes),
     )

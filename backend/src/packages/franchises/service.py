@@ -1,12 +1,12 @@
 from loguru import logger
 
 from database.client import db
-from utils.exceptions import ConflictException
-from utils.utils import to_kebab_case
+from exceptions import ConflictError
+from utils import to_kebab_case
 from worker import order_franchise
 
 from . import repository
-from .schemas import CreateFranchise
+from .schemas import FranchiseCreate
 from .utils import cast_anime_franchise_list, cast_franchise_list
 
 
@@ -39,7 +39,7 @@ async def get_franchises_controller(user_id: str) -> dict:
     return cast_franchise_list(franchises_info, len(franchises_info))
 
 
-async def create_franchise_controller(franchise_info: CreateFranchise) -> str:
+async def create_franchise_controller(franchise_info: FranchiseCreate) -> str:
     logger.debug("Creating franchise")
     animes_ids = [anime.id for anime in franchise_info.animes]
     logger.debug(f"Animes ids: {animes_ids}")
@@ -48,7 +48,7 @@ async def create_franchise_controller(franchise_info: CreateFranchise) -> str:
 
     if franchise_id in animes_ids:
         logger.debug(f"Franchise name share by anime: {franchise_id}")
-        raise ConflictException("Franchise name share by anime")
+        raise ConflictError("Franchise name share by anime")
 
     async with db.transaction():
         await repository.insert_franchise(franchise_id, franchise_info.franchise)

@@ -34,6 +34,13 @@ def verify_token(token: str):
         )
 
 
+def parse_jwt_data(token: str) -> dict | None:
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except Exception:
+        return None
+
+
 def create_access_token(user_data: dict):
     payload = {
         **user_data,

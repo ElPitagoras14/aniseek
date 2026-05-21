@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from packages.animes.responses import BaseAnime
-from utils.responses import SuccessResponse
+from responses import SuccessResponse
 
 
 class Franchise(BaseModel):
