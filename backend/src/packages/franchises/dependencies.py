@@ -1,7 +1,7 @@
 from fastapi import Depends
 
 from packages.auth import auth_scheme
-from utils.exceptions import NotFoundException
+from exceptions import NotFoundError
 
 from . import repository
 
@@ -13,7 +13,7 @@ async def valid_franchise_id(
     """Valida que la franquicia existe y retorna los datos."""
     franchise = await repository.get_franchise_by_id(franchise_id)
     if not franchise:
-        raise NotFoundException(f"Franchise {franchise_id} not found")
+        raise NotFoundError(f"Franchise {franchise_id} not found")
 
     return {
         "franchise_id": franchise_id,
@@ -29,7 +29,7 @@ async def valid_anime_for_franchise(
     """Valida que el anime no tiene franquicia asignada."""
     anime = await repository.get_anime_without_franchise(anime_id)
     if not anime:
-        raise NotFoundException(
+        raise NotFoundError(
             f"Anime {anime_id} not found or already has franchise"
         )
 

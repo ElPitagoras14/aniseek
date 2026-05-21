@@ -4,7 +4,7 @@ from pathlib import Path
 from loguru import logger
 
 from database.client import db
-from utils.exceptions import ConflictException, NotFoundException
+from exceptions import ConflictError, NotFoundError
 from worker import download_anime_episode
 
 from . import repository
@@ -67,14 +67,14 @@ async def download_anime_episode_controller(
     logger.debug(f"Downloading episode with id: {episode_id}")
     episode = await repository.get_episode_with_anime(episode_id)
     if not episode:
-        raise NotFoundException("Episode not found")
+        raise NotFoundError("Episode not found")
 
     anime_id = episode["anime_id"]
     episode_number = episode["ep_number"]
 
     user_download = await repository.get_user_episode_download(user_id, episode_id)
     if user_download and not force_download:
-        raise ConflictException("Download already in progress")
+        raise ConflictError("Download already in progress")
 
     any_download = await repository.get_any_episode_download_with_job(episode_id)
     if any_download and not force_download:
@@ -95,11 +95,11 @@ async def delete_download_episode_controller(episode_id: int, user_id: str) -> s
     logger.debug(f"Deleting download episode with id: {episode_id}")
     episode = await repository.get_episode_with_anime(episode_id)
     if not episode:
-        raise NotFoundException("Episode not found")
+        raise NotFoundError("Episode not found")
 
     user_download = await repository.get_user_episode_download(user_id, episode_id)
     if not user_download:
-        raise NotFoundException("Download not found")
+        raise NotFoundError("Download not found")
 
     await repository.delete_user_episode_download(user_id, episode_id)
 
@@ -113,7 +113,7 @@ async def delete_download_episode_controller(episode_id: int, user_id: str) -> s
             anime_folder = ANIMES_FOLDER / episode["anime_id"] / f"Season {parsed_season}"
 
         if not anime_folder.exists():
-            raise NotFoundException("Episode file not found")
+            raise NotFoundError("Episode file not found")
 
         ep_number = str(episode["ep_number"]).zfill(2)
         file_path = (
@@ -148,7 +148,7 @@ async def download_anime_episode_bulk_controller(
                 anime_id, ep_number
             )
             if not episode:
-                raise NotFoundException("Episode not found")
+                raise NotFoundError("Episode not found")
 
             existing = await repository.get_user_episode_download(
                 user_id, episode["id"]
@@ -200,7 +200,7 @@ async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Deleting anime with id: {anime_id}")
     anime = await repository.get_anime_with_episodes_for_storage(anime_id)
     if not anime:
-        raise NotFoundException("Anime not found")
+        raise NotFoundError("Anime not found")
 
     episode_ids = [ep["id"] for ep in anime["episodes"]]
 

@@ -1,10 +1,10 @@
 from loguru import logger
 
 from packages.auth import get_hash, verify_password
-from utils.exceptions import ConflictException, NotFoundException
+from exceptions import ConflictError, NotFoundError
 
 from . import repository
-from .schemas import UserInfo
+from .schemas import UserUpdateInfo
 from .utils import cast_avatars, cast_statistics, cast_user, cast_users
 
 
@@ -46,10 +46,10 @@ async def get_me_controller(user_id: str):
     logger.debug("Getting me")
     user = await repository.get_user_with_role(user_id)
     if not user:
-        raise NotFoundException("User not found")
+        raise NotFoundError("User not found")
     avatar = await repository.get_avatar_by_id(user["avatar_id"]) if user["avatar_id"] else None
     if not avatar:
-        raise NotFoundException("Avatar not found")
+        raise NotFoundError("Avatar not found")
 
     user_data = {
         "id": user["id"],
@@ -75,11 +75,11 @@ async def get_avatars_controller():
     return cast_avatars(avatars, len(avatars))
 
 
-async def update_user_controller(user_info: UserInfo, user_id: str):
+async def update_user_controller(user_info: UserUpdateInfo, user_id: str):
     logger.debug(f"Updating user with id: {user_id}")
     user = await repository.get_user_with_role(user_id)
     if not user:
-        raise NotFoundException("User not found")
+        raise NotFoundError("User not found")
 
     if user_info.username:
         await repository.update_user_username(user_id, user_info.username)
@@ -87,7 +87,7 @@ async def update_user_controller(user_info: UserInfo, user_id: str):
     if user_info.password:
         current_hashed = await repository.get_user_current_password(user_id)
         if not verify_password(user_info.password.current_password, current_hashed):
-            raise ConflictException("Current password is incorrect")
+            raise ConflictError("Current password is incorrect")
         await repository.update_user_password(
             user_id, get_hash(user_info.password.new_password)
         )

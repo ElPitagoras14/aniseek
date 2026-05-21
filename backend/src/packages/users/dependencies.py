@@ -1,7 +1,7 @@
 from fastapi import Depends
 
 from packages.auth import auth_scheme
-from utils.exceptions import NotFoundException
+from exceptions import NotFoundError
 
 from . import repository
 
@@ -13,7 +13,7 @@ async def valid_user_id(
     """Valida que el usuario existe y retorna los datos."""
     user = await repository.get_user_by_id_with_role_and_avatar(user_id)
     if not user:
-        raise NotFoundException(f"User {user_id} not found")
+        raise NotFoundError(f"User {user_id} not found")
 
     return {
         "user_id": user_id,
@@ -27,7 +27,7 @@ async def valid_username(
     """Valida que el nombre de usuario existe."""
     user = await repository.get_user_by_username(username)
     if not user:
-        raise NotFoundException(f"Username {username} not found")
+        raise NotFoundError(f"Username {username} not found")
 
     return {
         "username": username,
@@ -41,7 +41,7 @@ async def valid_avatar_id(
     """Valida que el avatar existe."""
     avatar = await repository.get_avatar_by_id(avatar_id)
     if not avatar:
-        raise NotFoundException(f"Avatar {avatar_id} not found")
+        raise NotFoundError(f"Avatar {avatar_id} not found")
 
     return {
         "avatar_id": avatar_id,

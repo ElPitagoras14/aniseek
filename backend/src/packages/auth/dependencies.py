@@ -26,9 +26,9 @@ async def valid_login_request(
 ) -> LoginRequest:
     """Valida que los datos de login sean correctos."""
     if not login_info.username or not login_info.password:
-        from utils.exceptions import BadRequestException
+        from exceptions import BadRequestError
 
-        raise BadRequestException("Username and password are required")
+        raise BadRequestError("Username and password are required")
     return login_info
 
 
@@ -37,11 +37,11 @@ async def valid_register_request(
 ) -> RegisterRequest:
     """Valida que los datos de registro sean correctos."""
     if not register_info.username or not register_info.password:
-        from utils.exceptions import BadRequestException
+        from exceptions import BadRequestError
 
-        raise BadRequestException("Username and password are required")
+        raise BadRequestError("Username and password are required")
     if len(register_info.password) < 6:
-        from utils.exceptions import BadRequestException
+        from exceptions import BadRequestError
 
-        raise BadRequestException("Password must be at least 6 characters")
+        raise BadRequestError("Password must be at least 6 characters")
     return register_info

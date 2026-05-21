@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from utils.models import CamelCaseModel
+from models import CamelCaseModel
 
 
 class User(CamelCaseModel):

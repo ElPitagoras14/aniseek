@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import Depends
 
 from packages.auth import auth_scheme
-from utils.exceptions import ConflictException, NotFoundException
+from exceptions import ConflictError, NotFoundError
 
 from . import repository
 from .config import episodes_settings
@@ -18,7 +18,7 @@ async def valid_episode_id_public(
     """Valida que el episodio existe y retorna los datos necesarios (sin autenticación)."""
     episode = await repository.get_episode_with_anime(episode_id, anime_id)
     if not episode:
-        raise NotFoundException(f"Episode {episode_id} not found")
+        raise NotFoundError(f"Episode {episode_id} not found")
 
     return {
         "episode_id": episode_id,
@@ -36,7 +36,7 @@ async def valid_episode_id(
     """Valida que el episodio existe y retorna los datos necesarios."""
     episode = await repository.get_episode_with_anime(episode_id, anime_id)
     if not episode:
-        raise NotFoundException(f"Episode {episode_id} not found")
+        raise NotFoundError(f"Episode {episode_id} not found")
 
     return {
         "episode_id": episode_id,
@@ -54,7 +54,7 @@ async def valid_episode_by_number(
     """Valida que el episodio existe por número y retorna los datos necesarios."""
     episode = await repository.get_episode_by_anime_and_number(anime_id, episode_number)
     if not episode:
-        raise NotFoundException(
+        raise NotFoundError(
             f"Episode {episode_number} not found for anime {anime_id}"
         )
 
@@ -79,7 +79,7 @@ async def episode_not_downloaded_by_user(
         episode_data["user_id"], episode_data["episode_id"]
     )
     if download:
-        raise ConflictException("Download already in progress")
+        raise ConflictError("Download already in progress")
     return episode_data
 
 
@@ -92,7 +92,7 @@ def _resolve_file_path(episode: dict) -> Path:
         anime_folder = ANIMES_FOLDER / episode["anime_id"] / f"Season {parsed_season}"
 
     if not anime_folder.exists():
-        raise NotFoundException("Episode file not found")
+        raise NotFoundError("Episode file not found")
 
     parsed_ep_number = str(episode["ep_number"]).zfill(2)
     file_path = (
@@ -100,7 +100,7 @@ def _resolve_file_path(episode: dict) -> Path:
         / f"{episode['anime_id']} - S{parsed_season}E{parsed_ep_number}.mp4"
     )
     if not file_path.exists():
-        raise NotFoundException("Episode file not found")
+        raise NotFoundError("Episode file not found")
     return file_path
 
 

@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from utils.models import CamelCaseModel
-from utils.responses import SuccessResponse
+from models import CamelCaseModel
+from responses import SuccessResponse
 
 
 class RelatedInfo(BaseModel):
