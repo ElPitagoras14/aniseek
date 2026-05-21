@@ -24,6 +24,32 @@ async def get_episode_with_anime(
     return dict(row) if row else None
 
 
+async def get_episodes_with_user_download_status(
+    anime_id: str, ep_numbers: list[int], user_id: str
+) -> list[dict]:
+    """Batch lookup: returns episodes for the given numbers with a flag indicating
+    whether the user already has a download record for each."""
+    if not ep_numbers:
+        return []
+    query = """
+        SELECT
+            e.id, e.anime_id, e.ep_number, e.preview, e.url, e.job_id, e.status, e.size,
+            a.title AS anime_title, a.poster AS anime_poster,
+            a.season AS anime_season, a.franchise_id AS anime_franchise_id,
+            (ude.user_id IS NOT NULL) AS already_downloaded
+        FROM episodes e
+        INNER JOIN animes a ON a.id = e.anime_id
+        LEFT JOIN user_download_episode ude
+               ON ude.episode_id = e.id AND ude.user_id = :user_id
+        WHERE e.anime_id = :anime_id AND e.ep_number = ANY(:ep_numbers)
+    """
+    rows = await db.fetch_all(
+        query,
+        {"anime_id": anime_id, "ep_numbers": ep_numbers, "user_id": UUID(user_id)},
+    )
+    return [dict(r) for r in rows]
+
+
 async def get_episode_by_anime_and_number(
     anime_id: str, ep_number: int
 ) -> dict | None:
@@ -53,7 +79,7 @@ async def get_user_episode_download(user_id: str, episode_id: int) -> dict | Non
 
 
 async def get_any_episode_download_with_job(episode_id: int) -> dict | None:
-    """Devuelve un download cualquiera del episodio + el job_id actual del episodio."""
+    """Returns any existing download record for the episode along with its current job_id."""
     query = """
         SELECT ude.user_id, ude.episode_id, e.job_id
         FROM user_download_episode ude

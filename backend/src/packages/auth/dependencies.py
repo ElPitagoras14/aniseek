@@ -2,21 +2,21 @@ from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):
-    """Schema para requests de autenticación."""
+    """Schema for authentication requests."""
 
     username: str
     password: str
 
 
 class RegisterRequest(BaseModel):
-    """Schema para registro de usuarios."""
+    """Schema for user registration."""
 
     username: str
     password: str
 
 
 class RefreshTokenRequest(BaseModel):
-    """Schema para refresh de token."""
+    """Schema for token refresh."""
 
     refresh_token: str
 
@@ -24,7 +24,7 @@ class RefreshTokenRequest(BaseModel):
 async def valid_login_request(
     login_info: LoginRequest,
 ) -> LoginRequest:
-    """Valida que los datos de login sean correctos."""
+    """Validates that login credentials are provided."""
     if not login_info.username or not login_info.password:
         from exceptions import BadRequestError
 
@@ -35,7 +35,7 @@ async def valid_login_request(
 async def valid_register_request(
     register_info: RegisterRequest,
 ) -> RegisterRequest:
-    """Valida que los datos de registro sean correctos."""
+    """Validates that registration data is correct."""
     if not register_info.username or not register_info.password:
         from exceptions import BadRequestError
 

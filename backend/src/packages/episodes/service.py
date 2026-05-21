@@ -142,18 +142,18 @@ async def download_anime_episode_bulk_controller(
     success_enqueued = []
     failed_enqueued = []
 
+    episodes = await repository.get_episodes_with_user_download_status(
+        anime_id, episode_numbers, user_id
+    )
+    episodes_by_number = {ep["ep_number"]: ep for ep in episodes}
+
     for ep_number in episode_numbers:
         try:
-            episode = await repository.get_episode_by_anime_and_number(
-                anime_id, ep_number
-            )
+            episode = episodes_by_number.get(ep_number)
             if not episode:
                 raise NotFoundError("Episode not found")
 
-            existing = await repository.get_user_episode_download(
-                user_id, episode["id"]
-            )
-            if existing:
+            if episode["already_downloaded"]:
                 logger.warning(
                     f"Episode {episode['id']} already enqueued for user {user_id}"
                 )
