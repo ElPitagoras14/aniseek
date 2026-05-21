@@ -1,12 +1,11 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
 from .exceptions import CustomHTTPException
 from .responses import APIResponse
 
 
-async def custom_http_exception_handler(
-    request: Request, exc: CustomHTTPException
-):
+async def custom_http_exception_handler(request: Request, exc: CustomHTTPException):
     response_data = APIResponse(
         success=False,
         message=exc.detail,

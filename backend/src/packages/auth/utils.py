@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta, timezone
+
 from fastapi import HTTPException
 from jose import jwt
-from starlette import status
 from passlib.context import CryptContext
+from starlette import status
 
 from .config import auth_settings
-from .responses import Tokens, AccessToken
-
+from .responses import AccessToken, Tokens
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -38,8 +38,7 @@ def create_access_token(user_data: dict):
     payload = {
         **user_data,
         "type": "access",
-        "exp": datetime.now(timezone.utc)
-        + timedelta(minutes=ACCESS_TOKEN_EXP_MIN),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXP_MIN),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -48,8 +47,7 @@ def create_refresh_token(user_data: dict):
     payload = {
         **user_data,
         "type": "refresh",
-        "exp": datetime.now(timezone.utc)
-        + timedelta(days=REFRESH_TOKEN_EXP_DAY),
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXP_DAY),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 

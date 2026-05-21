@@ -1,6 +1,6 @@
-from .responses import Avatar, AvatarList, User, UserList, Statistics
 from utils.cast import create_caster
 
+from .responses import Avatar, AvatarList, Statistics, User, UserList
 
 cast_user = create_caster(User)
 cast_avatar = create_caster(Avatar)

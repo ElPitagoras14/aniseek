@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
 from utils.responses import SuccessResponse
+
+from .responses import AccessTokenOut, TokenOut
+from .schemas import CreateInfo, LoginInfo
 from .service import login_controller, refresh_controller, register_controller
-from .responses import TokenOut, AccessTokenOut
-from .schemas import LoginInfo, CreateInfo
 
 auth_router = APIRouter()
 
@@ -27,12 +28,8 @@ async def login(login_info: LoginInfo):
     status_code=201,
 )
 async def register(register_info: CreateInfo):
-    data = await register_controller(
-        register_info.username, register_info.password
-    )
-    return SuccessResponse(
-        payload=data, message="User registered successfully"
-    )
+    data = await register_controller(register_info.username, register_info.password)
+    return SuccessResponse(payload=data, message="User registered successfully")
 
 
 @auth_router.post(
@@ -43,6 +40,4 @@ async def register(register_info: CreateInfo):
 )
 async def refresh_token(refresh_token: str):
     data = refresh_controller(refresh_token)
-    return SuccessResponse(
-        payload=data, message="Token refreshed successfully"
-    )
+    return SuccessResponse(payload=data, message="Token refreshed successfully")

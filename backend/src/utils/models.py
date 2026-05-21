@@ -1,7 +1,7 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
-
 
 BASE_CONFIG = ConfigDict(
     alias_generator=to_camel,

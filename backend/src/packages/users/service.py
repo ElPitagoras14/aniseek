@@ -1,17 +1,18 @@
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
-from loguru import logger
 
 from databases.postgres import (
+    Anime,
     AsyncDatabaseSession,
     Avatar,
     User,
     UserDownloadEpisode,
     UserSaveAnime,
-    Anime,
 )
-from utils.exceptions import ConflictException, NotFoundException
 from packages.auth import get_hash, verify_password
+from utils.exceptions import ConflictException, NotFoundException
+
 from .schemas import UserInfo
 from .utils import cast_avatars, cast_statistics, cast_user, cast_users
 
@@ -19,9 +20,7 @@ from .utils import cast_avatars, cast_statistics, cast_user, cast_users
 async def get_users_controller(user_id: str):
     logger.debug("Getting users")
     async with AsyncDatabaseSession() as db:
-        stmt = select(User).options(
-            selectinload(User.avatar), selectinload(User.role)
-        )
+        stmt = select(User).options(selectinload(User.avatar), selectinload(User.role))
         result = await db.execute(stmt)
         users = result.scalars().all()
 
@@ -58,11 +57,7 @@ async def get_users_controller(user_id: str):
 async def get_me_controller(user_id: str):
     logger.debug("Getting me")
     async with AsyncDatabaseSession() as db:
-        stmt = (
-            select(User)
-            .where(User.id == user_id)
-            .options(selectinload(User.role))
-        )
+        stmt = select(User).where(User.id == user_id).options(selectinload(User.role))
         result = await db.execute(stmt)
         user = result.scalar()
         if not user:
@@ -132,9 +127,7 @@ async def update_user_controller(user_info: UserInfo, user_id: str):
             user.username = user_info.username
 
         if user_info.password:
-            if not verify_password(
-                user_info.password.current_password, user.password
-            ):
+            if not verify_password(user_info.password.current_password, user.password):
                 raise ConflictException("Current password is incorrect")
             user.password = get_hash(user_info.password.new_password)
 

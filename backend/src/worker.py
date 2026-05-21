@@ -1,7 +1,8 @@
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
-from config import general_settings
 from loguru import logger
+
+from config import general_settings
 
 REDIS_URL = general_settings.REDIS_URL
 

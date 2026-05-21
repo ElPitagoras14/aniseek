@@ -1,19 +1,20 @@
+import uuid
+
 from sqlalchemy import (
+    TIMESTAMP,
+    Boolean,
+    CheckConstraint,
     Column,
     DateTime,
-    String,
-    Integer,
-    Boolean,
-    Text,
     ForeignKey,
-    TIMESTAMP,
-    CheckConstraint,
+    Integer,
+    String,
+    Text,
     UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, declarative_base
-import uuid
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -25,9 +26,7 @@ class Franchise(Base):
     name = Column(String(255), nullable=False)
     created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
 
-    animes = relationship(
-        "Anime", back_populates="franchise", cascade="all, delete"
-    )
+    animes = relationship("Anime", back_populates="franchise", cascade="all, delete")
 
 
 class AnimeRelation(Base):
@@ -50,14 +49,10 @@ class AnimeRelation(Base):
     )
 
     __table_args__ = (
-        CheckConstraint(
-            "anime_id <> related_anime_id", name="chk_not_self_relation"
-        ),
+        CheckConstraint("anime_id <> related_anime_id", name="chk_not_self_relation"),
     )
 
-    anime = relationship(
-        "Anime", foreign_keys=[anime_id], back_populates="relations"
-    )
+    anime = relationship("Anime", foreign_keys=[anime_id], back_populates="relations")
     related_anime = relationship(
         "Anime", foreign_keys=[related_anime_id], lazy="selectin"
     )
@@ -86,12 +81,8 @@ class Anime(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    genres = relationship(
-        "Genre", back_populates="anime", cascade="all, delete"
-    )
-    episodes = relationship(
-        "Episode", back_populates="anime", cascade="all, delete"
-    )
+    genres = relationship("Genre", back_populates="anime", cascade="all, delete")
+    episodes = relationship("Episode", back_populates="anime", cascade="all, delete")
     franchise = relationship("Franchise", back_populates="animes", cascade="")
     relations = relationship(
         "AnimeRelation",
@@ -99,9 +90,7 @@ class Anime(Base):
         foreign_keys="[AnimeRelation.anime_id]",
         lazy="selectin",
     )
-    saves = relationship(
-        "UserSaveAnime", back_populates="anime", cascade="all, delete"
-    )
+    saves = relationship("UserSaveAnime", back_populates="anime", cascade="all, delete")
 
 
 class Genre(Base):
@@ -146,9 +135,7 @@ class Episode(Base):
     updated_at = Column(String, server_default="CURRENT_TIMESTAMP")
 
     __table_args__ = (
-        UniqueConstraint(
-            "anime_id", "ep_number", name="uq_episode_anime_number"
-        ),
+        UniqueConstraint("anime_id", "ep_number", name="uq_episode_anime_number"),
     )
 
     anime = relationship("Anime", back_populates="episodes")
@@ -194,16 +181,12 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    saves = relationship(
-        "UserSaveAnime", back_populates="user", cascade="all, delete"
-    )
+    saves = relationship("UserSaveAnime", back_populates="user", cascade="all, delete")
     downloads = relationship(
         "UserDownloadEpisode", back_populates="user", cascade="all, delete"
     )
     role = relationship("RoleType")
-    api_keys = relationship(
-        "ApiKey", back_populates="user", cascade="all, delete"
-    )
+    api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete")
     avatar = relationship("Avatar", back_populates="users", lazy="joined")
 
 

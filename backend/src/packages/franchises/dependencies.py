@@ -2,9 +2,9 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from databases.postgres import Anime, AsyncDatabaseSession, Franchise
 from packages.auth import auth_scheme
 from utils.exceptions import NotFoundException
-from databases.postgres import AsyncDatabaseSession, Franchise, Anime
 
 
 async def valid_franchise_id(

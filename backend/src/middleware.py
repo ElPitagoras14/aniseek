@@ -1,36 +1,41 @@
 import time
-from fastapi import Request
 import uuid
-from jose import JWTError, jwt
-from loguru import logger
-from config import general_settings
+from typing import Callable
 
-SECRET_KEY = general_settings.SECRET_KEY
-ALGORITHM = general_settings.ALGORITHM
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from log import logger
+from packages.auth import parse_jwt_data
 
 
-async def add_logging_and_timing(request: Request, call_next):
-    request_id = str(uuid.uuid4())
-    request.state.request_id = request_id
+class TracingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: Callable) -> JSONResponse:
+        request_uuid = str(uuid.uuid4())
 
-    username = None
-    token = request.headers.get("authorization")
-    if token:
-        token = token.split(" ")[-1]
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("username")
-        except JWTError:
-            username = None
+        auth_header = request.headers.get("Authorization")
+        user = None
 
-    start_time = time.time()
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            payload = parse_jwt_data(token)
+            if payload:
+                user = payload.get("id", None)
 
-    with logger.contextualize(request_id=request_id, username=username):
-        response = await call_next(request)
+        request.state.uuid = request_uuid
+        request.state.user = user
 
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    response.headers["X-Request-ID"] = request_id
-    request.state.process_time = process_time
+        start_time = time.perf_counter()
 
-    return response
+        with logger.contextualize(uuid=request_uuid, user=user or "anonymous"):
+            if request.method != "OPTIONS":
+                logger.info(f"{request.method} {request.url.path}")
+            response = await call_next(request)
+
+        duration = (time.perf_counter() - start_time) * 1000
+
+        response.headers["X-Request-ID"] = request_uuid
+        response.headers["X-Response-Time"] = f"{duration:.2f}ms"
+
+        return response

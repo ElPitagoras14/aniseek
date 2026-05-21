@@ -1,13 +1,9 @@
 import sys
+
 from loguru import logger
 
-from config import general_settings
 
-APP_LOG_PATH = general_settings.APP_LOG_PATH
-ERROR_PATH = general_settings.ERROR_PATH
-
-
-def configure_logs():
+def configure_logs(level="INFO"):
     logger_format = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
         "<level>{level}</level> | "
@@ -21,15 +17,6 @@ def configure_logs():
 
     logger.add(
         sys.stdout,
-        level="DEBUG",
+        level=level,
         format=logger_format,
     )
-
-    if APP_LOG_PATH:
-        logger.add(
-            APP_LOG_PATH,
-            rotation="10 MB",
-            retention="30 days",
-            level="INFO",
-            format=logger_format,
-        )

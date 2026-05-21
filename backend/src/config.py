@@ -1,20 +1,21 @@
+from enum import Enum
+
 from dotenv import find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class Environment(str, Enum):
+    dev = "dev"
+    prod = "prod"
+
+
 class GeneralSettings(BaseSettings):
-    ADMIN_USER: str
-    ADMIN_PASS: str
-
-    APP_LOG_PATH: str | None = None
-    ERROR_PATH: str | None = None
-
     SECRET_KEY: str
     ALGORITHM: str
 
     REDIS_URL: str
 
-    ENVIRONMENT: str = "local"
+    ENVIRONMENT: Environment = Environment.dev
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),

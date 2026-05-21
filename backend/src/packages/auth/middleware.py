@@ -1,10 +1,11 @@
-from fastapi import Request, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
+from fastapi import HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from databases.postgres import AsyncDatabaseSession, User
+
 from .config import auth_settings
 
 SECRET_KEY = auth_settings.SECRET_KEY
@@ -17,9 +18,7 @@ class JWTBearer(HTTPBearer):
 
     async def __call__(self, request: Request) -> User:
         async with AsyncDatabaseSession() as db:
-            credentials: HTTPAuthorizationCredentials = await super().__call__(
-                request
-            )
+            credentials: HTTPAuthorizationCredentials = await super().__call__(request)
             if credentials and credentials.scheme.lower() == "bearer":
                 try:
                     payload = jwt.decode(
@@ -37,9 +36,7 @@ class JWTBearer(HTTPBearer):
                     stmt = (
                         select(User)
                         .where(User.id == user_id)
-                        .options(
-                            selectinload(User.role), selectinload(User.avatar)
-                        )
+                        .options(selectinload(User.role), selectinload(User.avatar))
                     )
                     user = await db.scalar(stmt)
                     if not user:
