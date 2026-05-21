@@ -1,10 +1,8 @@
 from loguru import logger
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from databases.postgres import AsyncDatabaseSession, User
 from utils.exceptions import ConflictException, NotFoundException
 
+from . import repository
 from .utils import (
     cast_access_token,
     cast_tokens,
@@ -18,60 +16,40 @@ from .utils import (
 
 async def login_controller(username: str, password: str):
     logger.debug(f"User {username} is trying to log in")
-    async with AsyncDatabaseSession() as db:
-        stmt = (
-            select(User)
-            .where(User.username == username)
-            .options(selectinload(User.role), selectinload(User.avatar))
-        )
-        user = await db.scalar(stmt)
-        if not user:
-            logger.debug(f"User {username} not found")
-            raise NotFoundException("User not found")
-        if not verify_password(password, user.password):
-            logger.debug(f"Password for user {username} is wrong")
-            raise ConflictException("Password is wrong")
-        if not user.is_active:
-            logger.debug(f"User {username} is not active")
-            raise ConflictException("User is not active")
-        logger.info(f"User {username} logged in")
-        access_token = create_access_token(
-            {
-                "id": str(user.id),
-                "username": user.username,
-                "isActive": user.is_active,
-                "role": user.role.name,
-                "avatarUrl": user.avatar.url if user.avatar else None,
-                "avatarLabel": user.avatar.label if user.avatar else None,
-            },
-        )
-        refresh_token = create_refresh_token(
-            {
-                "id": str(user.id),
-                "username": user.username,
-                "isActive": user.is_active,
-                "role": user.role.name,
-                "avatarUrl": user.avatar.url if user.avatar else None,
-                "avatarLabel": user.avatar.label if user.avatar else None,
-            },
-        )
-        casted_tokens = cast_tokens(access_token, refresh_token)
-        return casted_tokens
+    user = await repository.get_user_with_role_and_avatar_by_username(username)
+    if not user:
+        logger.debug(f"User {username} not found")
+        raise NotFoundException("User not found")
+    if not verify_password(password, user["password"]):
+        logger.debug(f"Password for user {username} is wrong")
+        raise ConflictException("Password is wrong")
+    if not user["is_active"]:
+        logger.debug(f"User {username} is not active")
+        raise ConflictException("User is not active")
+    logger.info(f"User {username} logged in")
+    token_payload = {
+        "id": str(user["id"]),
+        "username": user["username"],
+        "isActive": user["is_active"],
+        "role": user["role_name"],
+        "avatarUrl": user["avatar_url"],
+        "avatarLabel": user["avatar_label"],
+    }
+    access_token = create_access_token(token_payload)
+    refresh_token = create_refresh_token(token_payload)
+    return cast_tokens(access_token, refresh_token)
 
 
 async def register_controller(username: str, password: str):
     logger.debug(f"User {username} is trying to register")
-    async with AsyncDatabaseSession() as db:
-        stmt = select(User).where(User.username == username)
-        user = await db.scalar(stmt)
-        if user:
-            logger.debug(f"User {username} already exists")
-            raise ConflictException("User already exists")
-        hashed_password = get_hash(password)
-        user = User(username=username, password=hashed_password)
-        db.add(user)
-        logger.info(f"User {username} registered")
-        return "User registered successfully"
+    existing_id = await repository.get_user_id_by_username(username)
+    if existing_id:
+        logger.debug(f"User {username} already exists")
+        raise ConflictException("User already exists")
+    hashed_password = get_hash(password)
+    await repository.insert_user(username, hashed_password)
+    logger.info(f"User {username} registered")
+    return "User registered successfully"
 
 
 def refresh_controller(refresh_token: str):

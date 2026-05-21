@@ -1,10 +1,9 @@
 from fastapi import Depends
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from databases.postgres import Anime, AsyncDatabaseSession, Franchise
 from packages.auth import auth_scheme
 from utils.exceptions import NotFoundException
+
+from . import repository
 
 
 async def valid_franchise_id(
@@ -12,23 +11,15 @@ async def valid_franchise_id(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Valida que la franquicia existe y retorna los datos."""
-    async with AsyncDatabaseSession() as db:
-        stmt = (
-            select(Franchise)
-            .where(Franchise.id == franchise_id)
-            .options(selectinload(Franchise.animes))
-        )
-        result = await db.execute(stmt)
-        franchise = result.scalar()
+    franchise = await repository.get_franchise_by_id(franchise_id)
+    if not franchise:
+        raise NotFoundException(f"Franchise {franchise_id} not found")
 
-        if not franchise:
-            raise NotFoundException(f"Franchise {franchise_id} not found")
-
-        return {
-            "franchise_id": franchise_id,
-            "franchise": franchise,
-            "user_id": current_user["id"],
-        }
+    return {
+        "franchise_id": franchise_id,
+        "franchise": franchise,
+        "user_id": current_user["id"],
+    }
 
 
 async def valid_anime_for_franchise(
@@ -36,22 +27,14 @@ async def valid_anime_for_franchise(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Valida que el anime no tiene franquicia asignada."""
-    async with AsyncDatabaseSession() as db:
-        stmt = (
-            select(Anime)
-            .where(Anime.id == anime_id, Anime.franchise_id.is_(None))
-            .options(selectinload(Anime.franchise))
+    anime = await repository.get_anime_without_franchise(anime_id)
+    if not anime:
+        raise NotFoundException(
+            f"Anime {anime_id} not found or already has franchise"
         )
-        result = await db.execute(stmt)
-        anime = result.scalar()
 
-        if not anime:
-            raise NotFoundException(
-                f"Anime {anime_id} not found or already has franchise"
-            )
-
-        return {
-            "anime_id": anime_id,
-            "anime": anime,
-            "user_id": current_user["id"],
-        }
+    return {
+        "anime_id": anime_id,
+        "anime": anime,
+        "user_id": current_user["id"],
+    }

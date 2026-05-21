@@ -1,10 +1,9 @@
 from fastapi import Depends
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from databases.postgres import AsyncDatabaseSession, Avatar, User
 from packages.auth import auth_scheme
 from utils.exceptions import NotFoundException
+
+from . import repository
 
 
 async def valid_user_id(
@@ -12,55 +11,39 @@ async def valid_user_id(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Valida que el usuario existe y retorna los datos."""
-    async with AsyncDatabaseSession() as db:
-        stmt = (
-            select(User)
-            .where(User.id == user_id)
-            .options(selectinload(User.avatar), selectinload(User.role))
-        )
-        result = await db.execute(stmt)
-        user = result.scalar()
+    user = await repository.get_user_by_id_with_role_and_avatar(user_id)
+    if not user:
+        raise NotFoundException(f"User {user_id} not found")
 
-        if not user:
-            raise NotFoundException(f"User {user_id} not found")
-
-        return {
-            "user_id": user_id,
-            "user": user,
-        }
+    return {
+        "user_id": user_id,
+        "user": user,
+    }
 
 
 async def valid_username(
     username: str,
 ) -> dict:
     """Valida que el nombre de usuario existe."""
-    async with AsyncDatabaseSession() as db:
-        stmt = select(User).where(User.username == username)
-        result = await db.execute(stmt)
-        user = result.scalar()
+    user = await repository.get_user_by_username(username)
+    if not user:
+        raise NotFoundException(f"Username {username} not found")
 
-        if not user:
-            raise NotFoundException(f"Username {username} not found")
-
-        return {
-            "username": username,
-            "user": user,
-        }
+    return {
+        "username": username,
+        "user": user,
+    }
 
 
 async def valid_avatar_id(
     avatar_id: int,
 ) -> dict:
     """Valida que el avatar existe."""
-    async with AsyncDatabaseSession() as db:
-        stmt = select(Avatar).where(Avatar.id == avatar_id)
-        result = await db.execute(stmt)
-        avatar = result.scalar()
+    avatar = await repository.get_avatar_by_id(avatar_id)
+    if not avatar:
+        raise NotFoundException(f"Avatar {avatar_id} not found")
 
-        if not avatar:
-            raise NotFoundException(f"Avatar {avatar_id} not found")
-
-        return {
-            "avatar_id": avatar_id,
-            "avatar": avatar,
-        }
+    return {
+        "avatar_id": avatar_id,
+        "avatar": avatar,
+    }
