@@ -1,12 +1,17 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from models import CamelCaseModel
 
 
 class User(CamelCaseModel):
     id: str
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id(cls, v) -> str:
+        return str(v)
     username: str
     avatar_url: str | None = None
     avatar_label: str | None = None

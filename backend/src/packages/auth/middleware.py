@@ -2,8 +2,11 @@ from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
-from . import repository
 from .config import auth_settings
+from .repository import (
+    get_user_by_id,
+    get_user_by_username,
+)
 
 SECRET_KEY = auth_settings.SECRET_KEY
 ALGORITHM = auth_settings.ALGORITHM
@@ -14,6 +17,22 @@ class JWTBearer(HTTPBearer):
         super().__init__(auto_error=auto_error)
 
     async def __call__(self, request: Request) -> dict:
+        if not auth_settings.AUTH_ENABLED:
+            user = await get_user_by_username(
+                auth_settings.ADMIN_USER
+            )
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Admin user not seeded",
+                )
+            return {
+                "id": str(user["id"]),
+                "username": user["username"],
+                "isActive": user["is_active"],
+                "role": user["role_name"],
+            }
+
         credentials: HTTPAuthorizationCredentials = await super().__call__(request)
         if credentials and credentials.scheme.lower() == "bearer":
             try:
@@ -29,7 +48,7 @@ class JWTBearer(HTTPBearer):
                         detail="Invalid token",
                     )
 
-                user = await repository.get_user_with_role_and_avatar_by_id(user_id)
+                user = await get_user_by_id(user_id)
                 if not user:
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -2,7 +2,7 @@ from loguru import logger
 
 from exceptions import ConflictError, NotFoundError
 
-from . import repository
+from .repository import get_user_by_username, get_user_id_by_username, insert_user
 from .utils import (
     cast_access_token,
     cast_tokens,
@@ -16,7 +16,7 @@ from .utils import (
 
 async def login_controller(username: str, password: str):
     logger.debug(f"User {username} is trying to log in")
-    user = await repository.get_user_with_role_and_avatar_by_username(username)
+    user = await get_user_by_username(username)
     if not user:
         logger.debug(f"User {username} not found")
         raise NotFoundError("User not found")
@@ -42,12 +42,12 @@ async def login_controller(username: str, password: str):
 
 async def register_controller(username: str, password: str):
     logger.debug(f"User {username} is trying to register")
-    existing_id = await repository.get_user_id_by_username(username)
+    existing_id = await get_user_id_by_username(username)
     if existing_id:
         logger.debug(f"User {username} already exists")
         raise ConflictError("User already exists")
     hashed_password = get_hash(password)
-    await repository.insert_user(username, hashed_password)
+    await insert_user(username, hashed_password)
     logger.info(f"User {username} registered")
     return "User registered successfully"
 

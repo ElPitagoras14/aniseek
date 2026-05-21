@@ -21,11 +21,11 @@ Escribe los resultados obtenidos a este documento.
 
 ### 2. Renombres de modelos
 
-| Antes | Después | Archivo | Motivo |
-|---|---|---|---|
-| `CreateInfo` | `RegisterInfo` | `auth/schemas.py` | El nombre no comunicaba "registro" |
-| `CreateFranchise` | `FranchiseCreate` | `franchises/schemas.py` | Convención `<Recurso><Acción>` |
-| `UserInfo` | `UserUpdateInfo` | `users/schemas.py` | Solo se usa para PATCH; el nombre era ambiguo |
+| Antes             | Después           | Archivo                 | Motivo                                        |
+| ----------------- | ----------------- | ----------------------- | --------------------------------------------- |
+| `CreateInfo`      | `RegisterInfo`    | `auth/schemas.py`       | El nombre no comunicaba "registro"            |
+| `CreateFranchise` | `FranchiseCreate` | `franchises/schemas.py` | Convención `<Recurso><Acción>`                |
+| `UserInfo`        | `UserUpdateInfo`  | `users/schemas.py`      | Solo se usa para PATCH; el nombre era ambiguo |
 
 Modelos auditados sin renombrar (nombres considerados representativos): `SearchAnimeResult`, `AnimeDownloadInfo`, `DownloadTask`, `DownloadTaskStatus`, `PasswordInfo`, `AnimeInfo`, `LoginInfo`.
 
@@ -39,13 +39,13 @@ Modelos auditados sin renombrar (nombres considerados representativos): `SearchA
 
 ### Mapeo de excepciones (antiguo → nuevo)
 
-| Antiguo | Nuevo |
-|---|---|
-| `NotFoundException` | `NotFoundError` |
-| `BadRequestException` | `BadRequestError` |
-| `ConflictException` | `ConflictError` (agregado a `exceptions.py`) |
-| `CustomHTTPException` | `AppError` |
-| `InternalServerErrorException` | `AppError` (status 500 por defecto) |
+| Antiguo                        | Nuevo                                        |
+| ------------------------------ | -------------------------------------------- |
+| `NotFoundException`            | `NotFoundError`                              |
+| `BadRequestException`          | `BadRequestError`                            |
+| `ConflictException`            | `ConflictError` (agregado a `exceptions.py`) |
+| `CustomHTTPException`          | `AppError`                                   |
+| `InternalServerErrorException` | `AppError` (status 500 por defecto)          |
 
 ### Archivos nuevos creados
 

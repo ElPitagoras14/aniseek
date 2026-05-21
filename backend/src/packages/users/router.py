@@ -35,6 +35,7 @@ async def get_me(
 @users_router.get("/username/{username}")
 async def check_username(
     username: str,
+    current_user: dict = Depends(auth_scheme),
 ):
     payload = await check_username_controller(username)
     return SuccessResponse(payload=payload, message="Username checked")
