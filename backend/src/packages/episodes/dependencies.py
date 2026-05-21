@@ -15,7 +15,7 @@ async def valid_episode_id_public(
     episode_id: int,
     anime_id: str | None = None,
 ) -> dict:
-    """Valida que el episodio existe y retorna los datos necesarios (sin autenticación)."""
+    """Validates that the episode exists and returns the required data (no authentication)."""
     episode = await repository.get_episode_with_anime(episode_id, anime_id)
     if not episode:
         raise NotFoundError(f"Episode {episode_id} not found")
@@ -33,7 +33,7 @@ async def valid_episode_id(
     anime_id: str | None = None,
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
-    """Valida que el episodio existe y retorna los datos necesarios."""
+    """Validates that the episode exists and returns the required data."""
     episode = await repository.get_episode_with_anime(episode_id, anime_id)
     if not episode:
         raise NotFoundError(f"Episode {episode_id} not found")
@@ -51,7 +51,7 @@ async def valid_episode_by_number(
     episode_number: int,
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
-    """Valida que el episodio existe por número y retorna los datos necesarios."""
+    """Validates that the episode exists by anime and episode number, and returns the required data."""
     episode = await repository.get_episode_by_anime_and_number(anime_id, episode_number)
     if not episode:
         raise NotFoundError(
@@ -71,7 +71,7 @@ async def episode_not_downloaded_by_user(
     episode_data: dict = Depends(valid_episode_by_number),
     force_download: bool = False,
 ) -> dict:
-    """Verifica que el episodio NO esté descargado por el usuario (si force_download es False)."""
+    """Verifies the episode is not already downloaded by the user (skipped when force_download is True)."""
     if force_download:
         return episode_data
 
@@ -107,7 +107,7 @@ def _resolve_file_path(episode: dict) -> Path:
 async def valid_downloaded_episode(
     episode_data: dict = Depends(valid_episode_id),
 ) -> dict:
-    """Valida que el episodio existe y el archivo físico está disponible."""
+    """Validates that the episode exists and its physical file is available on disk."""
     file_path = _resolve_file_path(episode_data["episode"])
     episode_data["file_path"] = str(file_path)
     episode_data["filename"] = (
@@ -119,7 +119,7 @@ async def valid_downloaded_episode(
 async def valid_downloaded_episode_public(
     episode_data: dict = Depends(valid_episode_id_public),
 ) -> dict:
-    """Valida que el episodio existe y el archivo físico está disponible (sin autenticación)."""
+    """Validates that the episode exists and its physical file is available on disk (no authentication)."""
     file_path = _resolve_file_path(episode_data["episode"])
     episode_data["file_path"] = str(file_path)
     episode_data["filename"] = (

@@ -37,5 +37,5 @@ class AppResponse(BaseModel):
 
 class SuccessResponse(AppResponse):
     status: str = "success"
-    message: str = "Operación exitosa"
+    message: str = "Operation successful"
     status_code: int = 200

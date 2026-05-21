@@ -14,8 +14,10 @@ async def get_anime_by_id(anime_id: str) -> dict | None:
     return dict(row) if row else None
 
 
-async def get_anime_with_relations(anime_id: str) -> dict | None:
-    """Carga anime + genres + episodes + related animes."""
+async def get_anime_with_relations(
+    anime_id: str, user_id: str | None = None
+) -> dict | None:
+    """Loads anime with genres, episodes (with per-user download flags), relations, and saved info."""
     anime = await get_anime_by_id(anime_id)
     if not anime:
         return None
@@ -24,15 +26,43 @@ async def get_anime_with_relations(anime_id: str) -> dict | None:
         "SELECT name FROM genres WHERE anime_id = :id ORDER BY name",
         {"id": anime_id},
     )
-    episodes = await db.fetch_all(
-        """
-        SELECT id, anime_id, ep_number, preview, url, job_id, status, size
-        FROM episodes
-        WHERE anime_id = :id
-        ORDER BY ep_number
-        """,
-        {"id": anime_id},
-    )
+
+    if user_id:
+        episodes = await db.fetch_all(
+            """
+            SELECT
+                e.id, e.anime_id, e.ep_number, e.preview, e.url, e.job_id, e.status, e.size,
+                (ude_user.user_id IS NOT NULL) AS is_user_downloaded,
+                EXISTS (
+                    SELECT 1 FROM user_download_episode ude WHERE ude.episode_id = e.id
+                ) AS is_global_downloaded
+            FROM episodes e
+            LEFT JOIN user_download_episode ude_user
+                   ON ude_user.episode_id = e.id AND ude_user.user_id = :user_id
+            WHERE e.anime_id = :id
+            ORDER BY e.ep_number
+            """,
+            {"id": anime_id, "user_id": UUID(user_id)},
+        )
+        saved_row = await db.fetch_one(
+            "SELECT created_at FROM user_save_anime WHERE user_id = :user_id AND anime_id = :anime_id",
+            {"user_id": UUID(user_id), "anime_id": anime_id},
+        )
+        anime["saved_info"] = {
+            "is_saved": saved_row is not None,
+            "save_date": saved_row["created_at"] if saved_row else None,
+        }
+    else:
+        episodes = await db.fetch_all(
+            """
+            SELECT id, anime_id, ep_number, preview, url, job_id, status, size,
+                   FALSE AS is_user_downloaded, FALSE AS is_global_downloaded
+            FROM episodes WHERE anime_id = :id ORDER BY ep_number
+            """,
+            {"id": anime_id},
+        )
+        anime["saved_info"] = {"is_saved": False, "save_date": None}
+
     relations = await db.fetch_all(
         """
         SELECT
@@ -61,7 +91,7 @@ async def get_anime_with_relations(anime_id: str) -> dict | None:
 
 
 async def upsert_scraped_anime(values: dict) -> None:
-    """INSERT con ON CONFLICT DO UPDATE — para animes scrapeados (datos reales)."""
+    """INSERT with ON CONFLICT DO UPDATE — for scraped animes with full data."""
     query = """
         INSERT INTO animes (id, title, description, poster, type, is_finished, week_day, last_scraped_at)
         VALUES (:id, :title, :description, :poster, :type, :is_finished, :week_day, :last_scraped_at)
@@ -78,7 +108,7 @@ async def upsert_scraped_anime(values: dict) -> None:
 
 
 async def insert_dummy_anime(anime_id: str, title: str) -> None:
-    """INSERT con ON CONFLICT DO NOTHING — para animes relacionados (dummies)."""
+    """INSERT with ON CONFLICT DO NOTHING — for placeholder animes used in relations."""
     query = """
         INSERT INTO animes (id, title)
         VALUES (:id, :title)
@@ -160,34 +190,6 @@ async def get_user_saved_anime(user_id: str, anime_id: str) -> dict | None:
     )
     return dict(row) if row else None
 
-
-async def get_episode_ids_by_anime(anime_id: str) -> list[int]:
-    query = "SELECT id FROM episodes WHERE anime_id = :id"
-    rows = await db.fetch_all(query, {"id": anime_id})
-    return [r["id"] for r in rows]
-
-
-async def get_user_downloaded_episode_ids(
-    user_id: str, episode_ids: list[int]
-) -> list[int]:
-    if not episode_ids:
-        return []
-    query = """
-        SELECT episode_id FROM user_download_episode
-        WHERE user_id = :user_id AND episode_id = ANY(:ids)
-    """
-    rows = await db.fetch_all(
-        query, {"user_id": UUID(user_id), "ids": episode_ids}
-    )
-    return [r["episode_id"] for r in rows]
-
-
-async def get_global_downloaded_episode_ids(episode_ids: list[int]) -> list[int]:
-    if not episode_ids:
-        return []
-    query = "SELECT DISTINCT episode_id FROM user_download_episode WHERE episode_id = ANY(:ids)"
-    rows = await db.fetch_all(query, {"ids": episode_ids})
-    return [r["episode_id"] for r in rows]
 
 
 async def list_user_saved_animes(user_id: str) -> list[dict]:

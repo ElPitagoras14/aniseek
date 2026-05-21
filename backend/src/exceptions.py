@@ -1,6 +1,6 @@
 class AppError(Exception):
     status_code: int = 500
-    code: str = "ERROR_INTERNO"
+    code: str = "INTERNAL_ERROR"
 
     def __init__(self, message: str, payload: dict | None = None):
         self.message = message
@@ -10,29 +10,34 @@ class AppError(Exception):
 
 class NotFoundError(AppError):
     status_code: int = 404
-    code: str = "NO_ENCONTRADO"
+    code: str = "NOT_FOUND"
 
 
 class BadRequestError(AppError):
     status_code: int = 400
-    code: str = "SOLICITUD_INVALIDA"
+    code: str = "INVALID_REQUEST"
 
 
 class ExternalServiceError(AppError):
     status_code: int = 502
-    code: str = "ERROR_SERVICIO_EXTERNO"
+    code: str = "EXTERNAL_SERVICE_ERROR"
 
 
 class UnauthorizedError(AppError):
     status_code: int = 401
-    code: str = "NO_AUTORIZADO"
+    code: str = "UNAUTHORIZED"
 
 
 class ForbiddenError(AppError):
     status_code: int = 403
-    code: str = "PROHIBIDO"
+    code: str = "FORBIDDEN"
 
 
 class ConflictError(AppError):
     status_code: int = 409
-    code: str = "CONFLICTO"
+    code: str = "CONFLICT"
+
+
+class TooManyRequestsError(AppError):
+    status_code: int = 429
+    code: str = "TOO_MANY_REQUESTS"

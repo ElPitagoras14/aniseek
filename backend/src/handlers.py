@@ -29,7 +29,7 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
         status_code=500,
         content={
             "status": "error",
-            "message": "Error interno del servidor",
+            "message": "Internal server error",
             "payload": None,
         },
     )

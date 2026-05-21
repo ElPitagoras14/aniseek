@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends
 
 from packages.auth import auth_scheme
-from exceptions import ConflictError, NotFoundError
+from exceptions import ConflictError, NotFoundError, TooManyRequestsError
 
 from . import repository
 
@@ -12,7 +12,7 @@ async def valid_anime_for_update(
     anime_id: str,
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
-    """Valida que el anime existe y puede ser actualizado (cooldown 5 min)."""
+    """Validates that the anime exists and is eligible for update (5-minute cooldown)."""
     anime = await repository.get_anime_by_id(anime_id)
 
     if not anime or not anime["last_scraped_at"]:
@@ -32,7 +32,7 @@ async def valid_anime_for_update(
         remaining_seconds = int(
             (timedelta(minutes=cooldown_minutes) - time_diff).total_seconds()
         )
-        raise NotFoundError(
+        raise TooManyRequestsError(
             f"Anime was updated recently. "
             f"Please wait {remaining_seconds} seconds before updating."
         )
@@ -40,7 +40,6 @@ async def valid_anime_for_update(
     return {
         "anime_id": anime_id,
         "user_id": current_user["id"],
-        "anime_db": anime,
     }
 
 
@@ -48,14 +47,13 @@ async def valid_anime_id(
     anime_id: str,
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
-    """Valida que el anime existe y retorna los datos necesarios."""
+    """Validates that the anime exists and returns the required data."""
     anime = await repository.get_anime_by_id(anime_id)
     if not anime:
         raise NotFoundError(f"Anime {anime_id} not found")
 
     return {
         "anime_id": anime_id,
-        "anime": anime,
         "user_id": current_user["id"],
     }
 
@@ -63,7 +61,7 @@ async def valid_anime_id(
 async def anime_is_saved_by_user(
     anime_data: dict = Depends(valid_anime_id),
 ) -> dict:
-    """Verifica que el usuario tenga el anime guardado."""
+    """Verifies that the user has the anime saved."""
     saved = await repository.get_user_saved_anime(
         anime_data["user_id"], anime_data["anime_id"]
     )
@@ -75,7 +73,7 @@ async def anime_is_saved_by_user(
 async def anime_not_saved_by_user(
     anime_data: dict = Depends(valid_anime_id),
 ) -> dict:
-    """Verifica que el usuario NO tenga el anime guardado."""
+    """Verifies that the user does NOT have the anime saved."""
     saved = await repository.get_user_saved_anime(
         anime_data["user_id"], anime_data["anime_id"]
     )
@@ -88,7 +86,7 @@ async def user_not_saved_anime(
     anime_id: str,
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
-    """Verifica que el usuario NO tenga el anime guardado (sin requerir que el anime exista en DB)."""
+    """Verifies the user has not saved the anime without requiring it to exist in the DB first."""
     saved = await repository.get_user_saved_anime(current_user["id"], anime_id)
     if saved:
         raise ConflictError("Anime already saved by user")

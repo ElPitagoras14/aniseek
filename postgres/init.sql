@@ -128,6 +128,10 @@ CREATE INDEX idx_user_save_anime_created ON user_save_anime(created_at);
 
 CREATE INDEX idx_user_download_episode_created ON user_download_episode(created_at);
 
+CREATE INDEX idx_user_download_episode_episode_id ON user_download_episode(episode_id);
+
+CREATE INDEX idx_animes_franchise_id ON animes(franchise_id);
+
 INSERT INTO
   role_types (name)
 VALUES

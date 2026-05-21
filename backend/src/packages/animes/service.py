@@ -16,11 +16,7 @@ from .utils import (
 )
 
 
-def get_anime_info_to_dict(
-    anime_db: dict,
-    downloaded_user_episodes_ids: list[int],
-    downloaded_global_episodes_ids: list[int],
-) -> dict:
+def get_anime_info_to_dict(anime_db: dict) -> dict:
     return {
         "id": anime_db["id"],
         "title": anime_db["title"],
@@ -45,42 +41,16 @@ def get_anime_info_to_dict(
                 "id": ep["ep_number"],
                 "anime_id": ep["anime_id"],
                 "image_preview": ep["preview"],
-                "is_user_downloaded": ep["id"] in downloaded_user_episodes_ids,
-                "is_global_downloaded": ep["id"] in downloaded_global_episodes_ids,
+                "is_user_downloaded": ep["is_user_downloaded"],
+                "is_global_downloaded": ep["is_global_downloaded"],
             }
             for ep in anime_db["episodes"]
         ],
     }
 
 
-async def get_user_anime_data(user_id: str, anime_id: str) -> dict:
-    saved_anime = await repository.get_user_saved_anime(user_id, anime_id)
-    episode_ids = await repository.get_episode_ids_by_anime(anime_id)
-    downloaded_user = await repository.get_user_downloaded_episode_ids(
-        user_id, episode_ids
-    )
-    downloaded_global = await repository.get_global_downloaded_episode_ids(episode_ids)
-
-    return {
-        "saved_anime_info": {
-            "is_saved": saved_anime is not None,
-            "save_date": saved_anime["created_at"] if saved_anime else None,
-        },
-        "downloaded_user_episodes_ids": downloaded_user,
-        "downloaded_global_episodes_ids": downloaded_global,
-    }
-
-
-def build_anime_response(
-    anime_db: dict,
-    downloaded_user_episodes_ids: list[int],
-    downloaded_global_episodes_ids: list[int],
-    saved_anime_info: dict,
-) -> dict:
-    new_anime_info = get_anime_info_to_dict(
-        anime_db, downloaded_user_episodes_ids, downloaded_global_episodes_ids
-    )
-    return cast_anime_info(new_anime_info, saved_anime_info)
+def build_anime_response(anime_db: dict) -> dict:
+    return cast_anime_info(get_anime_info_to_dict(anime_db), anime_db["saved_info"])
 
 
 async def add_new_anime(base_url: str, anime_id: str) -> None:
@@ -121,9 +91,9 @@ async def add_new_anime(base_url: str, anime_id: str) -> None:
         episode_values = [
             {
                 "anime_id": anime_info.id,
-                "ep_number": ep.number,
+                "ep_number": ep.episode_number,
                 "preview": ep.image_preview,
-                "url": f"{base_url}/{ep.number}",
+                "url": f"{base_url}/{ep.episode_number}",
             }
             for ep in anime_info.episodes
         ]
@@ -131,7 +101,7 @@ async def add_new_anime(base_url: str, anime_id: str) -> None:
         logger.debug("Inserted episodes")
 
 
-async def update_anime_info(anime_db: dict, base_url: str, anime_id: str) -> None:
+async def update_anime_info(base_url: str, anime_id: str) -> None:
     current_time = datetime.now(timezone.utc)
     anime_info = await scrape_anime_info(anime_id, include_episodes=False)
 
@@ -155,6 +125,12 @@ async def update_anime_info(anime_db: dict, base_url: str, anime_id: str) -> Non
             },
         )
 
+        for related in anime_info.related_info:
+            await repository.insert_dummy_anime(related.id, related.title)
+            await repository.insert_anime_relation(
+                anime_info.id, related.id, related_types_id[related.type.value]
+            )
+
         await asyncio.sleep(1.5)
         last_ep_number = await repository.get_max_episode_number(anime_id)
         new_episodes = await scrape_new_episodes(anime_id, last_ep_number)
@@ -164,9 +140,9 @@ async def update_anime_info(anime_db: dict, base_url: str, anime_id: str) -> Non
             [
                 {
                     "anime_id": anime_id,
-                    "ep_number": ep.number,
+                    "ep_number": ep.episode_number,
                     "preview": ep.image_preview,
-                    "url": f"{base_url}/{ep.number}",
+                    "url": f"{base_url}/{ep.episode_number}",
                 }
                 for ep in new_episodes
             ],
@@ -175,39 +151,23 @@ async def update_anime_info(anime_db: dict, base_url: str, anime_id: str) -> Non
 
 async def update_anime_controller(anime_id: str, user_id: str) -> dict:
     base_url = f"https://animeav1.com/media/{anime_id}"
-
-    anime_db = await repository.get_anime_by_id(anime_id)
-    await update_anime_info(anime_db, base_url, anime_id)
-
-    anime_db = await repository.get_anime_with_relations(anime_id)
-    user_data = await get_user_anime_data(user_id, anime_id)
-
-    return build_anime_response(
-        anime_db,
-        user_data["downloaded_user_episodes_ids"],
-        user_data["downloaded_global_episodes_ids"],
-        user_data["saved_anime_info"],
-    )
+    await update_anime_info(base_url, anime_id)
+    anime_db = await repository.get_anime_with_relations(anime_id, user_id)
+    return build_anime_response(anime_db)
 
 
 async def get_anime_controller(anime_id: str, user_id: str) -> dict:
     logger.debug(f"Getting anime with id: {anime_id}")
     base_url = f"https://animeav1.com/media/{anime_id}"
 
-    anime_db = await repository.get_anime_with_relations(anime_id)
+    anime_db = await repository.get_anime_with_relations(anime_id, user_id)
 
     if not anime_db or not anime_db.get("last_scraped_at"):
         logger.debug("Anime not in DB or dummy row found, creating...")
         await add_new_anime(base_url, anime_id)
-        anime_db = await repository.get_anime_with_relations(anime_id)
+        anime_db = await repository.get_anime_with_relations(anime_id, user_id)
 
-    user_data = await get_user_anime_data(user_id, anime_id)
-    return build_anime_response(
-        anime_db,
-        user_data["downloaded_user_episodes_ids"],
-        user_data["downloaded_global_episodes_ids"],
-        user_data["saved_anime_info"],
-    )
+    return build_anime_response(anime_db)
 
 
 async def search_anime_controller(query: str, user_id: str):
