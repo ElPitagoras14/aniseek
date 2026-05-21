@@ -1,14 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from fastapi import HTTPException
 from jose import jwt
-from passlib.context import CryptContext
 from starlette import status
 
 from .config import auth_settings
 from .responses import AccessToken, Tokens
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SECRET_KEY = auth_settings.SECRET_KEY
 ALGORITHM = auth_settings.ALGORITHM
@@ -59,12 +57,12 @@ def create_refresh_token(user_data: dict):
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
 
-def get_hash(word):
-    return pwd_context.hash(word)
+def get_hash(word: str) -> str:
+    return bcrypt.hashpw(word.encode(), bcrypt.gensalt()).decode()
 
 
 def cast_tokens(access_token: str, refresh_token: str):

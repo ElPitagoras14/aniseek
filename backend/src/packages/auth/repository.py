@@ -3,7 +3,7 @@ from uuid import UUID
 from database.client import db
 
 
-async def get_user_with_role_and_avatar_by_username(username: str) -> dict | None:
+async def get_user_by_username(username: str) -> dict | None:
     query = """
         SELECT
             u.id, u.username, u.password, u.is_active,
@@ -20,7 +20,7 @@ async def get_user_with_role_and_avatar_by_username(username: str) -> dict | Non
     return dict(row) if row else None
 
 
-async def get_user_with_role_and_avatar_by_id(user_id: str) -> dict | None:
+async def get_user_by_id(user_id: str) -> dict | None:
     query = """
         SELECT
             u.id, u.username, u.password, u.is_active,

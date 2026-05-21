@@ -1,6 +1,14 @@
 from .middleware import auth_scheme
+from .repository import get_user_id_by_username, insert_user
 from .router import auth_router
-from .service import get_hash, verify_password
-from .utils import parse_jwt_data
+from .utils import get_hash, parse_jwt_data, verify_password
 
-__all__ = ["auth_scheme", "auth_router", "get_hash", "verify_password", "parse_jwt_data"]
+__all__ = [
+    "auth_scheme",
+    "auth_router",
+    "get_hash",
+    "get_user_id_by_username",
+    "insert_user",
+    "parse_jwt_data",
+    "verify_password",
+]

@@ -11,8 +11,10 @@ from exceptions import AppError
 from handlers import app_error_handler, unhandled_error_handler
 from log import configure_logs
 from middleware import TracingMiddleware
+from packages.auth import get_hash, get_user_id_by_username, insert_user
+from packages.auth.config import auth_settings
 from routes import router
-from config import general_settings
+from config import Environment, general_settings
 
 
 ENVIRONMENT = general_settings.ENVIRONMENT
@@ -20,9 +22,21 @@ ENVIRONMENT = general_settings.ENVIRONMENT
 configure_logs()
 
 
+async def _seed_admin_user():
+    existing = await get_user_id_by_username(auth_settings.ADMIN_USER)
+    if existing:
+        logger.info(f"Admin user '{auth_settings.ADMIN_USER}' already exists")
+        return
+    hashed = get_hash(auth_settings.ADMIN_PASS)
+    await insert_user(auth_settings.ADMIN_USER, hashed, role_id=1)
+    logger.info(f"Seeded admin user '{auth_settings.ADMIN_USER}' (role admin)")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
+    if not auth_settings.AUTH_ENABLED:
+        await _seed_admin_user()
     logger.info("Application starting up...")
     yield
     await disconnect_db()
@@ -66,7 +80,7 @@ def start():
     logger.info(
         f"Starting AniSeek API server in {ENVIRONMENT.value} mode on port {8000}"
     )
-    is_dev = ENVIRONMENT == general_settings.Environment.dev
+    is_dev = ENVIRONMENT == Environment.dev
     uvicorn.run(
         app="main:app",
         host="0.0.0.0",

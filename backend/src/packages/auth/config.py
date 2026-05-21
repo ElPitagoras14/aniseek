@@ -7,6 +7,9 @@ class AuthSettings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXP_MIN: int
     REFRESH_TOKEN_EXP_DAY: float
+    AUTH_ENABLED: bool = True
+    ADMIN_USER: str = "admin"
+    ADMIN_PASS: str = "admin123"
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),
