@@ -12,6 +12,7 @@ from .scraper import scrape_anime_info, scrape_new_episodes, scrape_search_anime
 from .utils import (
     cast_anime_info,
     cast_in_emission_anime_list,
+    cast_saved_anime_result_list,
     cast_search_anime_result_list,
 )
 
@@ -206,11 +207,12 @@ async def get_saved_animes_controller(user_id: str) -> dict:
             "type": a["type"],
             "poster": a["poster"],
             "is_saved": True,
-            "save_date": a["created_at"],
+            "save_date": a["save_date"],
+            "is_finished": a["is_finished"],
         }
         for a in saved
     ]
-    return cast_search_anime_result_list(animes)
+    return cast_saved_anime_result_list(animes)
 
 
 async def save_anime_controller(anime_id: str, user_id: str) -> str:

@@ -11,6 +11,7 @@ from .dependencies import (
 from .responses import (
     AnimeOut,
     InEmissionAnimeListOut,
+    SavedAnimeResultListOut,
     SearchAnimeResultListOut,
 )
 from .service import (
@@ -35,7 +36,7 @@ async def search_animes(
     return SuccessResponse(payload=payload, message="Anime searched")
 
 
-@animes_router.get("/saved", response_model=SearchAnimeResultListOut)
+@animes_router.get("/saved", response_model=SavedAnimeResultListOut)
 async def get_saved_animes(
     current_user: dict = Depends(auth_scheme),
 ):

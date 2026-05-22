@@ -69,3 +69,16 @@ class InEmissionAnimeList(BaseModel):
 
 class InEmissionAnimeListOut(SuccessResponse):
     payload: InEmissionAnimeList | None
+
+
+class SavedAnimeResult(BaseAnime):
+    is_finished: bool
+
+
+class SavedAnimeResultList(BaseModel):
+    items: list[SavedAnimeResult]
+    total: int
+
+
+class SavedAnimeResultListOut(SuccessResponse):
+    payload: SavedAnimeResultList | None
