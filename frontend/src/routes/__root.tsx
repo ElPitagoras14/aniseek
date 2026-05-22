@@ -1,28 +1,35 @@
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
-import '../styles.css'
+import "../styles.css";
+import type { AuthContext } from "@/auth";
+import { Toaster } from "@/components/ui/sonner";
 
-export const Route = createRootRoute({
-  component: RootComponent,
-})
+interface MyRouterContext {
+	auth: AuthContext;
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
+	component: RootComponent,
+});
 
 function RootComponent() {
-  return (
-    <>
-      <Outlet />
-      <TanStackDevtools
-        config={{
-          position: 'bottom-right',
-        }}
-        plugins={[
-          {
-            name: 'TanStack Router',
-            render: <TanStackRouterDevtoolsPanel />,
-          },
-        ]}
-      />
-    </>
-  )
+	return (
+		<>
+			<Outlet />
+			<Toaster position="bottom-right" />
+			<TanStackDevtools
+				config={{
+					position: "bottom-right",
+				}}
+				plugins={[
+					{
+						name: "TanStack Router",
+						render: <TanStackRouterDevtoolsPanel />,
+					},
+				]}
+			/>
+		</>
+	);
 }
