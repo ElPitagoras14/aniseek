@@ -27,8 +27,9 @@
     },
     {
       "label": "Run Frontend",
-      "type": "npm",
-      "script": "dev",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev"],
       "options": {
         "cwd": "${workspaceFolder}/frontend"
       }
