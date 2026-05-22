@@ -62,7 +62,7 @@ services:
 
   dramatiq-worker:
     build:
-      context: ./queue
+      context: ./worker
       dockerfile: Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379

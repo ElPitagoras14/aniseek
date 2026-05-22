@@ -3,12 +3,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class GeneralSettings(BaseSettings):
+    POSTGRES_URL: str
     REDIS_URL: str
 
     MAX_DOWNLOAD_RETRIES: int
     RETRY_DOWNLOAD_INTERVAL: int
     ANIMES_FOLDER: str
-    WORKER_LOG_PATH: str | None = None
 
     BRAVE_PATH: str | None = None
 

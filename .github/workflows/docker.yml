@@ -127,7 +127,7 @@ jobs:
         with:
           provenance: false
           sbom: false
-          context: ./queue
+          context: ./worker
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
