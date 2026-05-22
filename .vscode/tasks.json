@@ -40,7 +40,7 @@
       "command": "uv",
       "args": ["run", "dramatiq", "main", "--processes", "2", "--threads", "4"],
       "options": {
-        "cwd": "${workspaceFolder}/queue/src"
+        "cwd": "${workspaceFolder}/worker/src"
       }
     }
   ]

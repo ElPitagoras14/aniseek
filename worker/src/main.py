@@ -1,13 +1,14 @@
 import asyncio
-import dramatiq
-
 from pathlib import Path
-from log import configure_logs
+
+import dramatiq
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq.middleware import CurrentMessage
 from loguru import logger
 
 from config import general_settings
+from database import connect_db, disconnect_db
+from log import configure_logs
 from schemas import FranchiseInfo
 from tasks import download_anime_episode_controller, order_franchise_controller
 
@@ -35,16 +36,28 @@ logger.info("Dramatiq worker initialized")
 def download_anime_episode(anime_id: str, episode_number: int, user_id: str):
     message = CurrentMessage.get_current_message()
 
-    asyncio.run(
-        download_anime_episode_controller(
-            message,
-            anime_id,
-            episode_number,
-            user_id,
-        )
-    )
+    async def _run():
+        await connect_db()
+        try:
+            await download_anime_episode_controller(
+                message,
+                anime_id,
+                episode_number,
+                user_id,
+            )
+        finally:
+            await disconnect_db()
+
+    asyncio.run(_run())
 
 
 @dramatiq.actor
 def order_franchise(franchise_info: FranchiseInfo):
-    order_franchise_controller(franchise_info)
+    async def _run():
+        await connect_db()
+        try:
+            await order_franchise_controller(franchise_info)
+        finally:
+            await disconnect_db()
+
+    asyncio.run(_run())

@@ -5,7 +5,7 @@
 ```
 /
 ├── backend/   # FastAPI REST API (Python 3.10.14)
-├── queue/     # Dramatiq workers (Python 3.10.14)
+├── worker/    # Dramatiq workers (Python 3.10.14)
 ├── frontend/  # Next.js 15 / React 19
 └── requests/  # Bruno API collection — DO NOT MODIFY
 ```
@@ -26,12 +26,12 @@ Centralized utilities in `backend/src/utils/` (`exceptions.py`, `exception_handl
 
 ---
 
-## Queue
+## Worker
 
 Communicates with backend **exclusively via Dramatiq/Redis** — no HTTP calls or shared imports.
 
 - Backend task definitions: `backend/src/worker.py`
-- Worker logic: `queue/src/main.py`
+- Worker logic: `worker/src/main.py`
 
 ---
 

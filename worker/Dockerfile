@@ -5,7 +5,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  gcc libpq-dev libffi-dev libssl-dev libxml2-dev libxslt-dev build-essential \
+  gcc libffi-dev libssl-dev libxml2-dev libxslt-dev build-essential \
   && pip install --no-cache-dir --upgrade pip \
   && pip install --no-cache-dir -e .
 
@@ -18,12 +18,11 @@ ARG ANIMES_FOLDER=/animes
 ARG DRAMATIQ_PROCESSES=2
 ARG DRAMATIQ_THREADS=4
 
-# Libraries for Playwright/Chromium and psycopg2
+# Libraries for Playwright/Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
   libasound2 libatk-bridge2.0-0 libatk1.0-0 libcairo2 libcups2 libdbus-1-3 \
   libgdk-pixbuf2.0-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 libxfixes3 \
   libxkbcommon0 libxdamage1 libxrandr2 libgbm1 libxss1 libxtst6 \
-  libpq5 \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12

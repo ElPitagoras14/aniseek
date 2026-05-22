@@ -138,8 +138,8 @@ uv run src/main.py
 Background processing service built with Dramatiq. Consumes tasks from Redis to perform web scraping and episode downloads.
 
 ```bash
-# Navigate to the queue directory
-cd queue
+# Navigate to the worker directory
+cd worker
 
 # Install dependencies using uv
 uv sync
