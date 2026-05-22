@@ -40,10 +40,11 @@ async def get_download_episodes(
     anime_id: str | None = None,
     limit: int = 10,
     page: int = 1,
+    q: str | None = None,
     current_user: dict = Depends(auth_scheme),
 ):
     payload = await get_download_episodes_controller(
-        current_user["id"], anime_id, limit, page
+        current_user["id"], anime_id, limit, page, q.strip() if q else None
     )
     return SuccessResponse(payload=payload, message="Downloads retrieved")
 
