@@ -125,7 +125,7 @@ async def count_episode_downloads(episode_id: int) -> int:
 
 
 async def list_user_downloads(
-    user_id: str, anime_id: str | None = None, limit: int = 10, page: int = 1
+    user_id: str, anime_id: str | None = None, limit: int = 10, page: int = 1, q: str | None = None
 ) -> tuple[int, list[dict]]:
     base = """
         FROM user_download_episode ude
@@ -137,6 +137,9 @@ async def list_user_downloads(
     if anime_id:
         base += " AND a.id = :anime_id"
         values["anime_id"] = anime_id
+    if q:
+        base += " AND a.title ILIKE :q"
+        values["q"] = f"%{q}%"
 
     count = await db.fetch_val(f"SELECT COUNT(*) {base}", values) or 0
 

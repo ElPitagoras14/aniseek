@@ -39,10 +39,10 @@ def _build_download_dict(row: dict) -> dict:
 
 
 async def get_download_episodes_controller(
-    user_id: str, anime_id: str | None = None, limit: int = 10, page: int = 1
+    user_id: str, anime_id: str | None = None, limit: int = 10, page: int = 1, q: str | None = None
 ) -> dict:
     logger.debug("Getting downloads")
-    count, rows = await repository.list_user_downloads(user_id, anime_id, limit, page)
+    count, rows = await repository.list_user_downloads(user_id, anime_id, limit, page, q)
     episode_downloads = [_build_download_dict(r) for r in rows]
     return cast_episode_download_list(episode_downloads, count)
 
