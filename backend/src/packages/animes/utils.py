@@ -4,6 +4,8 @@ from .responses import (
     InEmissionAnime,
     InEmissionAnimeList,
     RelatedInfo,
+    SavedAnimeResult,
+    SavedAnimeResultList,
     SearchAnimeResult,
     SearchAnimeResultList,
 )
@@ -51,5 +53,12 @@ def cast_search_anime_result_list(animes: list[dict]) -> SearchAnimeResultList:
 def cast_in_emission_anime_list(animes: list[dict]) -> InEmissionAnimeList:
     return InEmissionAnimeList(
         items=[InEmissionAnime(**a) for a in animes],
+        total=len(animes),
+    )
+
+
+def cast_saved_anime_result_list(animes: list[dict]) -> SavedAnimeResultList:
+    return SavedAnimeResultList(
+        items=[SavedAnimeResult(**a) for a in animes],
         total=len(animes),
     )
