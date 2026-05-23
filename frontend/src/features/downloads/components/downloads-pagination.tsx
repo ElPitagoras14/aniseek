@@ -16,30 +16,28 @@ export function DownloadsPagination({
 }: DownloadsPaginationProps) {
 	const totalPages = Math.max(1, Math.ceil(total / limit));
 
-	if (totalPages <= 1) return null;
-
 	return (
-		<div className="flex items-center justify-between pt-4">
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={() => onPageChange(page - 1)}
-				disabled={page <= 1}
-			>
-				<ChevronLeft className="size-4 mr-1" />
-				Anterior
-			</Button>
+		<div className="flex items-center justify-end gap-2 pt-4">
 			<span className="text-sm text-muted-foreground">
-				Página {page} de {totalPages}
+				Page {page} of {totalPages}
 			</span>
 			<Button
 				variant="outline"
-				size="sm"
+				size="icon"
+				className="size-7"
+				onClick={() => onPageChange(page - 1)}
+				disabled={page <= 1}
+			>
+				<ChevronLeft className="size-4" />
+			</Button>
+			<Button
+				variant="outline"
+				size="icon"
+				className="size-7"
 				onClick={() => onPageChange(page + 1)}
 				disabled={page >= totalPages}
 			>
-				Siguiente
-				<ChevronRight className="size-4 ml-1" />
+				<ChevronRight className="size-4" />
 			</Button>
 		</div>
 	);

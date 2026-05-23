@@ -1,6 +1,6 @@
 import type { DownloadProgress } from "../hooks/use-download-progress";
 import type { EpisodeDownloadList } from "../types";
-import { DownloadRow } from "./download-row";
+import { DownloadRow, ROW_COLS } from "./download-row";
 import { DownloadRowSkeleton } from "./download-row-skeleton";
 import { DownloadsPagination } from "./downloads-pagination";
 
@@ -61,6 +61,26 @@ export function DownloadsList({
 	return (
 		<div className="flex flex-col">
 			<div className="border rounded-lg overflow-hidden">
+				<div
+					className={`grid ${ROW_COLS} gap-4 px-4 py-2 border-b bg-muted/40`}
+				>
+					<span className="text-xs font-medium text-muted-foreground">
+						Poster
+					</span>
+					<span className="text-xs font-medium text-muted-foreground">
+						Título
+					</span>
+					<span className="text-xs font-medium text-muted-foreground text-center">
+						Episodio
+					</span>
+					<span className="text-xs font-medium text-muted-foreground text-center">
+						Estado
+					</span>
+					<span className="text-xs font-medium text-muted-foreground text-center">
+						Tamaño
+					</span>
+					<span />
+				</div>
 				{data.items.map((item) => (
 					<DownloadRow
 						key={item.id}
