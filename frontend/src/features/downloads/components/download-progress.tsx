@@ -5,13 +5,12 @@ import type { DownloadStatus } from "../types";
 
 interface DownloadProgressProps {
 	status: DownloadStatus;
-	size: number | null;
 	progress?: DownloadProgress;
 }
 
 function ProgressBar({ value }: { value: number }) {
 	return (
-		<div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+		<div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
 			<div
 				className="h-full bg-primary transition-all"
 				style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
@@ -20,17 +19,8 @@ function ProgressBar({ value }: { value: number }) {
 	);
 }
 
-function IndeterminateBar() {
-	return (
-		<div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-			<div className="h-full bg-primary rounded-full animate-pulse w-1/2" />
-		</div>
-	);
-}
-
 export function DownloadProgressDisplay({
 	status,
-	size,
 	progress,
 }: DownloadProgressProps) {
 	const liveStatus = progress?.state ?? status;
@@ -46,9 +36,6 @@ export function DownloadProgressDisplay({
 					>
 						Descargado
 					</Badge>
-					<span className="text-xs text-muted-foreground">
-						{formatBytes(size)}
-					</span>
 				</div>
 			);
 
@@ -70,12 +57,9 @@ export function DownloadProgressDisplay({
 
 		case "GETTING-LINK":
 			return (
-				<div className="flex flex-col gap-1">
-					<IndeterminateBar />
-					<span className="text-xs text-muted-foreground">
-						Buscando enlace…
-					</span>
-				</div>
+				<Badge variant="secondary" className="text-xs">
+					Buscando enlace…
+				</Badge>
 			);
 
 		case "RETRYING":
