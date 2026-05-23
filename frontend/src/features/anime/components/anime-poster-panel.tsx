@@ -62,8 +62,9 @@ export function AnimePosterPanel({ anime, episodes }: AnimePosterPanelProps) {
 					Finished
 				</div>
 			) : (
-				<div className="w-full rounded-md bg-green-600 text-white flex items-center justify-center py-4 text-xl font-bold">
-					In Emission
+				<div className="flex flex-col w-full rounded-md bg-green-600 text-white items-center justify-center py-4 text-xl font-bold">
+					<span>In Emission</span>
+					<span className="text-sm text-white/80">{anime.weekDay}</span>
 				</div>
 			)}
 
@@ -92,12 +93,6 @@ export function AnimePosterPanel({ anime, episodes }: AnimePosterPanelProps) {
 					</div>
 				</div>
 			)}
-
-			{/* Emission day */}
-			{!anime.isFinished && anime.weekDay && (
-				<p className="text-sm text-muted-foreground">Airs on {anime.weekDay}</p>
-			)}
-
 		</div>
 	);
 }

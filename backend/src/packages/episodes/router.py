@@ -10,7 +10,7 @@ from responses import SuccessResponse
 
 from .config import episodes_settings
 from .dependencies import (
-    valid_downloaded_episode_public,
+    valid_downloaded_episode_by_number_public,
     valid_episode_by_number,
 )
 from .responses import (
@@ -103,9 +103,9 @@ async def get_download_status(job_ids: str):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
-@episodes_router.get("/{episode_id}/file")
+@episodes_router.get("/{anime_id}/{episode_number}/file")
 async def get_download_episode(
-    episode_data: dict = Depends(valid_downloaded_episode_public),
+    episode_data: dict = Depends(valid_downloaded_episode_by_number_public),
 ):
     return FileResponse(
         episode_data["file_path"],

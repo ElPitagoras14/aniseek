@@ -11,23 +11,6 @@ from .config import episodes_settings
 ANIMES_FOLDER = Path(episodes_settings.ANIMES_FOLDER)
 
 
-async def valid_episode_id_public(
-    episode_id: int,
-    anime_id: str | None = None,
-) -> dict:
-    """Validates that the episode exists and returns the required data (no authentication)."""
-    episode = await repository.get_episode_with_anime(episode_id, anime_id)
-    if not episode:
-        raise NotFoundError(f"Episode {episode_id} not found")
-
-    return {
-        "episode_id": episode_id,
-        "episode": episode,
-        "anime_id": episode["anime_id"],
-        "user_id": None,
-    }
-
-
 async def valid_episode_id(
     episode_id: int,
     anime_id: str | None = None,
@@ -54,9 +37,7 @@ async def valid_episode_by_number(
     """Validates that the episode exists by anime and episode number, and returns the required data."""
     episode = await repository.get_episode_by_anime_and_number(anime_id, episode_number)
     if not episode:
-        raise NotFoundError(
-            f"Episode {episode_number} not found for anime {anime_id}"
-        )
+        raise NotFoundError(f"Episode {episode_number} not found for anime {anime_id}")
 
     return {
         "episode_id": episode["id"],
@@ -64,6 +45,22 @@ async def valid_episode_by_number(
         "anime_id": anime_id,
         "episode_number": episode_number,
         "user_id": current_user["id"],
+    }
+
+
+async def valid_episode_by_number_public(
+    anime_id: str,
+    episode_number: int,
+) -> dict:
+    episode = await repository.get_episode_by_anime_and_number(anime_id, episode_number)
+    if not episode:
+        raise NotFoundError(f"Episode {episode_number} not found for anime {anime_id}")
+    return {
+        "episode_id": episode["id"],
+        "episode": episode,
+        "anime_id": anime_id,
+        "episode_number": episode_number,
+        "user_id": None,
     }
 
 
@@ -116,10 +113,9 @@ async def valid_downloaded_episode(
     return episode_data
 
 
-async def valid_downloaded_episode_public(
-    episode_data: dict = Depends(valid_episode_id_public),
+async def valid_downloaded_episode_by_number_public(
+    episode_data: dict = Depends(valid_episode_by_number_public),
 ) -> dict:
-    """Validates that the episode exists and its physical file is available on disk (no authentication)."""
     file_path = _resolve_file_path(episode_data["episode"])
     episode_data["file_path"] = str(file_path)
     episode_data["filename"] = (

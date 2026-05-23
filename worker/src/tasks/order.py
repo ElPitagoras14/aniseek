@@ -1,4 +1,3 @@
-import asyncio
 import shutil
 import time
 from pathlib import Path
@@ -6,19 +5,9 @@ from pathlib import Path
 from loguru import logger
 
 from config import general_settings
-from database import (
-    get_started_download_count,
-    list_franchise_animes,
-    update_anime_season,
-)
-from redis_client import redis_db
+from db import get_started_download_count, list_franchise_animes, update_anime_season
+from redis_client import download_lock_key, ordering_lock_key, redis_db, stream_add_event, stream_wait_event
 from schemas import FranchiseInfo
-from utils import (
-    get_download_key,
-    get_ordering_key,
-    stream_add_event,
-    stream_wait_event,
-)
 
 ANIMES_FOLDER = general_settings.ANIMES_FOLDER
 
@@ -36,7 +25,7 @@ def _move_anime_folders(
     old_season: int,
     new_season: int,
 ) -> None:
-    """Sync helper: physically moves and renames files on disk."""
+    """Physically moves and renames files on disk."""
     old_parsed = str(old_season).zfill(2)
     new_parsed = str(new_season).zfill(2)
 
@@ -57,27 +46,26 @@ def _move_anime_folders(
         file.rename(file.with_name(new_name))
 
 
-async def order_franchise_controller(franchise_info: FranchiseInfo) -> None:
+def order_franchise_controller(franchise_info: FranchiseInfo) -> None:
     start_time = time.time()
     franchise_id = franchise_info["id"]
     logger.debug(f"Starting franchise ordering: {franchise_id}")
 
-    ordering_key = get_ordering_key(franchise_id)
-    await asyncio.to_thread(redis_db.set, ordering_key, 1)
+    ordering_key = ordering_lock_key(franchise_id)
+    redis_db.set(ordering_key, 1)
 
-    download_key = get_download_key(franchise_id)
-    count = await get_started_download_count(franchise_id)
-    await asyncio.to_thread(redis_db.set, download_key, count)
+    count = get_started_download_count(franchise_id)
+    redis_db.set(download_lock_key(franchise_id), count)
 
     if count > 0:
         logger.debug(f"Waiting for {count} downloads to finish: {franchise_id}")
-        await asyncio.to_thread(stream_wait_event, franchise_id, "downloads_done")
+        stream_wait_event(franchise_id, "downloads_done")
 
     try:
         franchise_folder = Path(ANIMES_FOLDER) / franchise_id
         franchise_folder.mkdir(parents=True, exist_ok=True)
 
-        animes = await list_franchise_animes(franchise_id)
+        animes = list_franchise_animes(franchise_id)
         for anime in animes:
             anime_id = anime["id"]
             old_season = anime["season"]
@@ -86,18 +74,16 @@ async def order_franchise_controller(franchise_info: FranchiseInfo) -> None:
                 logger.warning(f"No target season provided for {anime_id}")
                 continue
 
-            await asyncio.to_thread(
-                _move_anime_folders, franchise_id, anime_id, old_season, new_season
-            )
-            await update_anime_season(anime_id, new_season)
+            _move_anime_folders(franchise_id, anime_id, old_season, new_season)
+            update_anime_season(anime_id, new_season)
             logger.debug(f"Ordered: {anime_id} S{old_season:02d} -> S{new_season:02d}")
 
         elapsed = time.time() - start_time
         logger.debug(f"Completed ordering: {franchise_id} in {elapsed:.1f}s")
 
-        await asyncio.to_thread(stream_add_event, franchise_id, "ordering_done")
+        stream_add_event(franchise_id, "ordering_done")
     except Exception as e:
         logger.error(f"Franchise ordering failed for {franchise_id}: {e}")
         raise
     finally:
-        await asyncio.to_thread(redis_db.delete, ordering_key)
+        redis_db.delete(ordering_key)

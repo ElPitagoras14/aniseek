@@ -26,17 +26,10 @@ export function DownloadRow({ item, progress }: DownloadRowProps) {
 			<img
 				src={item.poster}
 				alt={item.title}
-				className="w-14 aspect-2/3 object-cover rounded"
+				className="aspect-2/3 object-cover rounded"
 			/>
 
-			<div className="min-w-0 flex flex-col gap-1">
-				<a
-					href={`/anime/${item.animeId}`}
-					className="text-sm font-medium truncate hover:underline"
-				>
-					{item.title}
-				</a>
-			</div>
+			<div className="min-w-0 flex flex-col gap-1">{item.title}</div>
 
 			<span className="text-sm text-muted-foreground text-center">
 				{item.episodeNumber}
@@ -48,15 +41,15 @@ export function DownloadRow({ item, progress }: DownloadRowProps) {
 						variant="ghost"
 						size="icon"
 						asChild
-						aria-label="Descargar episodio"
+						aria-label="Download episode"
 					>
-						<a href={episodeFileUrl(item.id)} download>
+						<a href={episodeFileUrl(item.animeId, item.episodeNumber)} download>
 							<Download className="size-4" />
 						</a>
 					</Button>
 				) : isDownloading ? (
 					<div className="flex items-center gap-2 w-full px-2">
-						<div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+						<div className="h-2.5 flex-1 bg-muted rounded-full overflow-hidden">
 							<div
 								className="h-full bg-primary transition-all"
 								style={{
@@ -74,7 +67,7 @@ export function DownloadRow({ item, progress }: DownloadRowProps) {
 			</div>
 
 			<span className="text-sm text-muted-foreground text-center">
-				{formatBytes(item.size)}
+				{formatBytes(meta.size ?? item.size)}
 			</span>
 
 			<DownloadRowActions

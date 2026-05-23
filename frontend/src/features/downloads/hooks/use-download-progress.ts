@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { DownloadStatus } from "../types";
 
 interface ProgressMeta {
-	total?: number;
+	size?: number;
 	progress?: number;
 	retry_count?: number;
 	max_retries?: number;

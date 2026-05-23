@@ -4,6 +4,8 @@ import { api } from "@/api";
 import type { ApiEnvelope } from "@/features/anime/types";
 import type { EpisodeDownloadList } from "./types";
 
+const VITE_API_URL = import.meta.env.VITE_API_URL;
+
 interface DownloadsQueryParams {
 	q: string;
 	page: number;
@@ -50,5 +52,5 @@ export const retryEpisodeDownload = (animeId: string, episodeNumber: number) =>
 		`/episodes/${animeId}/${episodeNumber}/download?force_download=true`,
 	);
 
-export const episodeFileUrl = (episodeId: number): string =>
-	`/api/episodes/${episodeId}/file`;
+export const episodeFileUrl = (animeId: string, episodeNumber: number): string =>
+	`${VITE_API_URL}/api/episodes/${animeId}/${episodeNumber}/file`;

@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 from pathlib import Path
@@ -8,20 +7,8 @@ from ani_scrapy import AnimeAV1Scraper, JKAnimeScraper
 from loguru import logger
 
 from config import general_settings
-from database import (
-    get_episode_franchise_and_season,
-    update_episode_size,
-    update_episode_status,
-    update_episode_status_and_job,
-    update_episode_status_clear_job,
-)
-from redis_client import redis_db
-from utils import (
-    get_download_key,
-    get_ordering_key,
-    stream_add_event,
-    stream_wait_event,
-)
+from db import get_episode_franchise_and_season, update_episode_size, update_episode_status
+from redis_client import download_lock_key, ordering_lock_key, redis_db, stream_add_event, stream_wait_event
 
 ANIMES_FOLDER = general_settings.ANIMES_FOLDER
 MAX_DOWNLOAD_RETRIES = general_settings.MAX_DOWNLOAD_RETRIES
@@ -34,6 +21,13 @@ UPDATE_INTERVAL = 1
 def _notify_job(job_id: str, state: str, meta: dict) -> None:
     payload = {"job_id": job_id, "state": state, "meta": meta}
     redis_db.publish("job_updates", json.dumps(payload))
+
+
+def _finalize_franchise_download(franchise_id: str | None) -> None:
+    if not franchise_id:
+        return
+    if redis_db.decr(download_lock_key(franchise_id)) == 0:
+        stream_add_event(franchise_id, "downloads_done")
 
 
 def _server_supports_range(url: str, headers: dict | None = None) -> tuple[bool, int | None]:
@@ -92,6 +86,9 @@ def _download_file(
             response.raise_for_status()
             total_size = int(response.headers.get("Content-Length", 0)) + downloaded
 
+            if total_size > 0:
+                update_episode_size(anime_id, episode_number, total_size)
+
             last_update_time = time.time()
             mode = "ab" if resume_mode else "wb"
 
@@ -120,7 +117,7 @@ def _download_file(
                         _notify_job(
                             job_id,
                             "DOWNLOADING",
-                            {"total": total_size, "progress": progress},
+                            {"size": total_size, "progress": progress},
                         )
 
         elapsed = time.time() - start_time
@@ -140,13 +137,13 @@ def _download_file(
 
 
 async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int):
-    """Tries scrapers in priority order. Returns (download_link, info) or (None, None)."""
+    """Tries scrapers in priority order. Returns the download link or None."""
     # Priority 1: AnimeAV1 -> PDrain
     try:
         async with AnimeAV1Scraper(executable_path=general_settings.BRAVE_PATH) as scraper:
             info = await scraper.get_table_download_links(anime_id, episode_number)
             logger.debug(
-                f"[{job_id}] AnimeAV1 servers: {[l.server for l in info.download_links]}"
+                f"[{job_id}] AnimeAV1 servers: {[link.server for link in info.download_links]}"
             )
             for link in info.download_links:
                 if link.server.lower() != "pdrain":
@@ -154,7 +151,7 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
                 logger.debug(f"[{job_id}] Trying AnimeAV1/PDrain")
                 file_link = await scraper.get_file_download_link(link)
                 if file_link:
-                    return file_link, link
+                    return file_link
     except Exception as e:
         logger.warning(f"[{job_id}] AnimeAV1/PDrain failed: {e}")
 
@@ -163,7 +160,7 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
         async with JKAnimeScraper(executable_path=general_settings.BRAVE_PATH) as scraper:
             info = await scraper.get_table_download_links(anime_id, episode_number)
             logger.debug(
-                f"[{job_id}] JKAnime servers: {[l.server for l in info.download_links]}"
+                f"[{job_id}] JKAnime servers: {[link.server for link in info.download_links]}"
             )
             for target in ("mediafire", "streamwish"):
                 for link in info.download_links:
@@ -172,11 +169,11 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
                     logger.debug(f"[{job_id}] Trying JKAnime/{target} (table)")
                     file_link = await scraper.get_file_download_link(link)
                     if file_link:
-                        return file_link, link
+                        return file_link
     except Exception as e:
         logger.warning(f"[{job_id}] JKAnime (table) failed: {e}")
 
-    # Priority 4: JKAnime -> Streamwish (iframe)
+    # Priority 3: JKAnime -> Streamwish (iframe)
     try:
         async with JKAnimeScraper(executable_path=general_settings.BRAVE_PATH) as scraper:
             logger.debug(f"[{job_id}] Trying JKAnime/Streamwish (iframe)")
@@ -186,11 +183,11 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
                     continue
                 file_link = await scraper.get_file_download_link(link)
                 if file_link:
-                    return file_link, link
+                    return file_link
     except Exception as e:
         logger.warning(f"[{job_id}] JKAnime/Streamwish (iframe) failed: {e}")
 
-    return None, None
+    return None
 
 
 async def download_anime_episode_controller(
@@ -200,91 +197,56 @@ async def download_anime_episode_controller(
     user_id: str,
 ) -> None:
     job_id = message.message_id
-    retry_count = message.options.get("retry_count", 0)
-    is_first_try = retry_count == 0
+    retries = message.options.get("retries", 0)
+    is_first_try = retries == 0
 
-    info = await get_episode_franchise_and_season(anime_id)
-    if info is None:
-        logger.error(f"[{job_id}] Anime {anime_id} not found")
-        return
-    franchise_id, season = info
+    with logger.contextualize(user_id=user_id, job_id=job_id):
+        info = get_episode_franchise_and_season(anime_id)
+        if info is None:
+            logger.error(f"Anime {anime_id} not found")
+            return
+        franchise_id, season = info
 
-    if franchise_id and is_first_try:
-        ordering_key = get_ordering_key(franchise_id)
-        if await asyncio.to_thread(redis_db.exists, ordering_key):
-            await asyncio.to_thread(stream_wait_event, franchise_id, "ordering_done")
-        await asyncio.to_thread(redis_db.incr, get_download_key(franchise_id))
+        if franchise_id and is_first_try:
+            if redis_db.exists(ordering_lock_key(franchise_id)):
+                stream_wait_event(franchise_id, "ordering_done")
+            redis_db.incr(download_lock_key(franchise_id))
 
-    try:
-        await update_episode_status_and_job(anime_id, episode_number, "GETTING-LINK", job_id)
-        await asyncio.to_thread(_notify_job, job_id, "GETTING-LINK", {})
+        try:
+            update_episode_status(anime_id, episode_number, "GETTING-LINK", job_id=job_id)
+            _notify_job(job_id, "GETTING-LINK", {})
 
-        valid_link, _ = await _resolve_download_link(
-            job_id, anime_id, episode_number
-        )
-        if not valid_link:
-            raise Exception(
-                f"No download link available for {anime_id} E{episode_number}"
+            valid_link = await _resolve_download_link(job_id, anime_id, episode_number)
+            if not valid_link:
+                raise Exception(f"No download link available for {anime_id} E{episode_number}")
+
+            update_episode_status(anime_id, episode_number, "DOWNLOADING")
+
+            success, total_size = _download_file(
+                job_id, anime_id, franchise_id, season, episode_number, valid_link,
             )
+            if not success:
+                raise Exception(f"Download failed for {anime_id} E{episode_number}")
 
-        await update_episode_status(anime_id, episode_number, "DOWNLOADING")
-        await asyncio.to_thread(_notify_job, job_id, "DOWNLOADING", {})
+            if total_size is not None:
+                update_episode_size(anime_id, episode_number, total_size)
 
-        success, total_size = await asyncio.to_thread(
-            _download_file,
-            job_id,
-            anime_id,
-            franchise_id,
-            season,
-            episode_number,
-            valid_link,
-        )
-        if not success:
-            raise Exception(f"Download failed for {anime_id} E{episode_number}")
+            update_episode_status(anime_id, episode_number, "SUCCESS", job_id=None)
+            _notify_job(job_id, "SUCCESS", {})
 
-        if total_size is not None:
-            await update_episode_size(anime_id, episode_number, total_size)
+            _finalize_franchise_download(franchise_id)
 
-        await update_episode_status_clear_job(anime_id, episode_number, "SUCCESS")
-        await asyncio.to_thread(_notify_job, job_id, "SUCCESS", {})
+        except Exception as e:
+            logger.error(f"Error: {e}")
 
-        if franchise_id:
-            count = await asyncio.to_thread(
-                redis_db.decr, get_download_key(franchise_id)
-            )
-            if count == 0:
-                await asyncio.to_thread(
-                    stream_add_event, franchise_id, "downloads_done"
-                )
+            if retries >= MAX_DOWNLOAD_RETRIES:
+                logger.error("Max retries exceeded, marking as FAILED")
+                update_episode_status(anime_id, episode_number, "FAILED", job_id=job_id)
+                _notify_job(job_id, "FAILED", {})
+                _finalize_franchise_download(franchise_id)
+                raise
 
-    except Exception as e:
-        logger.error(f"[{job_id}] Error: {e}")
-
-        if retry_count >= MAX_DOWNLOAD_RETRIES:
-            logger.error(f"[{job_id}] Max retries exceeded")
-            await update_episode_status_and_job(anime_id, episode_number, "FAILED", job_id)
-            await asyncio.to_thread(_notify_job, job_id, "FAILED", {})
-            if franchise_id:
-                count = await asyncio.to_thread(
-                    redis_db.decr, get_download_key(franchise_id)
-                )
-                if count == 0:
-                    await asyncio.to_thread(
-                        stream_add_event, franchise_id, "downloads_done"
-                    )
+            logger.warning(f"Will retry (attempt {retries + 1}/{MAX_DOWNLOAD_RETRIES})")
+            update_episode_status(anime_id, episode_number, "RETRYING")
+            _notify_job(job_id, "RETRYING", {"retry_count": retries + 1, "max_retries": MAX_DOWNLOAD_RETRIES})
             raise
-
-        logger.warning(
-            f"[{job_id}] Retrying (attempt {retry_count + 1}/{MAX_DOWNLOAD_RETRIES})"
-        )
-        await update_episode_status(anime_id, episode_number, "RETRYING")
-        await asyncio.to_thread(
-            _notify_job,
-            job_id,
-            "RETRYING",
-            {
-                "retry_count": retry_count + 1,
-                "max_retries": MAX_DOWNLOAD_RETRIES,
-            },
-        )
-        raise

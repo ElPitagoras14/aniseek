@@ -91,6 +91,7 @@ services:
       - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
       - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
+      - dramatiq_queue_prefetch=${DRAMATIQ_THREADS}
       - BRAVE_PATH=/usr/bin/brave-browser
     volumes:
       - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}

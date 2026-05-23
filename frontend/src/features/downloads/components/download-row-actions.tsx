@@ -29,18 +29,18 @@ export function DownloadRowActions({
 		mutationFn: () => deleteEpisodeDownload(animeId, episodeNumber),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["episodes", "downloads"] });
-			toast.success("Descarga eliminada");
+			toast.success("Download deleted");
 		},
-		onError: () => toast.error("Error al eliminar la descarga"),
+		onError: () => toast.error("Failed to delete download"),
 	});
 
 	const retryMutation = useMutation({
 		mutationFn: () => retryEpisodeDownload(animeId, episodeNumber),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["episodes", "downloads"] });
-			toast.success("Descarga reiniciada");
+			toast.success("Download retried");
 		},
-		onError: () => toast.error("Error al reintentar la descarga"),
+		onError: () => toast.error("Failed to retry download"),
 	});
 
 	const isActive =
@@ -52,17 +52,17 @@ export function DownloadRowActions({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="icon" aria-label="Más opciones">
+				<Button variant="ghost" size="icon" aria-label="More options">
 					<MoreVertical className="size-4" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
 				<DropdownMenuItem
 					onClick={() => retryMutation.mutate()}
-					disabled={isActive || retryMutation.isPending}
+					disabled={retryMutation.isPending}
 				>
 					<RefreshCw className="size-4 mr-2" />
-					Reintentar
+					Retry
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={() => deleteMutation.mutate()}
@@ -70,12 +70,12 @@ export function DownloadRowActions({
 					className="text-destructive focus:text-destructive"
 				>
 					<Trash2 className="size-4 mr-2" />
-					Eliminar
+					Delete
 				</DropdownMenuItem>
 				<DropdownMenuItem asChild>
 					<Link to="/anime/$slug" params={{ slug: animeId }}>
 						<Eye className="size-4 mr-2" />
-						Ver anime
+						View anime
 					</Link>
 				</DropdownMenuItem>
 			</DropdownMenuContent>

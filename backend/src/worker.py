@@ -1,8 +1,7 @@
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
-from loguru import logger
-
 from config import general_settings
+from loguru import logger
 
 REDIS_URL = general_settings.REDIS_URL
 
@@ -19,4 +18,3 @@ def download_anime_episode(anime_id: str, episode_number: int, user_id: str):
 @dramatiq.actor
 def order_franchise(franchise_info: dict):
     logger.info(f"Ordering franchise {franchise_info['id']}")
-    pass

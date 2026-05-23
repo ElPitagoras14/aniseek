@@ -10,8 +10,8 @@ export function DownloadsHeader({
 	onSearch,
 }: DownloadsHeaderProps) {
 	return (
-		<div className="flex flex-col gap-1">
-			<h1 className="text-2xl font-semibold">Descargas</h1>
+		<div className="flex flex-col gap-3">
+			<h1 className="text-2xl font-semibold">Downloads</h1>
 			<DownloadsSearchInput
 				defaultValue={defaultValue}
 				onDebouncedChange={onSearch}
