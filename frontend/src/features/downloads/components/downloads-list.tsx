@@ -13,6 +13,7 @@ interface DownloadsListProps {
 	page: number;
 	limit: number;
 	onPageChange: (page: number) => void;
+	onLimitChange: (limit: number) => void;
 	q: string;
 }
 
@@ -25,6 +26,7 @@ export function DownloadsList({
 	page,
 	limit,
 	onPageChange,
+	onLimitChange,
 	q,
 }: DownloadsListProps) {
 	if (isLoading) {
@@ -41,19 +43,19 @@ export function DownloadsList({
 	if (isError) {
 		return (
 			<p className="text-destructive text-sm">
-				{error?.message ?? "Error al cargar las descargas"}
+				{error?.message ?? "Failed to load downloads"}
 			</p>
 		);
 	}
 
 	if (!data) {
-		return <p className="text-muted-foreground text-sm">No hay descargas.</p>;
+		return <p className="text-muted-foreground text-sm">No downloads yet.</p>;
 	}
 
 	if (data.items.length === 0) {
 		return (
 			<p className="text-muted-foreground text-sm">
-				{q ? "No hay descargas que coincidan." : "No hay descargas."}
+				{q ? "No downloads match your search." : "No downloads yet."}
 			</p>
 		);
 	}
@@ -64,20 +66,20 @@ export function DownloadsList({
 				<div
 					className={`grid ${ROW_COLS} gap-4 px-4 py-2 border-b bg-muted/40`}
 				>
-					<span className="text-xs font-medium text-muted-foreground">
+					<span className="text-xs font-medium text-muted-foreground text-center">
 						Poster
 					</span>
 					<span className="text-xs font-medium text-muted-foreground">
-						Título
+						Title
 					</span>
 					<span className="text-xs font-medium text-muted-foreground text-center">
-						Episodio
+						Episode
 					</span>
 					<span className="text-xs font-medium text-muted-foreground text-center">
-						Estado
+						Status
 					</span>
 					<span className="text-xs font-medium text-muted-foreground text-center">
-						Tamaño
+						Size
 					</span>
 					<span />
 				</div>
@@ -94,6 +96,7 @@ export function DownloadsList({
 				total={data.total}
 				limit={limit}
 				onPageChange={onPageChange}
+				onLimitChange={onLimitChange}
 			/>
 		</div>
 	);

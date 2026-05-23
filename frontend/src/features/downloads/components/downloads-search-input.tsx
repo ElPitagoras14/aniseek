@@ -40,7 +40,7 @@ export function DownloadsSearchInput({
 			<Input
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
-				placeholder="Buscar por nombre del anime…"
+				placeholder="Search by anime name…"
 				className="pl-9"
 			/>
 		</div>
