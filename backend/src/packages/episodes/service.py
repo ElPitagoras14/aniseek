@@ -39,10 +39,16 @@ def _build_download_dict(row: dict) -> dict:
 
 
 async def get_download_episodes_controller(
-    user_id: str, anime_id: str | None = None, limit: int = 10, page: int = 1, q: str | None = None
+    user_id: str,
+    anime_id: str | None = None,
+    limit: int = 10,
+    page: int = 1,
+    q: str | None = None,
 ) -> dict:
     logger.debug("Getting downloads")
-    count, rows = await repository.list_user_downloads(user_id, anime_id, limit, page, q)
+    count, rows = await repository.list_user_downloads(
+        user_id, anime_id, limit, page, q
+    )
     episode_downloads = [_build_download_dict(r) for r in rows]
     return cast_episode_download_list(episode_downloads, count)
 
@@ -110,7 +116,9 @@ async def delete_download_episode_controller(episode_id: int, user_id: str) -> s
         if franchise_id:
             anime_folder = ANIMES_FOLDER / franchise_id / f"Season {parsed_season}"
         else:
-            anime_folder = ANIMES_FOLDER / episode["anime_id"] / f"Season {parsed_season}"
+            anime_folder = (
+                ANIMES_FOLDER / episode["anime_id"] / f"Season {parsed_season}"
+            )
 
         if not anime_folder.exists():
             raise NotFoundError("Episode file not found")
@@ -160,7 +168,9 @@ async def download_anime_episode_bulk_controller(
                 failed_enqueued.append([None, ep_number])
                 continue
 
-            result = download_anime_episode.send(anime_id, episode["ep_number"], user_id)
+            result = download_anime_episode.send(
+                anime_id, episode["ep_number"], user_id
+            )
             logger.debug(f"Enqueued download with job id: {result.message_id}")
 
             async with db.transaction():

@@ -18,9 +18,7 @@ class JWTBearer(HTTPBearer):
 
     async def __call__(self, request: Request) -> dict:
         if not auth_settings.AUTH_ENABLED:
-            user = await get_user_by_username(
-                auth_settings.ADMIN_USER
-            )
+            user = await get_user_by_username(auth_settings.ADMIN_USER)
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

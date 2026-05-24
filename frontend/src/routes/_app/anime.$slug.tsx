@@ -51,10 +51,7 @@ function AnimeDetailPage() {
 					<AnimeHeader anime={anime} />
 					<Tabs defaultValue="information">
 						<TabsList className="h-auto py-4.5">
-							<TabsTrigger
-								value="information"
-								className=" px-14 py-3.5"
-							>
+							<TabsTrigger value="information" className=" px-14 py-3.5">
 								Information
 							</TabsTrigger>
 							<TabsTrigger value="episodes" className=" px-14 py-3.5">

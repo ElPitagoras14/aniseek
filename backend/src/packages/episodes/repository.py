@@ -50,9 +50,7 @@ async def get_episodes_with_user_download_status(
     return [dict(r) for r in rows]
 
 
-async def get_episode_by_anime_and_number(
-    anime_id: str, ep_number: int
-) -> dict | None:
+async def get_episode_by_anime_and_number(anime_id: str, ep_number: int) -> dict | None:
     query = """
         SELECT
             e.id, e.anime_id, e.ep_number, e.preview, e.url, e.job_id, e.status, e.size,
@@ -125,7 +123,11 @@ async def count_episode_downloads(episode_id: int) -> int:
 
 
 async def list_user_downloads(
-    user_id: str, anime_id: str | None = None, limit: int = 10, page: int = 1, q: str | None = None
+    user_id: str,
+    anime_id: str | None = None,
+    limit: int = 10,
+    page: int = 1,
+    q: str | None = None,
 ) -> tuple[int, list[dict]]:
     base = """
         FROM user_download_episode ude

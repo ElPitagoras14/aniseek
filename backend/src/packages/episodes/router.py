@@ -54,7 +54,9 @@ async def get_last_downloaded_episodes(
     current_user: dict = Depends(auth_scheme),
 ):
     payload = await get_last_downloaded_episodes_controller(current_user["id"])
-    return SuccessResponse(payload=payload, message="Last downloaded episodes retrieved")
+    return SuccessResponse(
+        payload=payload, message="Last downloaded episodes retrieved"
+    )
 
 
 @episodes_router.get("/downloads/animes", response_model=AnimeDownloadInfoListOut)
@@ -117,7 +119,9 @@ async def get_download_episode(
     )
 
 
-@episodes_router.post("/{anime_id}/{episode_number}/download", response_model=DownloadTaskOut)
+@episodes_router.post(
+    "/{anime_id}/{episode_number}/download", response_model=DownloadTaskOut
+)
 async def download_anime_episode(
     episode_data: dict = Depends(valid_episode_by_number),
     force_download: bool = False,
@@ -128,10 +132,14 @@ async def download_anime_episode(
         force_download,
         current_user["id"],
     )
-    return SuccessResponse(payload=payload, message="Anime download enqueued successfully")
+    return SuccessResponse(
+        payload=payload, message="Anime download enqueued successfully"
+    )
 
 
-@episodes_router.delete("/{anime_id}/{episode_number}/download", response_model=SuccessResponse)
+@episodes_router.delete(
+    "/{anime_id}/{episode_number}/download", response_model=SuccessResponse
+)
 async def delete_download_episode(
     episode_data: dict = Depends(valid_episode_by_number),
     current_user: dict = Depends(auth_scheme),

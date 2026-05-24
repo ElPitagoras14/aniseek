@@ -52,5 +52,7 @@ export const retryEpisodeDownload = (animeId: string, episodeNumber: number) =>
 		`/episodes/${animeId}/${episodeNumber}/download?force_download=true`,
 	);
 
-export const episodeFileUrl = (animeId: string, episodeNumber: number): string =>
-	`${VITE_API_URL}/api/episodes/${animeId}/${episodeNumber}/file`;
+export const episodeFileUrl = (
+	animeId: string,
+	episodeNumber: number,
+): string => `${VITE_API_URL}/api/episodes/${animeId}/${episodeNumber}/file`;

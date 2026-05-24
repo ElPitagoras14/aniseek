@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { api } from "@/api";
-import { NotFound } from "@/components/not-found";
+import { NotFoundContent } from "@/components/not-found";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/features/root/components/app-sidebar";
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_app")({
 		}
 	},
 	component: RouteComponent,
-	notFoundComponent: NotFound,
+	notFoundComponent: NotFoundContent,
 });
 
 function RouteComponent() {

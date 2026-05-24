@@ -1,142 +1,107 @@
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: "${COMPOSE_PROJECT_NAME}-nginx"
-    ports:
-      - "4000:80"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-    restart: unless-stopped
-    depends_on:
-      web:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-
-  web:
+  aniseek-web:
     image: ghcr.io/elpitagoras14/aniseek-web:latest
     pull_policy: always
-    expose:
-      - "3000"
-    environment:
-      - AUTH_SECRET=${AUTH_SECRET}
-      - AUTH_TRUST_HOST=true
-    container_name: "${COMPOSE_PROJECT_NAME}-web"
+    container_name: ${COMPOSE_PROJECT_NAME}-web
     restart: unless-stopped
     depends_on:
-      api:
+      aniseek-api:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    ports:
+      - "3000:80"
+    environment:
+      - API_URL=${API_URL}
 
-  api:
+  aniseek-api:
     image: ghcr.io/elpitagoras14/aniseek-api:latest
     pull_policy: always
+    container_name: ${COMPOSE_PROJECT_NAME}-api
     init: true
-    expose:
-      - "8000"
+    restart: unless-stopped
+    depends_on:
+      aniseek-db:
+        condition: service_healthy
+      aniseek-redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
     environment:
-      - API_PORT=8000
+      - ENVIRONMENT=prod
+      - AUTH_ENABLED=${AUTH_ENABLED}
       - ADMIN_USER=${ADMIN_USER}
       - ADMIN_PASS=${ADMIN_PASS}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
-      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis:6379
+      - DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://aniseek-redis:6379
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - ACCESS_TOKEN_EXP_MIN=${ACCESS_TOKEN_EXP_MIN}
       - REFRESH_TOKEN_EXP_DAY=${REFRESH_TOKEN_EXP_DAY}
-      - BRAVE_PATH=/usr/bin/brave-browser
     volumes:
-      - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    container_name: "${COMPOSE_PROJECT_NAME}-api"
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health').getcode() == 200 else 1)",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      - anime-data:${ANIMES_FOLDER}
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
-  dramatiq-worker:
+  aniseek-worker:
     image: ghcr.io/elpitagoras14/aniseek-worker:latest
     pull_policy: always
+    container_name: ${COMPOSE_PROJECT_NAME}-worker
     init: true
+    restart: unless-stopped
+    depends_on:
+      aniseek-db:
+        condition: service_healthy
+      aniseek-redis:
+        condition: service_healthy
     environment:
-      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://aniseek-redis:6379
+      - ANIMES_FOLDER=${ANIMES_FOLDER}
       - MAX_DOWNLOAD_RETRIES=${MAX_DOWNLOAD_RETRIES}
       - RETRY_DOWNLOAD_INTERVAL=${RETRY_DOWNLOAD_INTERVAL}
-      - ANIMES_FOLDER=${ANIMES_FOLDER}
-      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
       - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
       - dramatiq_queue_prefetch=${DRAMATIQ_THREADS}
       - BRAVE_PATH=/usr/bin/brave-browser
     volumes:
-      - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    container_name: "${COMPOSE_PROJECT_NAME}-dramatiq"
-    restart: unless-stopped
+      - anime-data:${ANIMES_FOLDER}
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     healthcheck:
       test: ["CMD", "pgrep", "-f", "dramatiq"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  postgres:
+  aniseek-db:
     image: postgres:18.1-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-db
+    restart: unless-stopped
     expose:
       - "5432"
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    container_name: "${COMPOSE_PROJECT_NAME}-postgres"
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 5
       timeout: 5s
 
-  redis:
+  aniseek-redis:
     image: redis:8.4.0-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-redis
+    restart: unless-stopped
     expose:
       - "6379"
     volumes:
-      - redis_data:/data
-    container_name: "${COMPOSE_PROJECT_NAME}-redis"
-    restart: unless-stopped
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -144,5 +109,6 @@ services:
       timeout: 5s
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres-data:
+  redis-data:
+  anime-data:

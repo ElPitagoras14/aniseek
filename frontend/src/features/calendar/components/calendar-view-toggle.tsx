@@ -13,10 +13,7 @@ export function CalendarViewToggle({
 	onChange,
 }: CalendarViewToggleProps) {
 	return (
-		<Tabs
-			value={value}
-			onValueChange={(v) => onChange(v as CalendarViewMode)}
-		>
+		<Tabs value={value} onValueChange={(v) => onChange(v as CalendarViewMode)}>
 			<TabsList>
 				<TabsTrigger value="table">
 					<LayoutGrid />

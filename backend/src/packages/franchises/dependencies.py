@@ -29,9 +29,7 @@ async def valid_anime_for_franchise(
     """Validates that the anime exists and has no franchise assigned yet."""
     anime = await repository.get_anime_without_franchise(anime_id)
     if not anime:
-        raise NotFoundError(
-            f"Anime {anime_id} not found or already has franchise"
-        )
+        raise NotFoundError(f"Anime {anime_id} not found or already has franchise")
 
     return {
         "anime_id": anime_id,

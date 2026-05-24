@@ -4,6 +4,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import "../styles.css";
 import type { AuthContext } from "@/auth";
+import { NotFound } from "@/components/not-found";
 import { Toaster } from "@/components/ui/sonner";
 
 interface MyRouterContext {
@@ -12,6 +13,7 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootComponent,
+	notFoundComponent: NotFound,
 });
 
 function RootComponent() {
