@@ -16,8 +16,8 @@ export function CalendarDayColumn({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-2 rounded-lg border p-3 min-h-[160px]",
-				isToday && "border-primary/60 bg-primary/5",
+				"flex flex-col gap-2 p-3 min-h-[160px] border-r last:border-r-0",
+				isToday && "bg-primary/5",
 			)}
 		>
 			<div

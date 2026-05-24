@@ -44,15 +44,17 @@ export function CalendarGrid({
 	}
 
 	return (
-		<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-			{WEEK_DAYS.map((day) => (
-				<CalendarDayColumn
-					key={day}
-					day={day}
-					animes={grouped[day]}
-					isToday={day === today}
-				/>
-			))}
+		<div className="border rounded-lg overflow-hidden">
+			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+				{WEEK_DAYS.map((day) => (
+					<CalendarDayColumn
+						key={day}
+						day={day}
+						animes={grouped[day]}
+						isToday={day === today}
+					/>
+				))}
+			</div>
 		</div>
 	);
 }
