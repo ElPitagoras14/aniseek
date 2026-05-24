@@ -1,47 +1,33 @@
-# Build
 FROM python:3.12-slim-bookworm AS builder
 
-WORKDIR /app
-COPY pyproject.toml ./
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  gcc libffi-dev libssl-dev libxml2-dev libxslt-dev build-essential \
-  && pip install --no-cache-dir --upgrade pip \
-  && pip install --no-cache-dir -e .
-
-# Runtime
-FROM python:3.12-slim-bookworm
+COPY --from=ghcr.io/astral-sh/uv:0.9.15 /uv /uvx /bin/
 
 WORKDIR /app
 
-ARG ANIMES_FOLDER=/animes
-ARG DRAMATIQ_PROCESSES=2
-ARG DRAMATIQ_THREADS=4
+COPY pyproject.toml uv.lock ./
 
-# Libraries for Playwright/Chromium
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  libasound2 libatk-bridge2.0-0 libatk1.0-0 libcairo2 libcups2 libdbus-1-3 \
-  libgdk-pixbuf2.0-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 libxfixes3 \
-  libxkbcommon0 libxdamage1 libxrandr2 libgbm1 libxss1 libxtst6 \
-  && rm -rf /var/lib/apt/lists/*
+RUN uv sync --locked --no-dev --no-install-project
 
-COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY src /app
-COPY entrypoint.sh /entrypoint.sh
+FROM python:3.12-slim-bookworm AS production
 
-# Brave browser
+WORKDIR /app
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && curl -fsS https://dl.brave.com/install.sh | sh \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir playwright
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
-RUN useradd -m appuser
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN playwright install --with-deps chromium
 
-RUN chmod +x /entrypoint.sh
+COPY src /app
+COPY entrypoint.sh /entrypoint.sh
 
-EXPOSE 8000
+RUN useradd -m appuser \
+    && chmod +x /entrypoint.sh \
+    && chown -R appuser:appuser /ms-playwright
 
 ENTRYPOINT ["/entrypoint.sh"]

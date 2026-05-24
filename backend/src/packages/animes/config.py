@@ -7,8 +7,6 @@ class AnimeSettings(BaseSettings):
 
     ANIMES_FOLDER: str
 
-    BRAVE_PATH: str | None = None
-
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),
         env_file_encoding="utf-8",
