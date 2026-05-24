@@ -15,7 +15,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
 			<SidebarMenu>
 				{group.sections.map((section: NavSection) => (
 					<SidebarMenuItem key={section.title}>
-						<SidebarMenuButton asChild className="cursor-pointer">
+						<SidebarMenuButton asChild className="cursor-pointer" disabled={section.disabled}>
 							<Link to={section.url}>
 								{section.icon && <section.icon />}
 								<span>{section.title}</span>

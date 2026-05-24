@@ -1,118 +1,105 @@
 services:
-  # Development: Nginx proxy pointing to localhost services
-  nginx:
-    image: nginx:alpine
-    container_name: "${COMPOSE_PROJECT_NAME}-nginx"
-    ports:
-      - "4000:80"
-    volumes:
-      # To use with web and api service running locally
-      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      # To use with all services in the compose.dev.yaml file
-      # - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  web:
+  aniseek-web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    expose:
-      - "3000"
-    environment:
-      - AUTH_SECRET=${AUTH_SECRET}
-      - AUTH_TRUST_HOST=true
-    container_name: "${COMPOSE_PROJECT_NAME}-web"
+      args:
+        - VITE_API_URL=http://localhost:8000
+    container_name: aniseek-web
     restart: unless-stopped
     depends_on:
-      - api
+      - aniseek-api
+    ports:
+      - 3000:80
 
-  api:
+  aniseek-api:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: aniseek-api
     init: true
-    expose:
-      - "8000"
-    environment:
-      - API_PORT=8000
-      - ADMIN_USER=${ADMIN_USER}
-      - ADMIN_PASS=${ADMIN_PASS}
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
-      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis:6379
-      - ANIMES_FOLDER=${ANIMES_FOLDER}
-      - ACCESS_TOKEN_EXP_MIN=${ACCESS_TOKEN_EXP_MIN}
-      - REFRESH_TOKEN_EXP_DAY=${REFRESH_TOKEN_EXP_DAY}
-      - BRAVE_PATH=/usr/bin/brave-browser
-    volumes:
-      - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    container_name: "${COMPOSE_PROJECT_NAME}-api"
     restart: unless-stopped
+    depends_on:
+      aniseek-db:
+        condition: service_healthy
+      aniseek-redis:
+        condition: service_healthy
+    ports:
+      - 8000:8000
+    environment:
+      - AUTH_ENABLED=False
+      - ADMIN_USER=admin
+      - ADMIN_PASS=admin123
+      - SECRET_KEY=secret
+      - ALGORITHM=HS256
+      - DB_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres
+      - REDIS_URL=redis://aniseek-redis:6379
+      - ANIMES_FOLDER=/animes
+      - ACCESS_TOKEN_EXP_MIN=60
+      - REFRESH_TOKEN_EXP_DAY=10
+    volumes:
+      - animes-data:/animes
     dns:
       - 8.8.8.8
       - 1.1.1.1
 
-  dramatiq-worker:
+  aniseek-worker:
     build:
       context: ./worker
       dockerfile: Dockerfile
+    container_name: aniseek-worker
+    init: true
+    restart: unless-stopped
+    depends_on:
+      aniseek-db:
+        condition: service_healthy
+      aniseek-redis:
+        condition: service_healthy
     environment:
-      - REDIS_URL=redis://redis:6379
-      - MAX_DOWNLOAD_RETRIES=${MAX_DOWNLOAD_RETRIES}
-      - RETRY_DOWNLOAD_INTERVAL=${RETRY_DOWNLOAD_INTERVAL}
-      - ANIMES_FOLDER=${ANIMES_FOLDER}
-      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - DRAMATIQ_PROCESSES=${DRAMATIQ_PROCESSES}
-      - DRAMATIQ_THREADS=${DRAMATIQ_THREADS}
-      - dramatiq_queue_prefetch=${DRAMATIQ_THREADS}
+      - REDIS_URL=redis://aniseek-redis:6379
+      - POSTGRES_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres
+      - ANIMES_FOLDER=/animes
+      - MAX_DOWNLOAD_RETRIES=5
+      - RETRY_DOWNLOAD_INTERVAL=15
+      - DRAMATIQ_PROCESSES=2
+      - DRAMATIQ_THREADS=4
+      - dramatiq_queue_prefetch=4
       - BRAVE_PATH=/usr/bin/brave-browser
     volumes:
-      - ${DOCKER_DATA_FOLDER}/animes:${ANIMES_FOLDER}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    container_name: "${COMPOSE_PROJECT_NAME}-dramatiq"
-    restart: unless-stopped
+      - animes-data:/animes
     dns:
       - 8.8.8.8
       - 1.1.1.1
 
-  postgres:
+  aniseek-db:
     image: postgres:18.1-alpine
+    container_name: aniseek-db
+    restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-4003}:5432"
+      - "5432:5432"
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    container_name: "${COMPOSE_PROJECT_NAME}-postgres"
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       retries: 5
       timeout: 5s
 
-  redis:
+  aniseek-redis:
     image: redis:8.4.0-alpine
-    ports:
-      - "${REDIS_PORT:-4004}:6379"
-    container_name: "${COMPOSE_PROJECT_NAME}-redis"
+    container_name: aniseek-redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 5
       timeout: 5s
+
+volumes:
+  animes-data:

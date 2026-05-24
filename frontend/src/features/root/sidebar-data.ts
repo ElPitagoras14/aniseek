@@ -4,6 +4,7 @@ import {
   Database,
   Download,
   Folder,
+  Home,
   type LucideIcon,
   Search,
   Settings,
@@ -13,6 +14,7 @@ export type NavSection = {
   title: string;
   icon: LucideIcon;
   url: string;
+  disabled?: boolean;
 };
 
 export type NavGroup = {
@@ -21,6 +23,12 @@ export type NavGroup = {
 };
 
 const animeSection: NavSection[] = [
+  {
+    title: "Home",
+    icon: Home,
+    url: "/home",
+    disabled: true,
+  },
   {
     title: "Search",
     icon: Search,
@@ -47,12 +55,14 @@ const administrationSection: NavSection[] = [
   {
     title: "Franchises",
     icon: Folder,
-    url: "/administration/franchises",
+    url: "/franchises",
+    disabled: true,
   },
   {
     title: "Storage",
     icon: Database,
-    url: "/administration/storage",
+    url: "/storage",
+    disabled: true,
   },
 ];
 
@@ -69,8 +79,9 @@ export const mainNavigationData: NavGroup[] = [
 
 export const secondaryNavigationData: NavSection[] = [
   {
-    title: "Configuración",
+    title: "Configuration",
     icon: Settings,
-    url: "/settings",
+    url: "/profile",
+    disabled: true,
   },
 ];
