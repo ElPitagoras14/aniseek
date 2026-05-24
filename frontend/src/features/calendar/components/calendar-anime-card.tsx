@@ -10,7 +10,7 @@ export function CalendarAnimeCard({ anime }: CalendarAnimeCardProps) {
 		<Link
 			to="/anime/$slug"
 			params={{ slug: anime.id }}
-			className="flex flex-col gap-1.5 group"
+			className="flex flex-col gap-1.5 group w-full max-w-[90px]"
 		>
 			<div className="relative aspect-[2/3] w-full overflow-hidden rounded-md">
 				<img

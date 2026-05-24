@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { InEmissionAnime, WeekDay } from "../types";
-import { CalendarAnimeCard } from "./calendar-anime-card";
+import { CalendarTableCard } from "./calendar-table-card";
 
 interface CalendarDayColumnProps {
 	day: WeekDay;
@@ -16,7 +16,7 @@ export function CalendarDayColumn({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-3 rounded-lg border p-3 min-h-[200px]",
+				"flex flex-col gap-2 rounded-lg border p-3 min-h-[160px]",
 				isToday && "border-primary/60 bg-primary/5",
 			)}
 		>
@@ -28,9 +28,9 @@ export function CalendarDayColumn({
 			>
 				{day}
 			</div>
-			<div className="flex flex-col gap-3">
+			<div className="flex flex-col gap-2">
 				{animes.map((anime) => (
-					<CalendarAnimeCard key={anime.id} anime={anime} />
+					<CalendarTableCard key={anime.id} anime={anime} />
 				))}
 			</div>
 		</div>
