@@ -59,8 +59,7 @@ async def create_franchise_controller(franchise_info: FranchiseCreate) -> str:
         "id": franchise_id,
         "name": franchise_info.franchise,
         "animes": [
-            {"id": anime.id, "season": anime.season}
-            for anime in franchise_info.animes
+            {"id": anime.id, "season": anime.season} for anime in franchise_info.animes
         ],
     }
     order_franchise.send(franchise_payload)

@@ -3,9 +3,7 @@ import { ROW_COLS } from "./download-row";
 
 export function DownloadRowSkeleton() {
 	return (
-		<div
-			className={`grid ${ROW_COLS} items-center gap-4 px-4 py-2 border-b`}
-		>
+		<div className={`grid ${ROW_COLS} items-center gap-4 px-4 py-2 border-b`}>
 			<Skeleton className="aspect-2/3 w-full rounded" />
 
 			<Skeleton className="h-4 w-3/4" />

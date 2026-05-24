@@ -125,9 +125,7 @@ async def insert_genres(anime_id: str, names: list[str]) -> None:
         VALUES (:anime_id, :name)
         ON CONFLICT (anime_id, name) DO NOTHING
     """
-    await db.execute_many(
-        query, [{"anime_id": anime_id, "name": n} for n in names]
-    )
+    await db.execute_many(query, [{"anime_id": anime_id, "name": n} for n in names])
 
 
 async def insert_anime_relation(
@@ -185,11 +183,8 @@ async def get_user_saved_anime(user_id: str, anime_id: str) -> dict | None:
         FROM user_save_anime
         WHERE user_id = :user_id AND anime_id = :anime_id
     """
-    row = await db.fetch_one(
-        query, {"user_id": UUID(user_id), "anime_id": anime_id}
-    )
+    row = await db.fetch_one(query, {"user_id": UUID(user_id), "anime_id": anime_id})
     return dict(row) if row else None
-
 
 
 async def list_user_saved_animes(user_id: str) -> list[dict]:

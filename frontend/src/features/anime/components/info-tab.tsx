@@ -36,7 +36,11 @@ export function InfoTab({ anime }: InfoTabProps) {
 					<h3 className="text-base font-semibold">Genres</h3>
 					<div className="flex flex-wrap gap-2">
 						{anime.genres.map((genre) => (
-							<Badge key={genre} variant="secondary" className="text-sm px-4 py-3">
+							<Badge
+								key={genre}
+								variant="secondary"
+								className="text-sm px-4 py-3"
+							>
 								{genre}
 							</Badge>
 						))}

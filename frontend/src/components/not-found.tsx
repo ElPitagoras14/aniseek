@@ -1,8 +1,13 @@
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppSidebar } from "@/features/root/components/app-sidebar";
+import { MobileHeader } from "@/features/root/components/mobile-header";
 
-export function NotFound() {
+export function NotFoundContent() {
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-background">
 			<Card className="max-w-md w-full rounded-2xl shadow-lg">
@@ -21,5 +26,25 @@ export function NotFound() {
 				</CardContent>
 			</Card>
 		</div>
+	);
+}
+
+export function NotFound() {
+	const { isAuthenticated } = useAuth();
+
+	if (!isAuthenticated) {
+		return <NotFoundContent />;
+	}
+
+	return (
+		<SidebarProvider>
+			<TooltipProvider>
+				<AppSidebar variant="sidebar" />
+				<SidebarInset>
+					<MobileHeader />
+					<NotFoundContent />
+				</SidebarInset>
+			</TooltipProvider>
+		</SidebarProvider>
 	);
 }

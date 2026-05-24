@@ -12,6 +12,7 @@ class User(CamelCaseModel):
     @classmethod
     def coerce_id(cls, v) -> str:
         return str(v)
+
     username: str
     avatar_url: str | None = None
     avatar_label: str | None = None

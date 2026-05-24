@@ -34,7 +34,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 								</div>
 								<div className="grid flex-1 text-left text-sm leading-tight">
 									<span className="truncate font-medium">AniSeek</span>
-									<span className="text-xs text-muted-foreground font-mono">v0.1.0</span>
+									<span className="text-xs text-muted-foreground font-mono">
+										v0.1.0
+									</span>
 								</div>
 							</div>
 						</SidebarMenuButton>

@@ -7,8 +7,18 @@ from ani_scrapy import AnimeAV1Scraper, JKAnimeScraper
 from loguru import logger
 
 from config import general_settings
-from db import get_episode_franchise_and_season, update_episode_size, update_episode_status
-from redis_client import download_lock_key, ordering_lock_key, redis_db, stream_add_event, stream_wait_event
+from db import (
+    get_episode_franchise_and_season,
+    update_episode_size,
+    update_episode_status,
+)
+from redis_client import (
+    download_lock_key,
+    ordering_lock_key,
+    redis_db,
+    stream_add_event,
+    stream_wait_event,
+)
 
 ANIMES_FOLDER = general_settings.ANIMES_FOLDER
 MAX_DOWNLOAD_RETRIES = general_settings.MAX_DOWNLOAD_RETRIES
@@ -30,7 +40,9 @@ def _finalize_franchise_download(franchise_id: str | None) -> None:
         stream_add_event(franchise_id, "downloads_done")
 
 
-def _server_supports_range(url: str, headers: dict | None = None) -> tuple[bool, int | None]:
+def _server_supports_range(
+    url: str, headers: dict | None = None
+) -> tuple[bool, int | None]:
     try:
         response = requests.head(url, headers=headers, allow_redirects=True, timeout=10)
         accept_ranges = response.headers.get("Accept-Ranges", "").lower()
@@ -77,7 +89,9 @@ def _download_file(
             save_path.unlink()
             downloaded = 0
     elif not supports_range and not file_exists:
-        logger.warning(f"[{job_id}] Server does not support Range, full download required")
+        logger.warning(
+            f"[{job_id}] Server does not support Range, full download required"
+        )
 
     try:
         with requests.get(
@@ -127,8 +141,14 @@ def _download_file(
         )
         return True, total_size
     except requests.exceptions.HTTPError as e:
-        logger.error(f"[{job_id}] HTTP error downloading {anime_id} E{episode_number}: {e}")
-        if e.response is not None and e.response.status_code == 416 and save_path.exists():
+        logger.error(
+            f"[{job_id}] HTTP error downloading {anime_id} E{episode_number}: {e}"
+        )
+        if (
+            e.response is not None
+            and e.response.status_code == 416
+            and save_path.exists()
+        ):
             save_path.unlink()
         return False, None
     except Exception as e:
@@ -140,7 +160,9 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
     """Tries scrapers in priority order. Returns the download link or None."""
     # Priority 1: AnimeAV1 -> PDrain
     try:
-        async with AnimeAV1Scraper(executable_path=general_settings.BRAVE_PATH) as scraper:
+        async with AnimeAV1Scraper(
+            executable_path=general_settings.BRAVE_PATH
+        ) as scraper:
             info = await scraper.get_table_download_links(anime_id, episode_number)
             logger.debug(
                 f"[{job_id}] AnimeAV1 servers: {[link.server for link in info.download_links]}"
@@ -157,7 +179,9 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
 
     # Priority 2 & 3: JKAnime -> Mediafire / Streamwish (table)
     try:
-        async with JKAnimeScraper(executable_path=general_settings.BRAVE_PATH) as scraper:
+        async with JKAnimeScraper(
+            executable_path=general_settings.BRAVE_PATH
+        ) as scraper:
             info = await scraper.get_table_download_links(anime_id, episode_number)
             logger.debug(
                 f"[{job_id}] JKAnime servers: {[link.server for link in info.download_links]}"
@@ -175,7 +199,9 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
 
     # Priority 3: JKAnime -> Streamwish (iframe)
     try:
-        async with JKAnimeScraper(executable_path=general_settings.BRAVE_PATH) as scraper:
+        async with JKAnimeScraper(
+            executable_path=general_settings.BRAVE_PATH
+        ) as scraper:
             logger.debug(f"[{job_id}] Trying JKAnime/Streamwish (iframe)")
             iframe = await scraper.get_iframe_download_links(anime_id, episode_number)
             for link in iframe.download_links:
@@ -213,17 +239,26 @@ async def download_anime_episode_controller(
             redis_db.incr(download_lock_key(franchise_id))
 
         try:
-            update_episode_status(anime_id, episode_number, "GETTING-LINK", job_id=job_id)
+            update_episode_status(
+                anime_id, episode_number, "GETTING-LINK", job_id=job_id
+            )
             _notify_job(job_id, "GETTING-LINK", {})
 
             valid_link = await _resolve_download_link(job_id, anime_id, episode_number)
             if not valid_link:
-                raise Exception(f"No download link available for {anime_id} E{episode_number}")
+                raise Exception(
+                    f"No download link available for {anime_id} E{episode_number}"
+                )
 
             update_episode_status(anime_id, episode_number, "DOWNLOADING")
 
             success, total_size = _download_file(
-                job_id, anime_id, franchise_id, season, episode_number, valid_link,
+                job_id,
+                anime_id,
+                franchise_id,
+                season,
+                episode_number,
+                valid_link,
             )
             if not success:
                 raise Exception(f"Download failed for {anime_id} E{episode_number}")
@@ -248,5 +283,9 @@ async def download_anime_episode_controller(
 
             logger.warning(f"Will retry (attempt {retries + 1}/{MAX_DOWNLOAD_RETRIES})")
             update_episode_status(anime_id, episode_number, "RETRYING")
-            _notify_job(job_id, "RETRYING", {"retry_count": retries + 1, "max_retries": MAX_DOWNLOAD_RETRIES})
+            _notify_job(
+                job_id,
+                "RETRYING",
+                {"retry_count": retries + 1, "max_retries": MAX_DOWNLOAD_RETRIES},
+            )
             raise

@@ -47,7 +47,11 @@ async def get_me_controller(user_id: str):
     user = await repository.get_user_with_role(user_id)
     if not user:
         raise NotFoundError("User not found")
-    avatar = await repository.get_avatar_by_id(user["avatar_id"]) if user["avatar_id"] else None
+    avatar = (
+        await repository.get_avatar_by_id(user["avatar_id"])
+        if user["avatar_id"]
+        else None
+    )
     if not avatar:
         raise NotFoundError("Avatar not found")
 

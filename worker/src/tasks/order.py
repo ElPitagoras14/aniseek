@@ -6,7 +6,13 @@ from loguru import logger
 
 from config import general_settings
 from db import get_started_download_count, list_franchise_animes, update_anime_season
-from redis_client import download_lock_key, ordering_lock_key, redis_db, stream_add_event, stream_wait_event
+from redis_client import (
+    download_lock_key,
+    ordering_lock_key,
+    redis_db,
+    stream_add_event,
+    stream_wait_event,
+)
 from schemas import FranchiseInfo
 
 ANIMES_FOLDER = general_settings.ANIMES_FOLDER

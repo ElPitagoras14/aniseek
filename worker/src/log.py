@@ -4,11 +4,13 @@ import sys
 from loguru import logger
 
 # Loggers that spam full tracebacks for errors we already handle ourselves.
-_NO_TRACEBACK = frozenset({
-    "dramatiq.worker.WorkerThread",
-    "dramatiq.middleware.retries.Retries",
-    "asyncio",
-})
+_NO_TRACEBACK = frozenset(
+    {
+        "dramatiq.worker.WorkerThread",
+        "dramatiq.middleware.retries.Retries",
+        "asyncio",
+    }
+)
 
 # Loggers whose INFO/DEBUG output adds no value in production.
 _QUIET = frozenset({"databases", "asyncpg", "dramatiq.worker.ForkingProcess"})

@@ -3,14 +3,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=http://localhost:8000
     container_name: aniseek-web
     restart: unless-stopped
     depends_on:
       - aniseek-api
     ports:
       - 3000:80
+    environment:
+      - API_URL=${API_URL}
 
   aniseek-api:
     build:
