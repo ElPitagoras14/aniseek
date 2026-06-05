@@ -169,3 +169,6 @@ docker-data/
 .env.local
 
 .aider*
+
+# Dev tools
+.codegraph/
