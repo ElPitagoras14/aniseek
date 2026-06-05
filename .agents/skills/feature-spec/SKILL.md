@@ -50,44 +50,41 @@ Push back on anything that is not stated explicitly in the request. If the reque
 
 **PAUSA OBLIGATORIA**
 
-Use the `question` tool with `multiple: true` so the user can mark every assumption they consider incorrect. The label of the question should be: "¿Cuáles de estas asunciones NO son correctas?" (or English equivalent if the user is writing in English).
+Ask the user in **plain text** (no `question` tool) to confirm or correct the assumptions. A single sentence is enough, in the language the user has been writing:
 
-- Each assumption becomes an option label.
-- The `custom` option (added automatically by opencode) lets the user add free-form corrections.
-- Do not advance to phase 4 until the user has responded.
+> "Estas son mis asunciones. Si alguna es incorrecta, escribe la corrección. Si todas están bien, responde `OK` o `continuar`."
+
+Why plain text and not `question`: the user often needs to correct a foundational aspect of the request (e.g. "the stack is not Next.js") that does not map cleanly to "uncheck this option". A free-form response lets them write the correction in one message and unblocks the workflow in a single turn.
+
+Do not advance to phase 4 until the user has responded. If the user pushes back, re-do the assumptions list and re-validate.
 
 ### Phase 4 — Iterate 1 by 1 on the rejected assumptions
 
 **PAUSA OBLIGATORIA** (per assumption)
 
-For each assumption the user marked as incorrect, open **one turn at a time**:
+For each rejected assumption, open **one turn at a time**:
 
-1. Open a turn that quotes the rejected assumption and asks the user how it should read.
-2. Wait for the user's correction (or for them to say "descarta y pasa a la siguiente" / "skip").
+1. Quote the rejected assumption and ask in plain text how it should read: "¿Cómo debería leer esta asunción? (o `skip` para descartarla)".
+2. Wait for the user's correction. Do not use `question` here — the answer is a free-form rewrite, not a pickable option.
 3. Repeat for the next rejected assumption.
 
 Do **not** batch multiple assumptions into a single turn. Do **not** advance to phase 5 with rejected assumptions still open.
 
-Once all rejected assumptions are resolved, **list the final validated assumptions** to the user as confirmation. If the user introduced new assumptions during iteration, include them in this list.
+Once all rejected assumptions are resolved, **list the final validated assumptions** in a single numbered list. If the user introduced new assumptions during iteration, include them in this list.
 
 ### Phase 5.0 — Pre-flight: codegraph availability
 
-**PAUSA OBLIGATORIA**
+**PAUSA OBLIGATORIA** (and **MANDATORY**)
 
-Before exploration, verify whether the `codegraph_*` tools are present in the current tool list. Codegraph is preferred for token-efficient exploration; if it is missing, exploration falls back to `grep` / `glob` / `read` which is more expensive.
+Before exploration, verify whether the `codegraph_*` tools are present in the current tool list. Codegraph is the project's first-class exploration tool and is significantly more token-efficient than `read`/`grep`/`glob`.
 
 **Decision tree:**
 
 1. Inspect the tool list available in the current turn.
-2. If `codegraph_*` tools are present → use them as the default for exploration in phase 5. Proceed.
-3. If `codegraph_*` tools are **not** present → emit a warning to the user:
-   > "codegraph no está disponible en este proyecto. La exploración se hará con `grep` / `glob` / `read` y consumirá significativamente más tokens. ¿Deseas continuar?"
+2. If `codegraph_*` tools are present → you **MUST** use them as the primary exploration tool in phase 5. Start every exploration turn with `codegraph_explore`. Fall back to `codegraph_search` → `codegraph_node` → `codegraph_files` before considering `grep`/`read`/`glob`. Direct `read`/`grep` are reserved for very targeted lookups (an exact file path, a known line number, or a specific text snippet) when codegraph has already returned the surrounding context. Proceed.
+3. If `codegraph_*` tools are **not** present → emit a warning to the user in plain text and wait for an explicit `Sí` / `Yes` to continue without codegraph. Any other response (silence, "no", "stop") terminates the flow and the agent reports back to the user without writing a spec.
 
-   Then call `question` with two options:
-   - `Sí, continuar sin codegraph` (not recommended, but allowed)
-   - `No, detener` (default selection)
-
-   The skill **must not advance to phase 5** until the user answers. The user's response must be an explicit `Sí` / `Yes` (or a clear affirmative). Any other response — silence, ambiguous answer, "no", "stop" — terminates the flow and the agent reports back to the user without writing a spec.
+**Self-check before advancing from phase 5**: if the exploration log shows zero `codegraph_*` calls while the tools were available, the skill has been violated. Acknowledge this to the user and ask whether to redo the exploration with codegraph before continuing.
 
 ### Phase 5 — Exploration
 
@@ -111,10 +108,11 @@ Present the candidate widgets, sections or features the new view could include. 
 
 **Tooling rule:**
 
-- If options are discrete and selectable (e.g. "which widgets to include", "which sections to enable"), use the `question` tool with `multiple: true`. The first option, if there is a recommendation, should be labeled with "(Recommended)" at the end.
-- If options are open-ended, descriptive or too many to enumerate (e.g. "show me everything you can extract from the codebase"), fall back to a numbered markdown list in the chat.
+- If the options are **truly discrete and well-defined** (binary choices, "which of these widgets", "which of these sections to enable"), the `question` tool with `multiple: true` is acceptable. The first option, if there is a recommendation, should be labeled with "(Recommended)" at the end.
+- If the question is **open-ended, layered, or might invite a multi-line correction** (e.g. "what does this dropdown mean?", "how should the auto-login behave?", "which URLs should the footer use?"), ask in **plain text** in the chat. The user's response will be prose, not a pickable option.
+- When in doubt, **prefer plain text** over `question`. The default for this skill is: write the question in chat, wait for the user's next message.
 
-**Wait for the user's selection** before proceeding to phase 7. Do not start planning based on assumptions.
+**Wait for the user's response** before proceeding to phase 7. Do not start planning based on assumptions.
 
 ### Phase 7 — Propose a plan
 
@@ -144,16 +142,32 @@ Enumerate any remaining decisions that the plan does not cover and that the user
 - Defaults for empty states.
 - Click destinations and routing.
 - Whether to enable or disable a navigation item that was previously disabled.
+- Hardcoded values vs env-driven config.
+- Behavior of feature flags in specific edge cases.
 
-Use a numbered list. Wait for answers. If there are no open questions, state explicitly "No quedan puntos abiertos" and proceed.
+Write the questions as a **numbered list in the chat** (no `question` tool). Open questions are nuanced and the user's answer is typically prose, not a pickable option. If there are no open questions, state explicitly "No quedan puntos abiertos" and proceed.
 
 ### Phase 9 — Final consolidated plan
 
 **PAUSA OBLIGATORIA**
 
-Re-present the plan with all decisions from phases 7 and 8 integrated. Include the final file list (create + modify) with paths, the final layout, the final open/closed questions, and the acceptance criteria preview.
+Re-present the plan in **full** (not a summary) with all decisions from phases 7 and 8 integrated. Include the final file list (create + modify) with paths, the final layout, the final open/closed questions, the final flag/feature behavior table, and the acceptance criteria.
 
-Ask the user for an **explicit green light** ("¿Apruebas el plan?") before writing. The user's response must be affirmative. If the user requests changes, loop back to the relevant earlier phase.
+**Approval gate**: ask for an explicit green light in **plain text** in the chat:
+
+> "¿Apruebas el plan? Si necesitas cambios, escríbelos en tu siguiente mensaje y los integro antes de escribir el spec. Si todo está bien, responde `apruebo` / `OK` / `procede`."
+
+**Do NOT use `question` for the approval gate.** This is the worst offender in the previous version: the option-based approval ("Approve / Approve with adjustments / Reject") forces a multi-turn ping-pong where the user picks "Approve with adjustments" and then has to navigate a follow-up "which adjustments?" question, and possibly more. Plain text lets the user write the decision and any corrections in a single message, and the agent integrates them in one turn.
+
+**End of phase 9 — instruction to the user (not a question)**: after showing the full plan, close with a clear, **imperative** instruction, not a meta-question. The user controls the opencode tooling (plan mode, etc.) and knows what they need to do; the agent must not ask them to confirm a meta-action.
+
+Recommended closing line:
+
+> "Plan listo. **Sal del modo plan** y responde `procede` (o cualquier frase confirmativa como `apruebo`, `OK`, `dale`, `escribe el spec`) en tu siguiente mensaje para que escriba `tasks/<N>-<name>.md`."
+
+Do **not** add a follow-up `question` after the plan. Do **not** ask "¿salgo de plan mode?" or "¿procedo a escribir?". End the turn with the instruction and stop.
+
+Loop back to the relevant earlier phase if the user requests changes before approval. Do not advance to phase 10 without an explicit approval.
 
 ### Phase 10 — Write the spec
 
@@ -253,10 +267,32 @@ The "Resultados" section is intentionally empty in the initial spec. The impleme
 - **PAUSA OBLIGATORIA** between every phase. The agent never advances without an explicit user response.
 - **No implementation** in the spec-writing skill. Code, commits, PRs are for later.
 - **No assumptions about the stack** inside the skill. Discover the project conventions in phase 5.
-- **The `question` tool is the default** for selectable options and assumption validation. Fall back to numbered lists only when options are open-ended.
-- **The codegraph pre-flight gate is mandatory**. If codegraph is missing and the user does not explicitly say `Sí` / `Yes` to continue, abort.
-- **The spec is approved before it is written**. Phase 9 is a hard gate before phase 10.
+- **`question` is the exception, not the default.** Use it only for binary or fully-discrete choices. For nuanced, layered, or prose-shaped answers (assumption validation, plan approval, open questions, anything that might invite a multi-line correction), ask in **plain text** in the chat.
+- **codegraph is mandatory in phase 5** when the tools are available. Start every exploration turn with `codegraph_explore`. Direct `read`/`grep` are reserved for targeted lookups (exact line numbers, specific snippets) after codegraph has returned the surrounding context. If the tools are missing, abort unless the user explicitly says `Sí` / `Yes` to continue without them.
+- **The spec is approved before it is written**. Phase 9 is a hard gate before phase 10. Approval is requested in plain text, not via `question`.
 - **Hard rules are marked with bold** in the skill body. Treat them as non-negotiable.
+
+---
+
+## Common frictions to avoid (lessons learned)
+
+These patterns were observed to produce friction in real sessions of this skill. Avoid them.
+
+1. **Bypassing codegraph in phase 5.** When `codegraph_*` tools are available, they are mandatory as the first call. Falling back to `read`/`grep`/`glob` from the start is the #1 most common violation.
+
+2. **Over-using `question` for open-ended decisions.** `question` is good for binary or pickable options. For nuanced answers ("what is the role of this dropdown?", "how should the auto-login behave?", "which URLs should the footer use?"), the user typically has a multi-line correction in mind, and `question`'s options force them to map their intent to predefined labels. Use plain text.
+
+3. **Asking the user to approve the plan with `question` options.** This is the worst offender. Options like "Approve / Approve with adjustments / Reject" create a 3-4 turn ping-pong. Replace with a single plain text ask: "¿Apruebas el plan? Si hay cambios, escríbelos aquí."
+
+4. **Showing only a summary of the plan in phase 9.** When the plan is the deliverable, present it in full. A summary forces the user to ask "muéstrame el plan completo", wasting a turn.
+
+5. **Forcing a meta-correction into a checkbox.** When the user wants to correct a foundational aspect (e.g. "the stack is not Next.js", "the spec is for a different repo"), do not make them pick from a list of assumptions to uncheck. Let them write the correction in plain text and re-do the assumptions.
+
+6. **Asking the user to confirm a meta-action that they control at the tool level** (e.g. "exit plan mode?", "should I write the file now?"). The user already knows what they need to do at the opencode level. Replace the meta-question with a clear **imperative instruction** in plain text: "Sal del modo plan y responde `procede` en tu siguiente mensaje para que escriba el spec." End the turn there; do not add a `question` to confirm.
+
+7. **Multiple `question` calls in a row.** Each `question` is a tool turn. Three `question` calls in a row is three turns of friction. Prefer batching related choices into a single plain text ask, or — if the choice is genuinely discrete — a single `question` with `multiple: true` and comprehensive options.
+
+8. **Repeating the assumption list verbatim in phase 3.** The user already saw the assumptions in phase 2. In phase 3, just ask "¿alguna incorrecta?"; do not re-list them.
 
 ---
 
@@ -273,13 +309,12 @@ The following is a **shape example** only. The actual values depend on the user'
 4. The spec is stack-agnostic; it should call out the form library already used in the project.
 5. The user wants the spec at `tasks/<N>-user-settings.md`.
 
-**Phase 3 (`question` with `multiple: true`):**
-- "¿Cuáles de estas asunciones NO son correctas?"
-- Options: one per assumption.
+**Phase 3 (plain text):**
+- "¿Alguna de estas asunciones es incorrecta? Si sí, escribe la corrección. Si todas están bien, responde `OK`."
 
-**Phase 6 (`question` with `multiple: true`):**
-- "¿Qué secciones debe incluir la página?"
-- Options: `Avatar selector (Recommended)`, `Password change`, `Email change`, `Delete account`.
+**Phase 6 (plain text for nuanced choices, `question` only for discrete ones):**
+- Para opciones discretas como "qué secciones incluir": `question` con `multiple: true` y opciones etiquetadas.
+- Para opciones matizadas (estilo, copy, comportamiento): lista numerada en el chat y esperar respuesta en prosa.
 
 **Phase 7 (plan):**
 - Files to create: `features/settings/api.ts`, `features/settings/components/settings-form.tsx`, `features/settings/lib/validate-password.ts`.
