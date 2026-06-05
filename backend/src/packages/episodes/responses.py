@@ -69,9 +69,10 @@ class AnimeStorageInfo(BaseModel):
     size: int
 
 
-class AnimeStorageInfoList(BaseModel):
+class AnimeStorageInfoList(CamelCaseModel):
     items: list[AnimeStorageInfo]
     total: int
+    total_size: int = 0
 
 
 class AnimeStorageInfoListOut(SuccessResponse):

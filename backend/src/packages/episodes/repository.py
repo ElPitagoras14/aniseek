@@ -186,7 +186,7 @@ async def list_user_downloaded_animes(user_id: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def list_animes_storage(limit: int, offset: int) -> tuple[int, list[dict]]:
+async def list_animes_storage(limit: int, offset: int) -> tuple[int, int, list[dict]]:
     count_query = """
         SELECT COUNT(*) FROM (
             SELECT a.id
@@ -198,6 +198,12 @@ async def list_animes_storage(limit: int, offset: int) -> tuple[int, list[dict]]
     """
     count = await db.fetch_val(count_query) or 0
 
+    total_size_query = """
+        SELECT COALESCE(SUM(e.size), 0) AS total_size
+        FROM episodes e WHERE e.size IS NOT NULL
+    """
+    total_size = await db.fetch_val(total_size_query) or 0
+
     list_query = """
         SELECT a.id, a.title, SUM(e.size) AS size
         FROM animes a
@@ -208,7 +214,7 @@ async def list_animes_storage(limit: int, offset: int) -> tuple[int, list[dict]]
         OFFSET :offset LIMIT :limit
     """
     rows = await db.fetch_all(list_query, {"offset": offset, "limit": limit})
-    return count, [dict(r) for r in rows]
+    return count, total_size, [dict(r) for r in rows]
 
 
 async def get_anime_with_episodes_for_storage(anime_id: str) -> dict | None:

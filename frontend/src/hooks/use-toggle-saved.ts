@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ export const useToggleSaved = ({
 	title,
 	initialSaved,
 }: UseToggleSavedOptions) => {
+	const queryClient = useQueryClient();
 	const [isSaved, setIsSaved] = useState(initialSaved);
 
 	const handleError = (error: unknown) => {
@@ -24,10 +25,16 @@ export const useToggleSaved = ({
 		toast.error(message);
 	};
 
+	const invalidate = () => {
+		queryClient.invalidateQueries({ queryKey: ["animes"] });
+		queryClient.invalidateQueries({ queryKey: ["users", "statistics"] });
+	};
+
 	const saveMutation = useMutation({
 		mutationFn: saveAnime,
 		onSuccess: () => {
 			setIsSaved(true);
+			invalidate();
 			toast.success(`${title} saved`);
 		},
 		onError: handleError,
@@ -37,6 +44,7 @@ export const useToggleSaved = ({
 		mutationFn: unsaveAnime,
 		onSuccess: () => {
 			setIsSaved(false);
+			invalidate();
 			toast.success(`${title} removed from saved`);
 		},
 		onError: handleError,

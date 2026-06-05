@@ -38,8 +38,11 @@ def cast_downloaded_anime_list(animes: list[dict], total: int) -> AnimeDownloadI
     )
 
 
-def cast_animes_storage_list(animes: list[dict], total: int) -> AnimeStorageInfoList:
+def cast_animes_storage_list(
+    animes: list[dict], total: int, total_size: int = 0
+) -> AnimeStorageInfoList:
     return AnimeStorageInfoList(
         items=[AnimeStorageInfo(**a) for a in animes],
         total=total,
+        total_size=total_size,
     )
