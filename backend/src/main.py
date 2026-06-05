@@ -11,8 +11,7 @@ from exceptions import AppError
 from handlers import app_error_handler, unhandled_error_handler
 from log import configure_logs
 from middleware import TracingMiddleware
-from packages.auth import get_hash, get_user_id_by_username, insert_user
-from packages.auth.config import auth_settings
+from packages.auth import get_hash, get_user_id_by_username, insert_user, auth_settings
 from routes import router
 from config import Environment, general_settings
 

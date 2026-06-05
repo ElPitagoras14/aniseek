@@ -168,5 +168,4 @@ docker-data/
 # Environment
 .env.local
 
-.vscode/settings.json
 .aider*

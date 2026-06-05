@@ -2,7 +2,7 @@ services:
   aniseek-web:
     image: ghcr.io/elpitagoras14/aniseek-web:latest
     pull_policy: always
-    container_name: ${COMPOSE_PROJECT_NAME}-web
+    container_name: aniseek-web
     restart: unless-stopped
     depends_on:
       aniseek-api:
@@ -15,7 +15,7 @@ services:
   aniseek-api:
     image: ghcr.io/elpitagoras14/aniseek-api:latest
     pull_policy: always
-    container_name: ${COMPOSE_PROJECT_NAME}-api
+    container_name: aniseek-api
     init: true
     restart: unless-stopped
     depends_on:
@@ -46,7 +46,7 @@ services:
   aniseek-worker:
     image: ghcr.io/elpitagoras14/aniseek-worker:latest
     pull_policy: always
-    container_name: ${COMPOSE_PROJECT_NAME}-worker
+    container_name: aniseek-worker
     init: true
     restart: unless-stopped
     depends_on:
@@ -77,7 +77,7 @@ services:
 
   aniseek-db:
     image: postgres:18.1-alpine
-    container_name: ${COMPOSE_PROJECT_NAME}-db
+    container_name: aniseek-db
     restart: unless-stopped
     expose:
       - "5432"
@@ -96,7 +96,7 @@ services:
 
   aniseek-redis:
     image: redis:8.4.0-alpine
-    container_name: ${COMPOSE_PROJECT_NAME}-redis
+    container_name: aniseek-redis
     restart: unless-stopped
     expose:
       - "6379"
