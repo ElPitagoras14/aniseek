@@ -15,6 +15,7 @@ from .dependencies import (
 )
 from .responses import (
     AnimeDownloadInfoListOut,
+    AnimeStorageInfoListOut,
     DownloadTaskListOut,
     DownloadTaskOut,
     EpisodeDownloadListOut,
@@ -67,7 +68,7 @@ async def get_downloaded_animes(
     return SuccessResponse(payload=payload, message="Downloaded animes retrieved")
 
 
-@episodes_router.get("/storage", response_model=AnimeDownloadInfoListOut)
+@episodes_router.get("/storage", response_model=AnimeStorageInfoListOut)
 async def get_animes_storage(
     limit: int = 10,
     page: int = 1,

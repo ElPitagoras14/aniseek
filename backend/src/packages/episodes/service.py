@@ -197,13 +197,13 @@ async def download_anime_episode_bulk_controller(
 async def get_animes_storage_controller(limit: int = 10, page: int = 1) -> dict:
     logger.info("Getting animes storage controller")
     offset = (page - 1) * limit
-    count, rows = await repository.list_animes_storage(limit, offset)
+    count, total_size, rows = await repository.list_animes_storage(limit, offset)
     logger.debug(f"Found {count} animes")
 
     animes_info = [
         {"id": r["id"], "title": r["title"], "size": r["size"]} for r in rows
     ]
-    return cast_animes_storage_list(animes_info, count)
+    return cast_animes_storage_list(animes_info, count, total_size)
 
 
 async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:

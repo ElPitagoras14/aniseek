@@ -27,7 +27,6 @@ const animeSection: NavSection[] = [
 		title: "Home",
 		icon: Home,
 		url: "/home",
-		disabled: true,
 	},
 	{
 		title: "Search",
