@@ -3,6 +3,7 @@ import { api } from "@/api";
 import { NotFoundContent } from "@/components/not-found";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { isAuthEnabled } from "@/config";
 import { AppSidebar } from "@/features/root/components/app-sidebar";
 import { MobileHeader } from "@/features/root/components/mobile-header";
 
@@ -12,19 +13,28 @@ interface LoginResponse {
 
 export const Route = createFileRoute("/_app")({
 	beforeLoad: async ({ context, location }) => {
-		if (!context.auth.isAuthenticated) {
-			try {
-				const { data } = await api.post<LoginResponse>("/auth/login", {
-					username: "admin",
-					password: "admin123",
-				});
-				context.auth.login(data.payload.access);
-			} catch {
-				throw redirect({
-					to: "/login",
-					search: { redirect: location.href },
-				});
+		if (!isAuthEnabled) {
+			if (!context.auth.isAuthenticated) {
+				try {
+					const { data } = await api.post<LoginResponse>("/auth/login", {
+						username: "admin",
+						password: "admin123",
+					});
+					context.auth.login(data.payload.access);
+				} catch {
+					throw redirect({
+						to: "/login",
+						search: { redirect: location.href },
+					});
+				}
 			}
+			return;
+		}
+		if (!context.auth.isAuthenticated) {
+			throw redirect({
+				to: "/login",
+				search: { redirect: location.href },
+			});
 		}
 	},
 	component: RouteComponent,
