@@ -2,21 +2,6 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Setup Dev Env",
-      "type": "shell",
-      "windows": {
-        "command": "${workspaceFolder}/scripts/setup-dev.bat"
-      },
-      "linux": {
-        "command": "${workspaceFolder}/scripts/setup-dev.sh"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": []
-    },
-    {
       "label": "Run Backend",
       "type": "shell",
       "command": "uv",
