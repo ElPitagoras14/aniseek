@@ -21,12 +21,7 @@ export const Route = createFileRoute("/_app")({
 						password: "admin123",
 					});
 					context.auth.login(data.payload.access);
-				} catch {
-					throw redirect({
-						to: "/login",
-						search: { redirect: location.href },
-					});
-				}
+				} catch {}
 			}
 			return;
 		}
