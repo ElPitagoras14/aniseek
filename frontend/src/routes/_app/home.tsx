@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bookmark, CalendarClock, Download } from "lucide-react";
-import {
-	statisticsQueryOptions,
-	storageQueryOptions,
-} from "@/features/home/api";
+import { statisticsQueryOptions } from "@/features/home/api";
+import { storageQueryOptions } from "@/features/storage/api";
 import { HomeKpi } from "@/features/home/components/home-kpi";
 import { HomeLastDownloads } from "@/features/home/components/home-last-downloads";
 import { HomeStorage } from "@/features/home/components/home-storage";
@@ -28,7 +26,6 @@ function RouteComponent() {
 				value={statistics.data?.downloadedEpisodes}
 				isLoading={statistics.isLoading}
 				isError={statistics.isError}
-				url="/downloads"
 				icon={Download}
 				iconClassName="text-sky-500"
 			/>
@@ -45,7 +42,6 @@ function RouteComponent() {
 				value={statistics.data?.savedAnimes}
 				isLoading={statistics.isLoading}
 				isError={statistics.isError}
-				url="/saved"
 				icon={Bookmark}
 				iconClassName="text-emerald-500"
 			/>
@@ -55,7 +51,6 @@ function RouteComponent() {
 				value={statistics.data?.inEmissionAnimes}
 				isLoading={statistics.isLoading}
 				isError={statistics.isError}
-				url="/calendar"
 				icon={CalendarClock}
 				iconClassName="text-amber-500"
 			/>

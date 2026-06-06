@@ -1,8 +1,8 @@
 import { HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatBytes } from "../lib/format-bytes";
-import type { StorageResponse } from "../types";
+import { formatBytes } from "@/lib/format-bytes";
+import type { StorageResponse } from "@/features/storage/types";
 import { HomeStorageSkeleton } from "./home-skeleton";
 
 interface HomeStorageProps {

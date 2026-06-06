@@ -55,7 +55,7 @@ export function HomeTodayCalendarSkeleton({
 				<Skeleton className="h-5 w-16" />
 				<Skeleton className="h-5 w-16 rounded-full" />
 			</div>
-			<div className="grid grid-cols-2 gap-3">
+			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
 				{Array.from({ length: 4 }).map((_, i) => (
 					<Skeleton
 						// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton

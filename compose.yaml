@@ -29,8 +29,6 @@ services:
     environment:
       - ENVIRONMENT=prod
       - AUTH_ENABLED=${AUTH_ENABLED}
-      - ADMIN_USER=${ADMIN_USER}
-      - ADMIN_PASS=${ADMIN_PASS}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}

@@ -13,7 +13,7 @@ export function LoginHeader() {
 				Don&apos;t have an account?{" "}
 				<Link
 					to="/register"
-					className="text-primary underline-offset-4 hover:underline"
+					className="text-cyan-400 underline-offset-4 hover:underline hover:text-cyan-300 transition-colors"
 				>
 					Sign up
 				</Link>

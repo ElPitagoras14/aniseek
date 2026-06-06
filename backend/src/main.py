@@ -12,6 +12,7 @@ from handlers import app_error_handler, unhandled_error_handler
 from log import configure_logs
 from middleware import TracingMiddleware
 from packages.auth import get_hash, get_user_id_by_username, insert_user, auth_settings
+from packages.auth.config import ADMIN_USER, ADMIN_PASS
 from routes import router
 from config import Environment, general_settings
 
@@ -22,20 +23,19 @@ configure_logs()
 
 
 async def _seed_admin_user():
-    existing = await get_user_id_by_username(auth_settings.ADMIN_USER)
+    existing = await get_user_id_by_username(ADMIN_USER)
     if existing:
-        logger.info(f"Admin user '{auth_settings.ADMIN_USER}' already exists")
+        logger.info(f"Admin user '{ADMIN_USER}' already exists")
         return
-    hashed = get_hash(auth_settings.ADMIN_PASS)
-    await insert_user(auth_settings.ADMIN_USER, hashed, role_id=1)
-    logger.info(f"Seeded admin user '{auth_settings.ADMIN_USER}' (role admin)")
+    hashed = get_hash(ADMIN_PASS)
+    await insert_user(ADMIN_USER, hashed, role_id=1)
+    logger.info(f"Seeded admin user '{ADMIN_USER}' (role admin)")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
-    if not auth_settings.AUTH_ENABLED:
-        await _seed_admin_user()
+    await _seed_admin_user()
     logger.info("Application starting up...")
     yield
     await disconnect_db()

@@ -35,7 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 								<div className="grid flex-1 text-left text-sm leading-tight">
 									<span className="truncate font-medium">AniSeek</span>
 									<span className="text-xs text-muted-foreground font-mono">
-										v0.1.0
+										v{__APP_VERSION__}
 									</span>
 								</div>
 							</div>

@@ -2,14 +2,16 @@ from dotenv import find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+ADMIN_USER = "admin"
+ADMIN_PASS = "admin123"
+
+
 class AuthSettings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXP_MIN: int
     REFRESH_TOKEN_EXP_DAY: float
     AUTH_ENABLED: bool = True
-    ADMIN_USER: str = "admin"
-    ADMIN_PASS: str = "admin123"
 
     model_config = SettingsConfigDict(
         env_file=find_dotenv(filename=".env", usecwd=True),

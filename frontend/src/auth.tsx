@@ -9,6 +9,9 @@ import {
 interface User {
 	username: string;
 	role: string;
+	isActive: boolean;
+	avatarUrl: string | null;
+	loginAt: number | null;
 }
 
 export interface AuthContext {
@@ -33,6 +36,9 @@ function decodeToken(token: string): User | null {
 		return {
 			username: payload.username,
 			role: payload.role,
+			isActive: payload.isActive ?? true,
+			avatarUrl: payload.avatarUrl ?? null,
+			loginAt: payload.iat ?? null,
 		};
 	} catch {
 		return null;
