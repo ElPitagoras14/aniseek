@@ -11,6 +11,7 @@ services:
       - 3000:80
     environment:
       - API_URL=${API_URL}
+      - AUTH_ENABLED=false
 
   aniseek-api:
     build:
@@ -57,7 +58,7 @@ services:
         condition: service_healthy
     environment:
       - REDIS_URL=redis://aniseek-redis:6379
-      - POSTGRES_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres
+      - DB_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres
       - ANIMES_FOLDER=/animes
       - MAX_DOWNLOAD_RETRIES=5
       - RETRY_DOWNLOAD_INTERVAL=15
