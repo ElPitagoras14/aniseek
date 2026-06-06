@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from "@/config";
 import type { DownloadStatus } from "../types";
 
 interface ProgressMeta {
@@ -29,7 +30,7 @@ export function useDownloadProgress(
 		}
 
 		const params = new URLSearchParams({ job_ids: csv });
-		const es = new EventSource(`/api/episodes/stream/status?${params}`);
+		const es = new EventSource(`${apiUrl}/api/episodes/stream/status?${params}`);
 
 		es.onerror = () => {
 			es.close();
