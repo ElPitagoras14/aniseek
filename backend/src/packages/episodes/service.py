@@ -194,10 +194,12 @@ async def download_anime_episode_bulk_controller(
     return cast_download_task_list(parsed_data, len(parsed_data))
 
 
-async def get_animes_storage_controller(limit: int = 10, page: int = 1) -> dict:
+async def get_animes_storage_controller(
+    limit: int = 10, page: int = 1, q: str | None = None
+) -> dict:
     logger.info("Getting animes storage controller")
     offset = (page - 1) * limit
-    count, total_size, rows = await repository.list_animes_storage(limit, offset)
+    count, total_size, rows = await repository.list_animes_storage(limit, offset, q)
     logger.debug(f"Found {count} animes")
 
     animes_info = [

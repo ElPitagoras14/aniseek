@@ -186,34 +186,71 @@ async def list_user_downloaded_animes(user_id: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def list_animes_storage(limit: int, offset: int) -> tuple[int, int, list[dict]]:
-    count_query = """
-        SELECT COUNT(*) FROM (
-            SELECT a.id
+async def list_animes_storage(
+    limit: int, offset: int, q: str | None = None
+) -> tuple[int, int, list[dict]]:
+    if q is not None:
+        q_param = f"%{q}%"
+        count_query = """
+            SELECT COUNT(*) FROM (
+                SELECT a.id
+                FROM animes a
+                INNER JOIN episodes e ON e.anime_id = a.id
+                WHERE e.size IS NOT NULL AND a.title ILIKE :q
+                GROUP BY a.id
+            ) sub
+        """
+        count = await db.fetch_val(count_query, {"q": q_param}) or 0
+
+        total_size_query = """
+            SELECT COALESCE(SUM(e.size), 0) AS total_size
+            FROM animes a
+            INNER JOIN episodes e ON e.anime_id = a.id
+            WHERE e.size IS NOT NULL AND a.title ILIKE :q
+        """
+        total_size = await db.fetch_val(total_size_query, {"q": q_param}) or 0
+
+        list_query = """
+            SELECT a.id, a.title, SUM(e.size) AS size
+            FROM animes a
+            INNER JOIN episodes e ON e.anime_id = a.id
+            WHERE e.size IS NOT NULL AND a.title ILIKE :q
+            GROUP BY a.id, a.title
+            ORDER BY SUM(e.size) DESC
+            OFFSET :offset LIMIT :limit
+        """
+        rows = await db.fetch_all(
+            list_query, {"q": q_param, "offset": offset, "limit": limit}
+        )
+    else:
+        count_query = """
+            SELECT COUNT(*) FROM (
+                SELECT a.id
+                FROM animes a
+                INNER JOIN episodes e ON e.anime_id = a.id
+                WHERE e.size IS NOT NULL
+                GROUP BY a.id
+            ) sub
+        """
+        count = await db.fetch_val(count_query) or 0
+
+        total_size_query = """
+            SELECT COALESCE(SUM(e.size), 0) AS total_size
+            FROM episodes e WHERE e.size IS NOT NULL
+        """
+        total_size = await db.fetch_val(total_size_query) or 0
+
+        list_query = """
+            SELECT a.id, a.title, SUM(e.size) AS size
             FROM animes a
             INNER JOIN episodes e ON e.anime_id = a.id
             WHERE e.size IS NOT NULL
-            GROUP BY a.id
-        ) sub
-    """
-    count = await db.fetch_val(count_query) or 0
+            GROUP BY a.id, a.title
+            ORDER BY SUM(e.size) DESC
+            OFFSET :offset LIMIT :limit
+        """
+        rows = await db.fetch_all(list_query, {"offset": offset, "limit": limit})
 
-    total_size_query = """
-        SELECT COALESCE(SUM(e.size), 0) AS total_size
-        FROM episodes e WHERE e.size IS NOT NULL
-    """
-    total_size = await db.fetch_val(total_size_query) or 0
-
-    list_query = """
-        SELECT a.id, a.title, SUM(e.size) AS size
-        FROM animes a
-        INNER JOIN episodes e ON e.anime_id = a.id
-        WHERE e.size IS NOT NULL
-        GROUP BY a.id, a.title
-        ORDER BY SUM(e.size) DESC
-        OFFSET :offset LIMIT :limit
-    """
-    rows = await db.fetch_all(list_query, {"offset": offset, "limit": limit})
     return count, total_size, [dict(r) for r in rows]
 
 

@@ -6,7 +6,7 @@
 /
 ├── backend/   # FastAPI REST API (Python 3.10.14)
 ├── worker/    # Dramatiq workers (Python 3.10.14)
-├── frontend/  # Next.js 15 / React 19
+├── frontend/  # Vite / React / TanStack Router (TypeScript)
 └── requests/  # Bruno API collection — DO NOT MODIFY
 ```
 
@@ -16,13 +16,18 @@ No shared code between projects. Each has its own dependencies and Dockerfile.
 
 ## Backend Module Structure
 
-Every module under `backend/src/packages/<module>/` **must** include these files — never skip or merge them:
+Every module under `backend/src/packages/<module>/` includes these files:
 
 ```
-config.py / dependencies.py / router.py / service.py / schemas.py / responses.py / utils.py
+__init__.py / config.py* / dependencies.py / repository.py / router.py / service.py / schemas.py* / responses.py / utils.py
 ```
 
-Centralized utilities in `backend/src/utils/` (`exceptions.py`, `exception_handlers.py`, `responses.py`) — always reuse, never duplicate.
+> `*` optional — not all modules require `config.py` or `schemas.py`.
+> Some modules add extra files (e.g. `scraper.py`, `middleware.py`).
+
+Centralized utilities at `backend/src/` root: `exceptions.py`, `handlers.py`, `responses.py`, `utils.py` — always reuse, never duplicate.
+
+Database client and config live under `backend/src/database/`.
 
 ---
 
@@ -35,10 +40,20 @@ Communicates with backend **exclusively via Dramatiq/Redis** — no HTTP calls o
 
 ---
 
+## Frontend Structure
+
+Feature-based architecture: each feature under `src/features/<name>/` owns its `api.ts`, `components/`, `types.ts`, `lib/`, and `hooks/`.
+
+Shared pieces: `src/components/` (UI), `src/hooks/`, `src/lib/`.
+
+File-based routing via TanStack Router — routes live in `src/routes/`.
+
+---
+
 ## Rules
 
 - **Never hardcode** secrets or URLs — use `.env` (see `.env.example`).
-- **Never modify**: `backend/src/databases/postgres/init.sql` or anything in `requests/`.
+- **Never modify**: `backend/src/database/postgres/init.sql` or anything in `requests/`.
 - Python: PEP 8, type hints, `snake_case`/`PascalCase`. Formatter: Black (VSCode only).
 - TypeScript: explicit types, no `any`, `camelCase`/`PascalCase`. Formatter: Prettier (VSCode only).
 - Imports order: stdlib → third-party → local, alphabetical.

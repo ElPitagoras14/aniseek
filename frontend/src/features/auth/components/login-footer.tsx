@@ -1,5 +1,4 @@
-import { Coffee, Github } from "lucide-react";
-
+import { SiBuymeacoffee, SiGithub } from "@icons-pack/react-simple-icons";
 import { Separator } from "@/components/ui/separator";
 
 export function LoginFooter() {
@@ -11,7 +10,7 @@ export function LoginFooter() {
 				rel="noreferrer"
 				className="flex items-center gap-2"
 			>
-				<Github className="size-4" />
+				<SiGithub className="size-4" />
 				Github
 			</a>
 			<Separator orientation="vertical" className="h-4" />
@@ -21,7 +20,7 @@ export function LoginFooter() {
 				rel="noreferrer"
 				className="flex items-center gap-2"
 			>
-				<Coffee className="size-4" />
+				<SiBuymeacoffee className="size-4" />
 				Support it
 			</a>
 		</div>

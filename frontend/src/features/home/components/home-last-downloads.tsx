@@ -51,7 +51,7 @@ export function HomeLastDownloads({ className }: HomeLastDownloadsProps) {
 		);
 	}
 
-	const items = data?.items.slice(0, 4) ?? [];
+	const items = data?.items.filter((i) => i.status === "SUCCESS").slice(0, 4) ?? [];
 
 	return (
 		<Card className={className}>

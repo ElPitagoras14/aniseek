@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +9,6 @@ interface HomeKpiProps {
 	value: number | undefined;
 	isLoading: boolean;
 	isError?: boolean;
-	url: string;
 	icon: LucideIcon;
 	iconClassName?: string;
 }
@@ -21,29 +19,26 @@ export function HomeKpi({
 	value,
 	isLoading,
 	isError = false,
-	url,
 	icon: Icon,
 	iconClassName,
 }: HomeKpiProps) {
 	return (
-		<Link to={url} className={cn("block", className)}>
-			<Card className={cn("h-full transition-colors", "hover:bg-muted/50")}>
-				<CardContent className="flex flex-col gap-3">
-					<div className="flex items-center gap-2">
-						<Icon className={cn("size-4", iconClassName)} />
-						<span className="text-xs uppercase tracking-wide text-muted-foreground">
-							{label}
-						</span>
-					</div>
-					{isError ? (
-						<span className="text-sm text-destructive">—</span>
-					) : isLoading ? (
-						<Skeleton className="h-9 w-20" />
-					) : (
-						<span className="text-3xl font-bold">{value ?? 0}</span>
-					)}
-				</CardContent>
-			</Card>
-		</Link>
+		<Card className={cn("h-full", className)}>
+			<CardContent className="flex flex-col gap-3">
+				<div className="flex items-center gap-2">
+					<Icon className={cn("size-4", iconClassName)} />
+					<span className="text-xs uppercase tracking-wide text-muted-foreground">
+						{label}
+					</span>
+				</div>
+				{isError ? (
+					<span className="text-sm text-destructive">—</span>
+				) : isLoading ? (
+					<Skeleton className="h-9 w-20" />
+				) : (
+					<span className="text-3xl font-bold">{value ?? 0}</span>
+				)}
+			</CardContent>
+		</Card>
 	);
 }

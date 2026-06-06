@@ -7,7 +7,7 @@ import {
 	Home,
 	type LucideIcon,
 	Search,
-	Settings,
+	UserRound,
 } from "lucide-react";
 
 export type NavSection = {
@@ -61,7 +61,6 @@ const administrationSection: NavSection[] = [
 		title: "Storage",
 		icon: Database,
 		url: "/storage",
-		disabled: true,
 	},
 ];
 
@@ -78,9 +77,8 @@ export const mainNavigationData: NavGroup[] = [
 
 export const secondaryNavigationData: NavSection[] = [
 	{
-		title: "Configuration",
-		icon: Settings,
+		title: "Profile",
+		icon: UserRound,
 		url: "/profile",
-		disabled: true,
 	},
 ];

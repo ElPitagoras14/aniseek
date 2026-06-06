@@ -72,9 +72,10 @@ async def get_downloaded_animes(
 async def get_animes_storage(
     limit: int = 10,
     page: int = 1,
+    q: str | None = None,
     current_user: dict = Depends(auth_scheme),
 ):
-    payload = await get_animes_storage_controller(limit, page)
+    payload = await get_animes_storage_controller(limit, page, q)
     return SuccessResponse(payload=payload, message="Animes storage retrieved")
 
 
