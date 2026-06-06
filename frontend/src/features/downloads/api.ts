@@ -1,10 +1,9 @@
 import type { QueryFunctionContext } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "@/api";
+import { apiUrl } from "@/config";
 import type { ApiEnvelope } from "@/features/anime/types";
 import type { EpisodeDownloadList } from "./types";
-
-const VITE_API_URL = import.meta.env.VITE_API_URL;
 
 interface DownloadsQueryParams {
 	q: string;
@@ -55,4 +54,4 @@ export const retryEpisodeDownload = (animeId: string, episodeNumber: number) =>
 export const episodeFileUrl = (
 	animeId: string,
 	episodeNumber: number,
-): string => `${VITE_API_URL}/api/episodes/${animeId}/${episodeNumber}/file`;
+): string => `${apiUrl}/api/episodes/${animeId}/${episodeNumber}/file`;
