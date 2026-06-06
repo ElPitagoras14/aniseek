@@ -41,6 +41,12 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   aniseek-worker:
     image: ghcr.io/elpitagoras14/aniseek-worker:latest
