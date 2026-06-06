@@ -5,7 +5,7 @@ from sqlalchemy.engine import Engine
 from config import general_settings
 
 engine: Engine = create_engine(
-    general_settings.POSTGRES_URL,
+    general_settings.DB_URL,
     pool_size=10,
     max_overflow=5,
     pool_timeout=30,

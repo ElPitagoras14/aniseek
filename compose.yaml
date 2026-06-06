@@ -11,6 +11,7 @@ services:
       - "3000:80"
     environment:
       - API_URL=${API_URL}
+      - AUTH_ENABLED=${AUTH_ENABLED}
 
   aniseek-api:
     image: ghcr.io/elpitagoras14/aniseek-api:latest
@@ -55,7 +56,7 @@ services:
       aniseek-redis:
         condition: service_healthy
     environment:
-      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
+      - DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://aniseek-redis:6379
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - MAX_DOWNLOAD_RETRIES=${MAX_DOWNLOAD_RETRIES}

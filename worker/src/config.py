@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class GeneralSettings(BaseSettings):
-    POSTGRES_URL: str
+    DB_URL: str
     REDIS_URL: str
 
     MAX_DOWNLOAD_RETRIES: int
