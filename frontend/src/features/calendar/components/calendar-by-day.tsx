@@ -47,22 +47,24 @@ export function CalendarByDay({
 
 	return (
 		<Tabs defaultValue={today} className="flex flex-col gap-4">
-			<TabsList className="w-full">
-				{WEEK_DAYS.map((day) => {
-					const count = grouped[day].length;
-					return (
-						<TabsTrigger
-							key={day}
-							value={day}
-							className={cn(day === today && "text-primary")}
-						>
-							<span className="hidden sm:inline">{day}</span>
-							<span className="sm:hidden">{day.slice(0, 3)}</span>
-							{count > 0 && <span className="opacity-60">({count})</span>}
-						</TabsTrigger>
-					);
-				})}
-			</TabsList>
+			<div className="overflow-x-auto">
+				<TabsList className="w-full min-w-max">
+					{WEEK_DAYS.map((day) => {
+						const count = grouped[day].length;
+						return (
+							<TabsTrigger
+								key={day}
+								value={day}
+								className={cn(day === today && "text-primary")}
+							>
+								<span className="hidden sm:inline">{day}</span>
+								<span className="sm:hidden">{day.slice(0, 3)}</span>
+								{count > 0 && <span className="opacity-60">({count})</span>}
+							</TabsTrigger>
+						);
+					})}
+				</TabsList>
+			</div>
 			{WEEK_DAYS.map((day) => (
 				<TabsContent key={day} value={day}>
 					{grouped[day].length === 0 ? (

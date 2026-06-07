@@ -50,11 +50,17 @@ function AnimeDetailPage() {
 				<div className="md:col-span-3 flex flex-col gap-3">
 					<AnimeHeader anime={anime} />
 					<Tabs defaultValue="information">
-						<TabsList className="h-auto py-4.5">
-							<TabsTrigger value="information" className=" px-14 py-3.5">
+						<TabsList className="h-auto py-4.5 w-full sm:w-auto">
+							<TabsTrigger
+								value="information"
+								className="sm:flex-none px-4 sm:px-14 py-2 sm:py-3.5"
+							>
 								Information
 							</TabsTrigger>
-							<TabsTrigger value="episodes" className=" px-14 py-3.5">
+							<TabsTrigger
+								value="episodes"
+								className="sm:flex-none px-4 sm:px-14 py-2 sm:py-3.5"
+							>
 								Episodes
 							</TabsTrigger>
 						</TabsList>

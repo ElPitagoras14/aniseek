@@ -19,9 +19,9 @@ function RouteComponent() {
 
 	return (
 		<div className="p-4 md:p-6 lg:p-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
-			<HomeWelcome className="col-span-1 sm:col-span-2 lg:col-span-2" />
+			<HomeWelcome className="col-span-1 sm:col-span-2 lg:col-span-2 lg:order-1" />
 			<HomeKpi
-				className="col-span-1 sm:col-span-2 lg:col-span-2"
+				className="col-span-1 sm:col-span-2 lg:col-span-2 lg:order-2"
 				label="Downloaded episodes"
 				value={statistics.data?.downloadedEpisodes}
 				isLoading={statistics.isLoading}
@@ -29,15 +29,8 @@ function RouteComponent() {
 				icon={Download}
 				iconClassName="text-sky-500"
 			/>
-			<HomeStorage
-				className="col-span-1 sm:col-span-2 lg:col-span-2 lg:row-span-2"
-				data={storage.data}
-				isLoading={storage.isLoading}
-				isError={storage.isError}
-				onRetry={() => storage.refetch()}
-			/>
 			<HomeKpi
-				className="col-span-1 sm:col-span-2 lg:col-span-2"
+				className="col-span-1 sm:col-span-2 lg:col-span-2 lg:order-4"
 				label="Saved animes"
 				value={statistics.data?.savedAnimes}
 				isLoading={statistics.isLoading}
@@ -46,7 +39,7 @@ function RouteComponent() {
 				iconClassName="text-emerald-500"
 			/>
 			<HomeKpi
-				className="col-span-1 sm:col-span-2 lg:col-span-2"
+				className="col-span-1 sm:col-span-2 lg:col-span-2 lg:order-5"
 				label="In emission"
 				value={statistics.data?.inEmissionAnimes}
 				isLoading={statistics.isLoading}
@@ -54,8 +47,15 @@ function RouteComponent() {
 				icon={CalendarClock}
 				iconClassName="text-amber-500"
 			/>
-			<HomeTodayCalendar className="col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-2" />
-			<HomeLastDownloads className="col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-2" />
+			<HomeStorage
+				className="col-span-1 sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:order-3"
+				data={storage.data}
+				isLoading={storage.isLoading}
+				isError={storage.isError}
+				onRetry={() => storage.refetch()}
+			/>
+			<HomeTodayCalendar className="col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-2 lg:order-6" />
+			<HomeLastDownloads className="col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-2 lg:order-7" />
 		</div>
 	);
 }

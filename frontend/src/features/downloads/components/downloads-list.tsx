@@ -32,10 +32,14 @@ export function DownloadsList({
 	if (isLoading) {
 		return (
 			<div className="border rounded-lg overflow-hidden">
-				{Array.from({ length: 5 }).map((_, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
-					<DownloadRowSkeleton key={i} />
-				))}
+				<div className="overflow-x-auto">
+					<div className="min-w-[700px]">
+						{Array.from({ length: 5 }).map((_, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+							<DownloadRowSkeleton key={i} />
+						))}
+					</div>
+				</div>
 			</div>
 		);
 	}
@@ -63,33 +67,37 @@ export function DownloadsList({
 	return (
 		<div className="flex flex-col">
 			<div className="border rounded-lg overflow-hidden">
-				<div
-					className={`grid ${ROW_COLS} gap-4 px-4 py-2 border-b bg-muted/40`}
-				>
-					<span className="text-xs font-medium text-muted-foreground text-center">
-						Poster
-					</span>
-					<span className="text-xs font-medium text-muted-foreground">
-						Title
-					</span>
-					<span className="text-xs font-medium text-muted-foreground text-center">
-						Episode
-					</span>
-					<span className="text-xs font-medium text-muted-foreground text-center">
-						Status
-					</span>
-					<span className="text-xs font-medium text-muted-foreground text-center">
-						Size
-					</span>
-					<span />
+				<div className="overflow-x-auto">
+					<div className="min-w-[700px]">
+						<div
+							className={`grid ${ROW_COLS} gap-4 px-4 py-2 border-b bg-muted/40`}
+						>
+							<span className="text-xs font-medium text-muted-foreground text-center">
+								Poster
+							</span>
+							<span className="text-xs font-medium text-muted-foreground">
+								Title
+							</span>
+							<span className="text-xs font-medium text-muted-foreground text-center">
+								Episode
+							</span>
+							<span className="text-xs font-medium text-muted-foreground text-center">
+								Status
+							</span>
+							<span className="text-xs font-medium text-muted-foreground text-center">
+								Size
+							</span>
+							<span />
+						</div>
+						{data.items.map((item) => (
+							<DownloadRow
+								key={item.id}
+								item={item}
+								progress={item.jobId ? progressMap[item.jobId] : undefined}
+							/>
+						))}
+					</div>
 				</div>
-				{data.items.map((item) => (
-					<DownloadRow
-						key={item.id}
-						item={item}
-						progress={item.jobId ? progressMap[item.jobId] : undefined}
-					/>
-				))}
 			</div>
 			<DownloadsPagination
 				page={page}

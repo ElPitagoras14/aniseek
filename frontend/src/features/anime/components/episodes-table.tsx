@@ -115,71 +115,73 @@ export function EpisodesTable({
 	}
 
 	return (
-		<div className="rounded-md border">
-			{/* Header — outside the scroll container so it never moves */}
-			<div className="grid grid-cols-[80px_1fr_120px_160px] border-b bg-background">
-				<div className="p-3 text-xs font-medium text-muted-foreground">#</div>
-				<div className="p-3 text-xs font-medium text-muted-foreground">
-					Episode
+		<div className="rounded-md border overflow-x-auto">
+			<div className="min-w-[500px]">
+				{/* Header — outside the vertical scroll container so it stays fixed while rows scroll */}
+				<div className="grid grid-cols-[80px_1fr_120px_160px] border-b bg-background">
+					<div className="p-3 text-xs font-medium text-muted-foreground">#</div>
+					<div className="p-3 text-xs font-medium text-muted-foreground">
+						Episode
+					</div>
+					<div className="p-3 text-xs font-medium text-muted-foreground flex justify-center">
+						Downloaded
+					</div>
+					<div className="p-3 text-xs font-medium text-muted-foreground flex justify-center">
+						Actions
+					</div>
 				</div>
-				<div className="p-3 text-xs font-medium text-muted-foreground flex justify-center">
-					Downloaded
-				</div>
-				<div className="p-3 text-xs font-medium text-muted-foreground flex justify-center">
-					Actions
-				</div>
-			</div>
 
-			{/* Scrollable virtual rows */}
-			<div ref={parentRef} className="h-[60vh] overflow-auto">
-				<div
-					style={{
-						height: `${virtualizer.getTotalSize()}px`,
-						position: "relative",
-					}}
-				>
-					{virtualizer.getVirtualItems().map((virtualRow) => {
-						const ep = sortedEpisodes[virtualRow.index];
-						const episodeUrl = buildEpisodeUrl(platform, animeId, ep.id);
+				{/* Scrollable virtual rows */}
+				<div ref={parentRef} className="h-[60vh] overflow-y-auto">
+					<div
+						style={{
+							height: `${virtualizer.getTotalSize()}px`,
+							position: "relative",
+						}}
+					>
+						{virtualizer.getVirtualItems().map((virtualRow) => {
+							const ep = sortedEpisodes[virtualRow.index];
+							const episodeUrl = buildEpisodeUrl(platform, animeId, ep.id);
 
-						return (
-							<div
-								key={virtualRow.key}
-								data-index={virtualRow.index}
-								ref={virtualizer.measureElement}
-								style={{
-									position: "absolute",
-									top: 0,
-									left: 0,
-									width: "100%",
-									transform: `translateY(${virtualRow.start}px)`,
-								}}
-								className="grid grid-cols-[80px_1fr_120px_160px] border-b hover:bg-muted/50 items-center"
-							>
-								<div className="p-3 text-sm">{ep.id}</div>
-								<div className="p-3 text-sm">Episode {ep.id}</div>
-								<div className="p-3 flex items-center justify-center">
-									<DownloadedIcon ep={ep} />
-								</div>
-								<div className="flex items-center justify-center">
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => downloadMutation.mutate(ep.id)}
-										disabled={pendingEpisodes.has(ep.id)}
-									>
-										<Download className="size-4" />
-									</Button>
-
-									<a href={episodeUrl || "#"} target="_blank" rel="noreferrer">
-										<Button variant="ghost" size="icon">
-											<Play className="size-4" />
+							return (
+								<div
+									key={virtualRow.key}
+									data-index={virtualRow.index}
+									ref={virtualizer.measureElement}
+									style={{
+										position: "absolute",
+										top: 0,
+										left: 0,
+										width: "100%",
+										transform: `translateY(${virtualRow.start}px)`,
+									}}
+									className="grid grid-cols-[80px_1fr_120px_160px] border-b hover:bg-muted/50 items-center"
+								>
+									<div className="p-3 text-sm">{ep.id}</div>
+									<div className="p-3 text-sm">Episode {ep.id}</div>
+									<div className="p-3 flex items-center justify-center">
+										<DownloadedIcon ep={ep} />
+									</div>
+									<div className="flex items-center justify-center">
+										<Button
+											variant="ghost"
+											size="icon"
+											onClick={() => downloadMutation.mutate(ep.id)}
+											disabled={pendingEpisodes.has(ep.id)}
+										>
+											<Download className="size-4" />
 										</Button>
-									</a>
+
+										<a href={episodeUrl || "#"} target="_blank" rel="noreferrer">
+											<Button variant="ghost" size="icon">
+												<Play className="size-4" />
+											</Button>
+										</a>
+									</div>
 								</div>
-							</div>
-						);
-					})}
+							);
+						})}
+					</div>
 				</div>
 			</div>
 		</div>
