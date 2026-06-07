@@ -55,7 +55,7 @@ export function CalendarByDay({
 							<TabsTrigger
 								key={day}
 								value={day}
-								className={cn(day === today && "text-primary")}
+								className={cn(day === today && "text-primary", "min-w-24")}
 							>
 								<span className="hidden sm:inline">{day}</span>
 								<span className="sm:hidden">{day.slice(0, 3)}</span>
