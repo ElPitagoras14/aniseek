@@ -16,6 +16,10 @@ Ani Seek is a comprehensive system for scraping, managing, and downloading anime
 - **Ani Seek API**: Backend REST API built with FastAPI. Handles authentication, data management, and dispatches scraping tasks to workers.
 - **Ani Seek Worker**: Background processing service built with Dramatiq. Handles heavy operations like web scraping and episode downloads.
 
+## Demo
+
+<video src="docs/assets/app-reference.mp4" controls width="100%"></video>
+
 ## Features
 
 - **Search** — search anime by title with live scraping from AnimeAV1

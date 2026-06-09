@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { savedAnimesQueryOptions } from "@/features/saved/api";
 import { SavedFilters } from "@/features/saved/components/saved-filters";
 import { SavedHeader } from "@/features/saved/components/saved-header";
 import { SavedResults } from "@/features/saved/components/saved-results";
-import type { SortOption, StatusFilter } from "@/features/saved/types";
+import type { SavedAnime, SortOption, StatusFilter } from "@/features/saved/types";
 
 export const Route = createFileRoute("/_app/saved")({
 	component: SavedPage,
@@ -19,12 +19,24 @@ function SavedPage() {
 	const [search, setSearch] = useState("");
 	const [sort, setSort] = useState<SortOption>(DEFAULT_SORT);
 	const [status, setStatus] = useState<StatusFilter>("all");
+	const [stableData, setStableData] = useState<SavedAnime[] | undefined>(undefined);
+
+	useEffect(() => {
+		if (!data) return;
+		setStableData((prev) => {
+			if (!prev) return data;
+			const freshMap = new Map(data.map((a) => [a.id, a]));
+			const updated = prev.map((a) => freshMap.get(a.id) ?? a);
+			const added = data.filter((a) => !prev.some((p) => p.id === a.id));
+			return [...updated, ...added];
+		});
+	}, [data]);
 
 	const displayed = useMemo(() => {
-		if (!data) return undefined;
+		if (!stableData) return undefined;
 		const term = search.trim().toLowerCase();
 
-		const filtered = data.filter((a) => {
+		const filtered = stableData.filter((a) => {
 			if (term && !a.title.toLowerCase().includes(term)) return false;
 			if (status === "airing" && a.isFinished) return false;
 			if (status === "finished" && !a.isFinished) return false;
@@ -42,7 +54,7 @@ function SavedPage() {
 
 		if (sort.order === "desc") sorted.reverse();
 		return sorted;
-	}, [data, search, sort, status]);
+	}, [stableData, search, sort, status]);
 
 	const hasFilters = search.trim().length > 0 || status !== "all";
 
