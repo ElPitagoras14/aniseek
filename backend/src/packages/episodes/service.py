@@ -225,10 +225,8 @@ async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
     franchise_id = anime["franchise_id"]
     parsed_season = str(anime["season"]).zfill(2)
 
-    if franchise_id:
-        anime_folder = ANIMES_FOLDER / franchise_id / f"Season {parsed_season}"
-    else:
-        anime_folder = ANIMES_FOLDER / anime_id
+    folder_root = franchise_id if franchise_id else anime_id
+    anime_folder = ANIMES_FOLDER / folder_root / f"Season {parsed_season}"
 
     for episode in anime["episodes"]:
         parsed_ep_number = str(episode["ep_number"]).zfill(2)
