@@ -240,5 +240,9 @@ async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
     if anime_folder.exists() and is_folder_empty(anime_folder):
         shutil.rmtree(anime_folder)
         logger.debug(f"Deleted folder: {anime_folder}")
+        root_folder = anime_folder.parent
+        if root_folder.exists() and is_folder_empty(root_folder):
+            shutil.rmtree(root_folder)
+            logger.debug(f"Deleted folder: {root_folder}")
 
     return "Anime storage deleted successfully"
