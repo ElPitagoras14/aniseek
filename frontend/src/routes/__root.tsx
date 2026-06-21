@@ -4,6 +4,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import "../styles.css";
 import type { AuthContext } from "@/auth";
+import { InstallBanner } from "@/components/install-banner";
 import { NotFound } from "@/components/not-found";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -20,6 +21,7 @@ function RootComponent() {
 	return (
 		<>
 			<Outlet />
+			<InstallBanner />
 			<Toaster position="bottom-right" />
 			<TanStackDevtools
 				config={{
