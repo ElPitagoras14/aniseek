@@ -4,6 +4,7 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 const { version } = JSON.parse(readFileSync("./package.json", "utf-8"));
 
@@ -31,6 +32,17 @@ export default defineConfig(({ mode }) => {
 			tailwindcss(),
 			tanstackRouter({ target: "react", autoCodeSplitting: true }),
 			viteReact(),
+			VitePWA({
+				registerType: "autoUpdate",
+				manifest: false,
+				workbox: {
+					clientsClaim: true,
+					skipWaiting: true,
+				},
+				devOptions: {
+					enabled: true,
+				},
+			}),
 		],
 	};
 });
