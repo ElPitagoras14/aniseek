@@ -44,5 +44,25 @@ export default defineConfig(({ mode }) => {
 				},
 			}),
 		],
+		build: {
+			rolldownOptions: {
+				output: {
+					manualChunks: (id) => {
+						if (id.includes("/react/") || id.includes("/react-dom/")) return "vendor-react";
+						if (id.includes("/@tanstack/")) return "vendor-tanstack";
+						if (id.includes("/radix-ui/")) return "vendor-radix";
+						if (
+							id.includes("/lucide-react/") ||
+							id.includes("/sonner/") ||
+							id.includes("/next-themes/") ||
+							id.includes("/clsx/") ||
+							id.includes("/tailwind-merge/") ||
+							id.includes("/class-variance-authority/")
+						)
+							return "vendor-ui";
+					},
+				},
+			},
+		},
 	};
 });

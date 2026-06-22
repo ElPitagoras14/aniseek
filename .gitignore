@@ -172,3 +172,4 @@ docker-data/
 
 # Dev tools
 .codegraph/
+/tasks/
