@@ -142,6 +142,9 @@ coverage/
 .next/
 out/
 
+# Vite PWA dev output
+dev-dist/
+
 # Production
 build/
 
