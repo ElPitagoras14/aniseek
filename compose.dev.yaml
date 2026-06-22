@@ -10,7 +10,6 @@ services:
     ports:
       - 3000:80
     environment:
-      - API_URL=${API_URL}
       - AUTH_ENABLED=false
 
   aniseek-api:
