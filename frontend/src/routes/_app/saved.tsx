@@ -5,7 +5,11 @@ import { savedAnimesQueryOptions } from "@/features/saved/api";
 import { SavedFilters } from "@/features/saved/components/saved-filters";
 import { SavedHeader } from "@/features/saved/components/saved-header";
 import { SavedResults } from "@/features/saved/components/saved-results";
-import type { SavedAnime, SortOption, StatusFilter } from "@/features/saved/types";
+import type {
+	SavedAnime,
+	SortOption,
+	StatusFilter,
+} from "@/features/saved/types";
 
 export const Route = createFileRoute("/_app/saved")({
 	component: SavedPage,
@@ -19,7 +23,9 @@ function SavedPage() {
 	const [search, setSearch] = useState("");
 	const [sort, setSort] = useState<SortOption>(DEFAULT_SORT);
 	const [status, setStatus] = useState<StatusFilter>("all");
-	const [stableData, setStableData] = useState<SavedAnime[] | undefined>(undefined);
+	const [stableData, setStableData] = useState<SavedAnime[] | undefined>(
+		undefined,
+	);
 
 	useEffect(() => {
 		if (!data) return;

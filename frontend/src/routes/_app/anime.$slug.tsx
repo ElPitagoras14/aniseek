@@ -51,16 +51,10 @@ function AnimeDetailPage() {
 					<AnimeHeader anime={anime} />
 					<Tabs defaultValue="information">
 						<TabsList className="h-auto w-full max-w-sm">
-							<TabsTrigger
-								value="information"
-								className="w-full"
-							>
+							<TabsTrigger value="information" className="w-full">
 								Information
 							</TabsTrigger>
-							<TabsTrigger
-								value="episodes"
-								className="w-full"
-							>
+							<TabsTrigger value="episodes" className="w-full">
 								Episodes
 							</TabsTrigger>
 						</TabsList>

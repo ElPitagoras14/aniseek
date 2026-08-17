@@ -33,8 +33,8 @@ Ani Seek is a comprehensive system for scraping, managing, and downloading anime
 
 ## Technologies
 
-- **Backend**: Python 3.12, FastAPI, PostgreSQL, Redis, Dramatiq, ani-scrapy
-- **Frontend**: React 19, Vite, TypeScript, TanStack Router, TanStack Query, shadcn/ui
+- **Backend**: Python, FastAPI, PostgreSQL, Redis, Dramatiq, ani-scrapy
+- **Frontend**: React, Vite, TypeScript, TanStack Router, TanStack Query, shadcn/ui
 - **DevOps**: Docker, Docker Compose, GitHub Actions
 
 ## Architecture
@@ -88,31 +88,20 @@ sequenceDiagram
     Worker-->>User: Download complete (SSE)
 ```
 
-## Environment Variables
+## Configuration
 
-Copy `.env.example` to `.env` and fill in your values. Variables marked **required in prod** must be changed before any internet-facing deployment.
+All configuration lives in `.env`. Copy the template and edit it — every variable is listed and commented there:
 
-### Infrastructure
+```bash
+cp .env.example .env
+```
 
-| Variable | Description | Default |
-| --- | --- | --- |
-| `POSTGRES_USER` | PostgreSQL username | `postgres` |
-| `POSTGRES_PASSWORD` | PostgreSQL password | `postgres` |
-| `POSTGRES_DB` | PostgreSQL database name | `postgres` |
-| `DB_URL` | Full database connection URL — local dev only | see `.env.example` |
-| `REDIS_URL` | Redis connection URL — local dev only | see `.env.example` |
+Before any internet-facing deployment, at minimum change:
 
-> In Docker mode the API and worker derive the connection URLs from the `POSTGRES_*` variables. `DB_URL` and `REDIS_URL` are only needed for local development.
+- `SECRET_KEY` — JWT signing secret, use a long random string
+- `API_URL` — URL where the API is reachable **from your browser** (e.g. `http://your-server:8000`)
 
-### Auth
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `AUTH_ENABLED` | Enable login screen (`true`/`false`) | `true` |
-| `SECRET_KEY` | JWT signing secret — **change in prod** | `change-me-in-production` |
-| `ALGORITHM` | JWT signing algorithm | `HS256` |
-| `ACCESS_TOKEN_EXP_MIN` | Access token lifetime in minutes | `30` |
-| `REFRESH_TOKEN_EXP_DAY` | Refresh token lifetime in days | `10` |
+Two behaviors worth knowing, since they are not obvious from the config file:
 
 > Setting `AUTH_ENABLED=false` disables the login screen entirely — useful for local development or trusted single-user setups.
 
@@ -120,137 +109,47 @@ Copy `.env.example` to `.env` and fill in your values. Variables marked **requir
 
 > User management and franchise administration are planned for a future release.
 
-### Storage
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `ANIMES_FOLDER` | Path inside containers where episode files are stored | `/animes` |
-
-### Worker
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `DRAMATIQ_PROCESSES` | Number of worker processes | `2` |
-| `DRAMATIQ_THREADS` | Threads per worker process | `4` |
-| `MAX_DOWNLOAD_RETRIES` | Max retry attempts per failed download | `5` |
-| `RETRY_DOWNLOAD_INTERVAL` | Seconds between retry attempts | `15` |
-
-### Frontend
-
-| Variable | Description | Used in |
-| --- | --- | --- |
-| `API_URL` | Backend API URL reachable from the browser | Docker |
-| `VITE_API_URL` | Backend API URL for local dev (build-time) | Local dev |
-
 ## Quick Start
 
-### Prerequisites
+**Prerequisites**: [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
 
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-
----
+Every option starts the same way — create your `.env` (see [Configuration](#configuration)) — and ends the same way: the app is available at **http://localhost:3000**.
 
 ### Option 1 — Docker with GHCR images (recommended)
 
-Uses pre-built images from GitHub Container Registry. No local build required.
-
-1. Copy `compose.yaml`, `.env.example`, and `postgres/init.sql` from this repository to your machine.
-
-2. Create your `.env`:
-
-```bash
-cp .env.example .env
-```
-
-3. Edit `.env`. At minimum, change:
-   - `SECRET_KEY` — use a long random string
-   - `API_URL` — URL where the API is reachable from your browser (e.g. `http://your-server:8000`)
-
-4. Start:
+Uses pre-built images from GitHub Container Registry. No local build required. Copy `compose.yaml`, `.env.example`, and `postgres/init.sql` to your machine, then:
 
 ```bash
 docker compose up -d
 ```
 
-5. Access the app at **http://localhost:3000**
-
----
-
 ### Option 2 — Docker with local builds
 
 Builds all images from source. Useful for testing local changes.
 
-1. Clone the repository:
-
 ```bash
 git clone https://github.com/ElPitagoras14/aniseek.git
 cd aniseek
-```
-
-2. Create your `.env` and set `API_URL`:
-
-```bash
-cp .env.example .env
-```
-
-3. Build and start:
-
-```bash
 docker compose -f compose.dev.yaml up -d
 ```
 
-4. Access the app at **http://localhost:3000**
-
----
-
 ### Option 3 — Local development
 
-Runs each service natively with only PostgreSQL and Redis in Docker. Requires VS Code.
+Runs each service natively with only PostgreSQL and Redis in Docker.
 
-**Prerequisites**: [uv](https://docs.astral.sh/uv/getting-started/installation/), [pnpm](https://pnpm.io/installation), [VS Code](https://code.visualstudio.com/)
-
-1. Clone and configure:
+**Extra prerequisites**: [uv](https://docs.astral.sh/uv/getting-started/installation/), [pnpm](https://pnpm.io/installation), [VS Code](https://code.visualstudio.com/)
 
 ```bash
-git clone https://github.com/ElPitagoras14/aniseek.git
-cd aniseek
-cp .env.example .env
-```
+# install dependencies
+cd backend  && uv sync && cd ..
+cd worker   && uv sync && cd ..
+cd frontend && pnpm install && cd ..
 
-2. Install dependencies inside each service folder:
-
-```bash
-# backend/
-uv sync
-
-# worker/
-uv sync
-
-# frontend/
-pnpm install
-```
-
-3. Start the infrastructure containers:
-
-```bash
+# start infrastructure only
 docker compose -f compose.dev.yaml up aniseek-db aniseek-redis -d
 ```
 
-4. Launch all three services from VS Code via **Tasks: Run Task**:
-   - `Run Backend` — starts the FastAPI server on port 8000
-   - `Run Dramatiq` — starts the background worker
-   - `Run Frontend` — starts the Vite dev server on port 3000
-
-5. Access the app at **http://localhost:3000**
-
-## Ports
-
-| Service | Port | Exposure |
-| --- | --- | --- |
-| Web (Nginx) | 3000 | External |
-| API | 8000 | External |
-| PostgreSQL | 5432 | Internal (Docker) / exposed in local dev |
-| Redis | 6379 | Internal (Docker) / exposed in local dev |
+Then launch the three services from VS Code via **Tasks: Run Task** — `Run Backend`, `Run Dramatiq`, and `Run Frontend`.
 
 ## Deployment
 
@@ -260,4 +159,4 @@ For internet-facing deployments:
 
 - Place the services behind a reverse proxy (Nginx, Traefik, Caddy) that handles TLS termination
 - Or use [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) for a zero-config HTTPS setup
-- Set `SECRET_KEY` to a long random value and change the default `ADMIN_PASS`
+- Set `SECRET_KEY` to a long random value and change the default admin credentials

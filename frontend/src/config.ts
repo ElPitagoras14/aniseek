@@ -13,7 +13,7 @@ export const apiUrl: string =
 export const isAuthEnabled: boolean =
 	config?.AUTH_ENABLED !== undefined
 		? config.AUTH_ENABLED === true ||
-		  String(config.AUTH_ENABLED).toLowerCase() === "true"
+			String(config.AUTH_ENABLED).toLowerCase() === "true"
 		: typeof __AUTH_ENABLED__ !== "undefined"
 			? __AUTH_ENABLED__.toLowerCase() === "true"
 			: false;

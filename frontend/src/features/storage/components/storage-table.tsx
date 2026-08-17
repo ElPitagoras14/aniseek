@@ -1,17 +1,17 @@
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Table,
-	TableHeader,
 	TableBody,
-	TableHead,
-	TableRow,
 	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { StoragePagination } from "./storage-pagination";
-import { DeleteAnimeDialog } from "./delete-anime-dialog";
-import { formatBytes } from "@/lib/format-bytes";
 import type { StorageResponse } from "@/features/storage/types";
+import { formatBytes } from "@/lib/format-bytes";
+import { DeleteAnimeDialog } from "./delete-anime-dialog";
+import { StoragePagination } from "./storage-pagination";
 
 interface StorageTableProps {
 	data: StorageResponse | undefined;
@@ -48,6 +48,7 @@ export function StorageTable({
 				<TableBody>
 					{isLoading ? (
 						Array.from({ length: 5 }).map((_, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
 							<TableRow key={i}>
 								<TableCell>
 									<Skeleton className="h-4 w-6" />
@@ -89,7 +90,9 @@ export function StorageTable({
 								<TableCell className="text-muted-foreground">
 									{(page - 1) * limit + index + 1}
 								</TableCell>
-								<TableCell className="max-w-xs truncate">{item.title}</TableCell>
+								<TableCell className="max-w-xs truncate">
+									{item.title}
+								</TableCell>
 								<TableCell className="text-right">
 									{formatBytes(item.size)}
 								</TableCell>
