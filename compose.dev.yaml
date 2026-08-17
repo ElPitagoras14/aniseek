@@ -20,8 +20,8 @@ services:
     init: true
     restart: unless-stopped
     depends_on:
-      aniseek-db:
-        condition: service_healthy
+      aniseek-migrate:
+        condition: service_completed_successfully
       aniseek-redis:
         condition: service_healthy
     ports:
@@ -51,8 +51,8 @@ services:
     init: true
     restart: unless-stopped
     depends_on:
-      aniseek-db:
-        condition: service_healthy
+      aniseek-migrate:
+        condition: service_completed_successfully
       aniseek-redis:
         condition: service_healthy
     environment:
@@ -81,13 +81,23 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
-    volumes:
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       retries: 5
       timeout: 5s
+
+  aniseek-migrate:
+    image: ghcr.io/amacneil/dbmate
+    container_name: aniseek-migrate
+    command: ["--no-dump-schema", "up"]
+    depends_on:
+      aniseek-db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres?sslmode=disable
+    volumes:
+      - ./db:/db
 
   aniseek-redis:
     image: redis:8.4.0-alpine
