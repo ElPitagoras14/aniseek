@@ -182,6 +182,9 @@ docker-data/
 # Runtime config generado por entrypoint.sh / el plugin de Vite (ver config.template.js)
 frontend/public/config.js
 
+# Storage local de animes descargados (ANIMES_FOLDER en desarrollo nativo, ver .env)
+/animes/
+
 .aider*
 
 # Dev tools
