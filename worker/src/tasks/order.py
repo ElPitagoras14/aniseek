@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 import time
 from pathlib import Path
@@ -31,7 +32,8 @@ def _move_anime_folders(
     old_season: int,
     new_season: int,
 ) -> None:
-    """Physically moves and renames files on disk."""
+    """Physically moves and renames files on disk. Runs on a worker thread,
+    delegated via asyncio.to_thread."""
     old_parsed = str(old_season).zfill(2)
     new_parsed = str(new_season).zfill(2)
 
@@ -52,26 +54,26 @@ def _move_anime_folders(
         file.rename(file.with_name(new_name))
 
 
-def order_franchise_controller(franchise_info: FranchiseInfo) -> None:
+async def order_franchise_controller(franchise_info: FranchiseInfo) -> None:
     start_time = time.time()
     franchise_id = franchise_info["id"]
     logger.debug(f"Starting franchise ordering: {franchise_id}")
 
     ordering_key = ordering_lock_key(franchise_id)
-    redis_db.set(ordering_key, 1)
+    await redis_db.set(ordering_key, 1)
 
-    count = get_started_download_count(franchise_id)
-    redis_db.set(download_lock_key(franchise_id), count)
+    count = await get_started_download_count(franchise_id)
+    await redis_db.set(download_lock_key(franchise_id), count)
 
     if count > 0:
         logger.debug(f"Waiting for {count} downloads to finish: {franchise_id}")
-        stream_wait_event(franchise_id, "downloads_done")
+        await stream_wait_event(franchise_id, "downloads_done")
 
     try:
         franchise_folder = Path(ANIMES_FOLDER) / franchise_id
-        franchise_folder.mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(franchise_folder.mkdir, parents=True, exist_ok=True)
 
-        animes = list_franchise_animes(franchise_id)
+        animes = await list_franchise_animes(franchise_id)
         for anime in animes:
             anime_id = anime["id"]
             old_season = anime["season"]
@@ -80,16 +82,18 @@ def order_franchise_controller(franchise_info: FranchiseInfo) -> None:
                 logger.warning(f"No target season provided for {anime_id}")
                 continue
 
-            _move_anime_folders(franchise_id, anime_id, old_season, new_season)
-            update_anime_season(anime_id, new_season)
+            await asyncio.to_thread(
+                _move_anime_folders, franchise_id, anime_id, old_season, new_season
+            )
+            await update_anime_season(anime_id, new_season)
             logger.debug(f"Ordered: {anime_id} S{old_season:02d} -> S{new_season:02d}")
 
         elapsed = time.time() - start_time
         logger.debug(f"Completed ordering: {franchise_id} in {elapsed:.1f}s")
 
-        stream_add_event(franchise_id, "ordering_done")
+        await stream_add_event(franchise_id, "ordering_done")
     except Exception as e:
         logger.error(f"Franchise ordering failed for {franchise_id}: {e}")
         raise
     finally:
-        redis_db.delete(ordering_key)
+        await redis_db.delete(ordering_key)
