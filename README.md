@@ -117,7 +117,7 @@ Every option starts the same way — create your `.env` (see [Configuration](#co
 
 ### Option 1 — Docker with GHCR images (recommended)
 
-Uses pre-built images from GitHub Container Registry. No local build required. Copy `compose.yaml`, `.env.example`, and `postgres/init.sql` to your machine, then:
+Uses pre-built images from GitHub Container Registry. No local build required. Copy `compose.yaml`, `.env.example`, and the `db/` directory to your machine, then:
 
 ```bash
 docker compose up -d
@@ -150,6 +150,36 @@ docker compose -f compose.dev.yaml up aniseek-db aniseek-redis -d
 ```
 
 Then launch the three services from VS Code via **Tasks: Run Task** — `Run Backend`, `Run Dramatiq`, and `Run Frontend`.
+
+## Upgrading
+
+Starting from this version, the database schema is managed by [dbmate](https://github.com/amacneil/dbmate) migrations under `db/migrations/`, applied automatically by a one-shot `aniseek-migrate` service before the API and worker start. `postgres/init.sql` no longer exists.
+
+**If you're upgrading an existing deployment created before this change**, dbmate needs to be told that the schema it already has matches the first migration, without re-running any SQL. Do this once, **before** pulling the new images:
+
+1. Back up your database.
+2. **Recommended**: verify your schema actually matches `db/schema.sql` before assuming it does. Dump it with the same tool dbmate uses internally, so the comparison isn't skewed by a different `pg_dump` version:
+
+   ```bash
+   docker run --rm --entrypoint pg_dump ghcr.io/amacneil/dbmate \
+     --schema-only --no-owner --no-privileges "<your DB_URL>?sslmode=disable" \
+     > real-schema.sql
+   ```
+
+   Diff it against `db/schema.sql` (ignore the `\restrict` line and the `schema_migrations` table/insert at the end — those are dbmate-only bookkeeping the real dump won't have). Any other difference means your schema drifted from `init.sql` at some point and needs reconciling before continuing.
+3. Connect to the database and register the first migration as already applied:
+
+   ```sql
+   CREATE TABLE IF NOT EXISTS public.schema_migrations (version varchar PRIMARY KEY);
+   INSERT INTO public.schema_migrations (version) VALUES ('0001');
+   ```
+
+4. Make sure `db/migrations/` (and `db/schema.sql`) end up wherever you're going to mount them as `/db` for the `aniseek-migrate` service. If your setup uses absolute bind mounts instead of a relative `./db:/db` (e.g. Dokploy-style paths like `/dokploy-bk/aniseek/db:/db`), copy the `db/` directory there.
+5. Pull and start the new version as usual (`docker compose up -d`). The `aniseek-migrate` service will find nothing pending and exit successfully; the API and worker start right after it.
+
+Skipping step 3 makes `aniseek-migrate` fail with a "relation already exists" error on the first migration, which blocks the API and worker from starting — no data is affected, but the app stays down until the table above is created.
+
+New deployments don't need any of this: the schema is built entirely from the migrations on first start.
 
 ## Deployment
 

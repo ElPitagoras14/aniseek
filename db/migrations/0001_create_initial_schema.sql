@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ========================================
 -- SCHEMA: Anime Database
 -- ========================================
@@ -209,3 +211,5 @@ VALUES
     'https://i.ibb.co/Z6HXS7yC/frankestein.png'
   ),
   ('girl-1', 'https://i.ibb.co/vxccn7n6/girl-1.png');
+
+-- migrate:down
