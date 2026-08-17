@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from database import connect_db, disconnect_db
+from database import connect_db, disconnect_db, engine
 from exceptions import AppError
 from handlers import app_error_handler, unhandled_error_handler
 from log import configure_logs
@@ -23,12 +23,16 @@ configure_logs()
 
 
 async def _seed_admin_user():
-    existing = await get_user_id_by_username(ADMIN_USER)
+    # Owns its own connection (design D2): this runs at startup, outside any
+    # service, so there is no caller to receive one from.
+    async with engine.connect() as conn:
+        existing = await get_user_id_by_username(conn, ADMIN_USER)
     if existing:
         logger.info(f"Admin user '{ADMIN_USER}' already exists")
         return
     hashed = get_hash(ADMIN_PASS)
-    await insert_user(ADMIN_USER, hashed, role_id=1)
+    async with engine.begin() as conn:
+        await insert_user(conn, ADMIN_USER, hashed, role_id=1)
     logger.info(f"Seeded admin user '{ADMIN_USER}' (role admin)")
 
 

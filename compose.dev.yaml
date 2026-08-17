@@ -32,7 +32,7 @@ services:
       - ADMIN_PASS=admin123
       - SECRET_KEY=secret
       - ALGORITHM=HS256
-      - DB_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres
+      - DB_URL=postgresql+psycopg://postgres:postgres@aniseek-db:5432/postgres
       - REDIS_URL=redis://aniseek-redis:6379
       - ANIMES_FOLDER=/animes
       - ACCESS_TOKEN_EXP_MIN=60
@@ -57,7 +57,7 @@ services:
         condition: service_healthy
     environment:
       - REDIS_URL=redis://aniseek-redis:6379
-      - DB_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres
+      - DB_URL=postgresql+psycopg://postgres:postgres@aniseek-db:5432/postgres
       - ANIMES_FOLDER=/animes
       - MAX_DOWNLOAD_RETRIES=5
       - RETRY_DOWNLOAD_INTERVAL=15

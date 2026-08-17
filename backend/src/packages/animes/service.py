@@ -4,7 +4,7 @@ from urllib.parse import unquote
 
 from loguru import logger
 
-from database.client import db
+from database.client import engine
 from database.utils import related_types_id
 
 from . import repository
@@ -64,8 +64,9 @@ async def add_new_anime(base_url: str, anime_id: str) -> None:
     )
     current_time = datetime.now(timezone.utc)
 
-    async with db.transaction():
+    async with engine.begin() as conn:
         await repository.upsert_scraped_anime(
+            conn,
             {
                 "id": anime_info.id,
                 "title": anime_info.title,
@@ -75,17 +76,17 @@ async def add_new_anime(base_url: str, anime_id: str) -> None:
                 "is_finished": anime_info.is_finished,
                 "week_day": week_day,
                 "last_scraped_at": current_time,
-            }
+            },
         )
         logger.debug(f"Upserted anime: {anime_info.id}")
 
-        await repository.insert_genres(anime_info.id, list(anime_info.genres))
+        await repository.insert_genres(conn, anime_info.id, list(anime_info.genres))
         logger.debug("Inserted genres")
 
         for related in anime_info.related_info:
-            await repository.insert_dummy_anime(related.id, related.title)
+            await repository.insert_dummy_anime(conn, related.id, related.title)
             await repository.insert_anime_relation(
-                anime_info.id, related.id, related_types_id[related.type.value]
+                conn, anime_info.id, related.id, related_types_id[related.type.value]
             )
         logger.debug("Inserted related animes")
 
@@ -98,7 +99,7 @@ async def add_new_anime(base_url: str, anime_id: str) -> None:
             }
             for ep in anime_info.episodes
         ]
-        await repository.insert_episodes(episode_values)
+        await repository.insert_episodes(conn, episode_values)
         logger.debug("Inserted episodes")
 
 
@@ -112,8 +113,9 @@ async def update_anime_info(base_url: str, anime_id: str) -> None:
         else None
     )
 
-    async with db.transaction():
+    async with engine.begin() as conn:
         await repository.update_anime_fields(
+            conn,
             anime_id,
             {
                 "title": anime_info.title,
@@ -127,16 +129,17 @@ async def update_anime_info(base_url: str, anime_id: str) -> None:
         )
 
         for related in anime_info.related_info:
-            await repository.insert_dummy_anime(related.id, related.title)
+            await repository.insert_dummy_anime(conn, related.id, related.title)
             await repository.insert_anime_relation(
-                anime_info.id, related.id, related_types_id[related.type.value]
+                conn, anime_info.id, related.id, related_types_id[related.type.value]
             )
 
         await asyncio.sleep(1.5)
-        last_ep_number = await repository.get_max_episode_number(anime_id)
+        last_ep_number = await repository.get_max_episode_number(conn, anime_id)
         new_episodes = await scrape_new_episodes(anime_id, last_ep_number)
 
         await repository.insert_new_episodes(
+            conn,
             anime_id,
             [
                 {
@@ -153,7 +156,8 @@ async def update_anime_info(base_url: str, anime_id: str) -> None:
 async def update_anime_controller(anime_id: str, user_id: str) -> dict:
     base_url = f"https://animeav1.com/media/{anime_id}"
     await update_anime_info(base_url, anime_id)
-    anime_db = await repository.get_anime_with_relations(anime_id, user_id)
+    async with engine.connect() as conn:
+        anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
     return build_anime_response(anime_db)
 
 
@@ -161,12 +165,14 @@ async def get_anime_controller(anime_id: str, user_id: str) -> dict:
     logger.debug(f"Getting anime with id: {anime_id}")
     base_url = f"https://animeav1.com/media/{anime_id}"
 
-    anime_db = await repository.get_anime_with_relations(anime_id, user_id)
+    async with engine.connect() as conn:
+        anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
 
     if not anime_db or not anime_db.get("last_scraped_at"):
         logger.debug("Anime not in DB or dummy row found, creating...")
         await add_new_anime(base_url, anime_id)
-        anime_db = await repository.get_anime_with_relations(anime_id, user_id)
+        async with engine.connect() as conn:
+            anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
 
     return build_anime_response(anime_db)
 
@@ -177,7 +183,8 @@ async def search_anime_controller(query: str, user_id: str):
     animes = await scrape_search_anime(query)
     logger.debug(f"Found {len(animes.animes)} animes")
 
-    saved = await repository.list_user_saved_animes(user_id)
+    async with engine.connect() as conn:
+        saved = await repository.list_user_saved_animes(conn, user_id)
     saved_by_id = {a["id"]: a for a in saved}
 
     search_animes = [
@@ -198,7 +205,8 @@ async def search_anime_controller(query: str, user_id: str):
 
 async def get_saved_animes_controller(user_id: str) -> dict:
     logger.debug("Getting saved animes")
-    saved = await repository.list_user_saved_animes(user_id)
+    async with engine.connect() as conn:
+        saved = await repository.list_user_saved_animes(conn, user_id)
 
     animes = [
         {
@@ -219,25 +227,29 @@ async def save_anime_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Saving anime with id: {anime_id}")
     base_url = f"https://animeav1.com/media/{anime_id}"
 
-    anime_db = await repository.get_anime_by_id(anime_id)
+    async with engine.connect() as conn:
+        anime_db = await repository.get_anime_by_id(conn, anime_id)
     if not anime_db or not anime_db.get("last_scraped_at"):
         await add_new_anime(base_url, anime_id)
 
-    await repository.insert_user_saved_anime(user_id, anime_id)
+    async with engine.begin() as conn:
+        await repository.insert_user_saved_anime(conn, user_id, anime_id)
     logger.debug(f"Saved anime with id: {anime_id}")
     return "Anime saved successfully"
 
 
 async def unsave_anime_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Unsaving anime with id: {anime_id}")
-    await repository.delete_user_saved_anime(user_id, anime_id)
+    async with engine.begin() as conn:
+        await repository.delete_user_saved_anime(conn, user_id, anime_id)
     logger.debug(f"Unsaved anime with id: {anime_id}")
     return "Anime unsaved successfully"
 
 
 async def get_in_emission_animes_controller(user_id: str) -> dict:
     logger.debug("Getting in-emission animes")
-    rows = await repository.list_user_saved_in_emission_animes(user_id)
+    async with engine.connect() as conn:
+        rows = await repository.list_user_saved_in_emission_animes(conn, user_id)
 
     animes = [
         {

@@ -1,5 +1,6 @@
 from loguru import logger
 
+from database.client import engine
 from exceptions import ConflictError, NotFoundError
 
 from .repository import get_user_by_username, get_user_id_by_username, insert_user
@@ -16,7 +17,8 @@ from .utils import (
 
 async def login_controller(username: str, password: str):
     logger.debug(f"User {username} is trying to log in")
-    user = await get_user_by_username(username)
+    async with engine.connect() as conn:
+        user = await get_user_by_username(conn, username)
     if not user:
         logger.debug(f"User {username} not found")
         raise NotFoundError("User not found")
@@ -42,12 +44,14 @@ async def login_controller(username: str, password: str):
 
 async def register_controller(username: str, password: str):
     logger.debug(f"User {username} is trying to register")
-    existing_id = await get_user_id_by_username(username)
+    async with engine.connect() as conn:
+        existing_id = await get_user_id_by_username(conn, username)
     if existing_id:
         logger.debug(f"User {username} already exists")
         raise ConflictError("User already exists")
     hashed_password = get_hash(password)
-    await insert_user(username, hashed_password)
+    async with engine.begin() as conn:
+        await insert_user(conn, username, hashed_password)
     logger.info(f"User {username} registered")
     return "User registered successfully"
 

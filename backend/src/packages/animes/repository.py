@@ -1,34 +1,38 @@
 from uuid import UUID
 
-from database.client import db
+from sqlalchemy.ext.asyncio import AsyncConnection
+
+from database.client import execute, execute_many, fetch_all, fetch_one, fetch_val
 
 
-async def get_anime_by_id(anime_id: str) -> dict | None:
+async def get_anime_by_id(conn: AsyncConnection, anime_id: str) -> dict | None:
     query = """
         SELECT id, title, description, type, poster, season,
                is_finished, week_day, franchise_id, last_scraped_at, created_at
         FROM animes
         WHERE id = :anime_id
     """
-    row = await db.fetch_one(query, {"anime_id": anime_id})
+    row = await fetch_one(conn, query, {"anime_id": anime_id})
     return dict(row) if row else None
 
 
 async def get_anime_with_relations(
-    anime_id: str, user_id: str | None = None
+    conn: AsyncConnection, anime_id: str, user_id: str | None = None
 ) -> dict | None:
     """Loads anime with genres, episodes (with per-user download flags), relations, and saved info."""
-    anime = await get_anime_by_id(anime_id)
+    anime = await get_anime_by_id(conn, anime_id)
     if not anime:
         return None
 
-    genres = await db.fetch_all(
+    genres = await fetch_all(
+        conn,
         "SELECT name FROM genres WHERE anime_id = :id ORDER BY name",
         {"id": anime_id},
     )
 
     if user_id:
-        episodes = await db.fetch_all(
+        episodes = await fetch_all(
+            conn,
             """
             SELECT
                 e.id, e.anime_id, e.ep_number, e.preview, e.url, e.job_id, e.status, e.size,
@@ -44,7 +48,8 @@ async def get_anime_with_relations(
             """,
             {"id": anime_id, "user_id": UUID(user_id)},
         )
-        saved_row = await db.fetch_one(
+        saved_row = await fetch_one(
+            conn,
             "SELECT created_at FROM user_save_anime WHERE user_id = :user_id AND anime_id = :anime_id",
             {"user_id": UUID(user_id), "anime_id": anime_id},
         )
@@ -53,7 +58,8 @@ async def get_anime_with_relations(
             "save_date": saved_row["created_at"] if saved_row else None,
         }
     else:
-        episodes = await db.fetch_all(
+        episodes = await fetch_all(
+            conn,
             """
             SELECT id, anime_id, ep_number, preview, url, job_id, status, size,
                    FALSE AS is_user_downloaded, FALSE AS is_global_downloaded
@@ -63,7 +69,8 @@ async def get_anime_with_relations(
         )
         anime["saved_info"] = {"is_saved": False, "save_date": None}
 
-    relations = await db.fetch_all(
+    relations = await fetch_all(
+        conn,
         """
         SELECT
             ar.related_anime_id,
@@ -90,7 +97,7 @@ async def get_anime_with_relations(
     return anime
 
 
-async def upsert_scraped_anime(values: dict) -> None:
+async def upsert_scraped_anime(conn: AsyncConnection, values: dict) -> None:
     """INSERT with ON CONFLICT DO UPDATE — for scraped animes with full data."""
     query = """
         INSERT INTO animes (id, title, description, poster, type, is_finished, week_day, last_scraped_at)
@@ -104,20 +111,20 @@ async def upsert_scraped_anime(values: dict) -> None:
             week_day = EXCLUDED.week_day,
             last_scraped_at = EXCLUDED.last_scraped_at
     """
-    await db.execute(query, values)
+    await execute(conn, query, values)
 
 
-async def insert_dummy_anime(anime_id: str, title: str) -> None:
+async def insert_dummy_anime(conn: AsyncConnection, anime_id: str, title: str) -> None:
     """INSERT with ON CONFLICT DO NOTHING — for placeholder animes used in relations."""
     query = """
         INSERT INTO animes (id, title)
         VALUES (:id, :title)
         ON CONFLICT (id) DO NOTHING
     """
-    await db.execute(query, {"id": anime_id, "title": title})
+    await execute(conn, query, {"id": anime_id, "title": title})
 
 
-async def insert_genres(anime_id: str, names: list[str]) -> None:
+async def insert_genres(conn: AsyncConnection, anime_id: str, names: list[str]) -> None:
     if not names:
         return
     query = """
@@ -125,18 +132,19 @@ async def insert_genres(anime_id: str, names: list[str]) -> None:
         VALUES (:anime_id, :name)
         ON CONFLICT (anime_id, name) DO NOTHING
     """
-    await db.execute_many(query, [{"anime_id": anime_id, "name": n} for n in names])
+    await execute_many(conn, query, [{"anime_id": anime_id, "name": n} for n in names])
 
 
 async def insert_anime_relation(
-    anime_id: str, related_anime_id: str, type_related_id: int
+    conn: AsyncConnection, anime_id: str, related_anime_id: str, type_related_id: int
 ) -> None:
     query = """
         INSERT INTO anime_relations (anime_id, related_anime_id, type_related_id)
         VALUES (:anime_id, :related_anime_id, :type_related_id)
         ON CONFLICT (anime_id, related_anime_id, type_related_id) DO NOTHING
     """
-    await db.execute(
+    await execute(
+        conn,
         query,
         {
             "anime_id": anime_id,
@@ -146,7 +154,7 @@ async def insert_anime_relation(
     )
 
 
-async def insert_episodes(episodes: list[dict]) -> None:
+async def insert_episodes(conn: AsyncConnection, episodes: list[dict]) -> None:
     if not episodes:
         return
     query = """
@@ -154,10 +162,10 @@ async def insert_episodes(episodes: list[dict]) -> None:
         VALUES (:anime_id, :ep_number, :preview, :url)
         ON CONFLICT (anime_id, ep_number) DO NOTHING
     """
-    await db.execute_many(query, episodes)
+    await execute_many(conn, query, episodes)
 
 
-async def update_anime_fields(anime_id: str, values: dict) -> None:
+async def update_anime_fields(conn: AsyncConnection, anime_id: str, values: dict) -> None:
     query = """
         UPDATE animes SET
             title = :title,
@@ -169,25 +177,27 @@ async def update_anime_fields(anime_id: str, values: dict) -> None:
             last_scraped_at = :last_scraped_at
         WHERE id = :anime_id
     """
-    await db.execute(query, {"anime_id": anime_id, **values})
+    await execute(conn, query, {"anime_id": anime_id, **values})
 
 
-async def get_max_episode_number(anime_id: str) -> int:
+async def get_max_episode_number(conn: AsyncConnection, anime_id: str) -> int:
     query = "SELECT COALESCE(MAX(ep_number), 0) FROM episodes WHERE anime_id = :id"
-    return await db.fetch_val(query, {"id": anime_id}) or 0
+    return await fetch_val(conn, query, {"id": anime_id}) or 0
 
 
-async def get_user_saved_anime(user_id: str, anime_id: str) -> dict | None:
+async def get_user_saved_anime(
+    conn: AsyncConnection, user_id: str, anime_id: str
+) -> dict | None:
     query = """
         SELECT user_id, anime_id, created_at
         FROM user_save_anime
         WHERE user_id = :user_id AND anime_id = :anime_id
     """
-    row = await db.fetch_one(query, {"user_id": UUID(user_id), "anime_id": anime_id})
+    row = await fetch_one(conn, query, {"user_id": UUID(user_id), "anime_id": anime_id})
     return dict(row) if row else None
 
 
-async def list_user_saved_animes(user_id: str) -> list[dict]:
+async def list_user_saved_animes(conn: AsyncConnection, user_id: str) -> list[dict]:
     query = """
         SELECT
             a.id, a.title, a.type, a.poster, a.created_at, a.week_day, a.is_finished,
@@ -197,11 +207,13 @@ async def list_user_saved_animes(user_id: str) -> list[dict]:
         WHERE usa.user_id = :user_id
         ORDER BY usa.created_at DESC
     """
-    rows = await db.fetch_all(query, {"user_id": UUID(user_id)})
+    rows = await fetch_all(conn, query, {"user_id": UUID(user_id)})
     return [dict(r) for r in rows]
 
 
-async def list_user_saved_in_emission_animes(user_id: str) -> list[dict]:
+async def list_user_saved_in_emission_animes(
+    conn: AsyncConnection, user_id: str
+) -> list[dict]:
     query = """
         SELECT
             a.id, a.title, a.type, a.poster, a.created_at, a.week_day,
@@ -212,27 +224,29 @@ async def list_user_saved_in_emission_animes(user_id: str) -> list[dict]:
           AND a.week_day IS NOT NULL
           AND a.is_finished IS FALSE
     """
-    rows = await db.fetch_all(query, {"user_id": UUID(user_id)})
+    rows = await fetch_all(conn, query, {"user_id": UUID(user_id)})
     return [dict(r) for r in rows]
 
 
-async def insert_user_saved_anime(user_id: str, anime_id: str) -> None:
+async def insert_user_saved_anime(conn: AsyncConnection, user_id: str, anime_id: str) -> None:
     query = """
         INSERT INTO user_save_anime (user_id, anime_id)
         VALUES (:user_id, :anime_id)
     """
-    await db.execute(query, {"user_id": UUID(user_id), "anime_id": anime_id})
+    await execute(conn, query, {"user_id": UUID(user_id), "anime_id": anime_id})
 
 
-async def delete_user_saved_anime(user_id: str, anime_id: str) -> None:
+async def delete_user_saved_anime(conn: AsyncConnection, user_id: str, anime_id: str) -> None:
     query = """
         DELETE FROM user_save_anime
         WHERE user_id = :user_id AND anime_id = :anime_id
     """
-    await db.execute(query, {"user_id": UUID(user_id), "anime_id": anime_id})
+    await execute(conn, query, {"user_id": UUID(user_id), "anime_id": anime_id})
 
 
-async def insert_new_episodes(anime_id: str, episodes: list[dict]) -> None:
+async def insert_new_episodes(
+    conn: AsyncConnection, anime_id: str, episodes: list[dict]
+) -> None:
     if not episodes:
         return
     query = """
@@ -240,4 +254,4 @@ async def insert_new_episodes(anime_id: str, episodes: list[dict]) -> None:
         VALUES (:anime_id, :ep_number, :preview, :url)
         ON CONFLICT (anime_id, ep_number) DO NOTHING
     """
-    await db.execute_many(query, episodes)
+    await execute_many(conn, query, episodes)

@@ -4,8 +4,6 @@ no wrapping transaction hides commits from other connections, and that
 truncation survives repeated runs without touching reference data.
 """
 
-import os
-
 import asyncpg
 from dbutils import truncate_mutable_tables
 from factories import create_anime
@@ -36,21 +34,22 @@ async def test_previous_row_is_gone(raw_conn):
     assert row is None
 
 
-async def test_committed_writes_are_visible_from_an_unrelated_connection():
+async def test_committed_writes_are_visible_from_an_unrelated_connection(raw_dsn):
     """Proves the harness does not wrap the test in a transaction (design D4):
-    if it did, the write below — made and committed through `db`, the
-    application's own pool — would be invisible to `other_conn`, a brand-new
-    connection unrelated to both `db` and the seeding pool."""
-    from database.client import db
+    if it did, the write below — made and committed through the app's own
+    engine — would be invisible to `other_conn`, a brand-new connection
+    unrelated to both the app's engine and the seeding pool."""
+    from database.client import engine, execute
 
     anime_id = "smoke-anime-visibility"
-    async with db.transaction():
-        await db.execute(
+    async with engine.begin() as conn:
+        await execute(
+            conn,
             "INSERT INTO animes (id, title) VALUES (:id, :title)",
             {"id": anime_id, "title": "Visibility Check"},
         )
 
-    other_conn = await asyncpg.connect(dsn=os.environ["DB_URL"])
+    other_conn = await asyncpg.connect(dsn=raw_dsn)
     try:
         row = await other_conn.fetchrow("SELECT id FROM animes WHERE id = $1", anime_id)
     finally:

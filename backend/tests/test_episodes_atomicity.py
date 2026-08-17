@@ -55,10 +55,10 @@ async def test_bulk_download_continues_and_rolls_back_only_the_failed_episode(
 
     original_update_job = repository.update_episode_job
 
-    async def flaky_update_job(episode_id, job_id, status):
+    async def flaky_update_job(conn, episode_id, job_id, status):
         if episode_id == failing_episode_id:
             raise RuntimeError("boom")
-        return await original_update_job(episode_id, job_id, status)
+        return await original_update_job(conn, episode_id, job_id, status)
 
     monkeypatch.setattr(repository, "update_episode_job", flaky_update_job)
 

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import Depends
 
+from database.client import engine
 from packages.auth import auth_scheme
 from exceptions import ConflictError, NotFoundError
 
@@ -17,7 +18,8 @@ async def valid_episode_id(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Validates that the episode exists and returns the required data."""
-    episode = await repository.get_episode_with_anime(episode_id, anime_id)
+    async with engine.connect() as conn:
+        episode = await repository.get_episode_with_anime(conn, episode_id, anime_id)
     if not episode:
         raise NotFoundError(f"Episode {episode_id} not found")
 
@@ -35,7 +37,10 @@ async def valid_episode_by_number(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Validates that the episode exists by anime and episode number, and returns the required data."""
-    episode = await repository.get_episode_by_anime_and_number(anime_id, episode_number)
+    async with engine.connect() as conn:
+        episode = await repository.get_episode_by_anime_and_number(
+            conn, anime_id, episode_number
+        )
     if not episode:
         raise NotFoundError(f"Episode {episode_number} not found for anime {anime_id}")
 
@@ -52,7 +57,10 @@ async def valid_episode_by_number_public(
     anime_id: str,
     episode_number: int,
 ) -> dict:
-    episode = await repository.get_episode_by_anime_and_number(anime_id, episode_number)
+    async with engine.connect() as conn:
+        episode = await repository.get_episode_by_anime_and_number(
+            conn, anime_id, episode_number
+        )
     if not episode:
         raise NotFoundError(f"Episode {episode_number} not found for anime {anime_id}")
     return {
@@ -72,9 +80,10 @@ async def episode_not_downloaded_by_user(
     if force_download:
         return episode_data
 
-    download = await repository.get_user_episode_download(
-        episode_data["user_id"], episode_data["episode_id"]
-    )
+    async with engine.connect() as conn:
+        download = await repository.get_user_episode_download(
+            conn, episode_data["user_id"], episode_data["episode_id"]
+        )
     if download:
         raise ConflictError("Download already in progress")
     return episode_data
