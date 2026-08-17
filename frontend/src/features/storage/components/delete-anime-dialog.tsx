@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +13,9 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatBytes } from "@/lib/format-bytes";
 import { deleteAnimeStorage } from "@/features/storage/api";
 import type { StorageItem } from "@/features/storage/types";
+import { formatBytes } from "@/lib/format-bytes";
 
 interface DeleteAnimeDialogProps {
 	anime: StorageItem;
@@ -43,7 +43,11 @@ export function DeleteAnimeDialog({ anime }: DeleteAnimeDialogProps) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="text-muted-foreground hover:text-destructive"
+				>
 					<Trash2 className="h-4 w-4" />
 				</Button>
 			</DialogTrigger>
@@ -51,12 +55,18 @@ export function DeleteAnimeDialog({ anime }: DeleteAnimeDialogProps) {
 				<DialogHeader>
 					<DialogTitle>Eliminar anime</DialogTitle>
 					<DialogDescription>
-						¿Eliminar <span className="font-medium text-foreground">"{anime.title}"</span> y liberar{" "}
-						{formatBytes(anime.size)}? Esta acción no se puede deshacer.
+						¿Eliminar{" "}
+						<span className="font-medium text-foreground">"{anime.title}"</span>{" "}
+						y liberar {formatBytes(anime.size)}? Esta acción no se puede
+						deshacer.
 					</DialogDescription>
 				</DialogHeader>
 				<DialogFooter>
-					<Button variant="outline" onClick={() => setOpen(false)} disabled={mutation.isPending}>
+					<Button
+						variant="outline"
+						onClick={() => setOpen(false)}
+						disabled={mutation.isPending}
+					>
 						Cancelar
 					</Button>
 					<Button

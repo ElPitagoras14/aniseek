@@ -30,7 +30,9 @@ export function useDownloadProgress(
 		}
 
 		const params = new URLSearchParams({ job_ids: csv });
-		const es = new EventSource(`${apiUrl}/api/episodes/stream/status?${params}`);
+		const es = new EventSource(
+			`${apiUrl}/api/episodes/stream/status?${params}`,
+		);
 
 		es.onerror = () => {
 			es.close();

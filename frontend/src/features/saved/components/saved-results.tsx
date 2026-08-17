@@ -1,5 +1,5 @@
-import { AnimeCard } from "@/features/search/components/anime-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnimeCard } from "@/features/search/components/anime-card";
 import type { SavedAnime } from "../types";
 
 interface SavedResultsProps {

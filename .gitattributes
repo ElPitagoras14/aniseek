@@ -1,5 +1,20 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Check out text files with LF on every platform, regardless of core.autocrlf.
+# Without eol=lf, Git hands Windows a CRLF working tree while storing LF, and
+# tools that expect LF (Biome) report every file as malformatted.
+* text=auto eol=lf
 
-# Shell scripts must always use LF (for Linux containers)
+# Shell scripts must always use LF (for Linux containers), forced rather than
+# left to content detection.
 *.sh text eol=lf
+
+# Binary assets must never be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.pdf binary

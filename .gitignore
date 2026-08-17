@@ -142,9 +142,6 @@ coverage/
 .next/
 out/
 
-# Vite PWA dev output
-dev-dist/
-
 # Production
 build/
 
@@ -174,5 +171,4 @@ docker-data/
 .aider*
 
 # Dev tools
-.codegraph/
 /tasks/

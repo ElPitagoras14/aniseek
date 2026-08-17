@@ -172,7 +172,11 @@ export function EpisodesTable({
 											<Download className="size-4" />
 										</Button>
 
-										<a href={episodeUrl || "#"} target="_blank" rel="noreferrer">
+										<a
+											href={episodeUrl || "#"}
+											target="_blank"
+											rel="noreferrer"
+										>
 											<Button variant="ghost" size="icon">
 												<Play className="size-4" />
 											</Button>

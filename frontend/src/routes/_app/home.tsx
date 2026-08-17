@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bookmark, CalendarClock, Download } from "lucide-react";
 import { statisticsQueryOptions } from "@/features/home/api";
-import { storageQueryOptions } from "@/features/storage/api";
 import { HomeKpi } from "@/features/home/components/home-kpi";
 import { HomeLastDownloads } from "@/features/home/components/home-last-downloads";
 import { HomeStorage } from "@/features/home/components/home-storage";
 import { HomeTodayCalendar } from "@/features/home/components/home-today-calendar";
 import { HomeWelcome } from "@/features/home/components/home-welcome";
+import { storageQueryOptions } from "@/features/storage/api";
 
 export const Route = createFileRoute("/_app/home")({
 	component: RouteComponent,
