@@ -1,16 +1,62 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 
 const { version } = JSON.parse(readFileSync("./package.json", "utf-8"));
 
-export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, "..", "");
+const ENV_DIR = "..";
+
+// Sirve /config.js en desarrollo igual que entrypoint.sh lo escribe en el
+// container: sustituyendo config.template.js con las variables del .env de
+// la raíz. No depende de envsubst (no disponible en Windows) y relee el
+// .env en cada request, para que cambiarlo y recargar la página alcance.
+function runtimeConfigPlugin(mode: string): Plugin {
+	const templatePath = fileURLToPath(
+		new URL("./config.template.js", import.meta.url),
+	);
+
+	// Falla al arrancar el servidor de desarrollo, no en silencio en la
+	// primera request, si la plantilla no se puede leer.
+	let template: string;
+	try {
+		template = readFileSync(templatePath, "utf-8");
+	} catch (error) {
+		throw new Error(
+			`runtime-config: no se pudo leer la plantilla en ${templatePath}: ${(error as Error).message}`,
+		);
+	}
+
 	return {
-		envDir: "..",
+		name: "runtime-config",
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				if (req.url !== "/config.js") {
+					next();
+					return;
+				}
+				// Mismo comportamiento que envsubst: una variable ausente del
+				// .env se sustituye por cadena vacía, no se deja el ${VAR}
+				// literal ni se omite la clave.
+				const env = loadEnv(mode, ENV_DIR, "");
+				const rendered = template.replace(
+					/\$\{(\w+)\}/g,
+					(_match, key) => env[key] ?? "",
+				);
+				res.setHeader("Content-Type", "text/javascript");
+				res.end(rendered);
+			});
+		},
+	};
+}
+
+export default defineConfig(({ mode }) => {
+	const env = loadEnv(mode, ENV_DIR, "");
+	return {
+		envDir: ENV_DIR,
 		define: {
 			__APP_VERSION__: JSON.stringify(version),
 			__API_URL__: JSON.stringify(env.API_URL),
@@ -27,6 +73,7 @@ export default defineConfig(({ mode }) => {
 			},
 		},
 		plugins: [
+			runtimeConfigPlugin(mode),
 			devtools(),
 			tailwindcss(),
 			tanstackRouter({ target: "react", autoCodeSplitting: true }),

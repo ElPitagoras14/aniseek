@@ -179,6 +179,9 @@ docker-data/
 # Environment
 .env.local
 
+# Runtime config generado por entrypoint.sh / el plugin de Vite (ver config.template.js)
+frontend/public/config.js
+
 .aider*
 
 # Dev tools

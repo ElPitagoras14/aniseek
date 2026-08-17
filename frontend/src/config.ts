@@ -3,17 +3,58 @@ export const config: AppConfig | undefined = window.__APP_CONFIG__;
 declare const __API_URL__: string | undefined;
 declare const __AUTH_ENABLED__: string | undefined;
 
-export const apiUrl: string =
-	config?.API_URL !== undefined
-		? config.API_URL
-		: typeof __API_URL__ !== "undefined"
-			? __API_URL__
-			: "";
+/**
+ * Parsea un valor crudo de una capa de configuración. Devuelve `undefined`
+ * cuando ese valor cuenta como "no configurado" para la clave — lo que hace
+ * que `resolve` siga probando la capa siguiente.
+ */
+type Parser<T> = (raw: unknown) => T | undefined;
 
-export const isAuthEnabled: boolean =
-	config?.AUTH_ENABLED !== undefined
-		? config.AUTH_ENABLED === true ||
-			String(config.AUTH_ENABLED).toLowerCase() === "true"
-		: typeof __AUTH_ENABLED__ !== "undefined"
-			? __AUTH_ENABLED__.toLowerCase() === "true"
-			: false;
+/**
+ * Precedencia runtime → build-time → default, escrita una sola vez. Para
+ * cada candidato, en orden, se aplica `parse`; el primero que resuelva a un
+ * valor definido gana. Si ninguno lo hace, se usa `defaultValue`.
+ */
+function resolve<T>(
+	candidates: unknown[],
+	parse: Parser<T>,
+	defaultValue: T,
+): T {
+	for (const candidate of candidates) {
+		const parsed = parse(candidate);
+		if (parsed !== undefined) return parsed;
+	}
+	return defaultValue;
+}
+
+// API_URL: cualquier string es un valor configurado, incluida la cadena
+// vacía — significa "mismo origen", proxeado por nginx en producción y por
+// el `server.proxy` de Vite en desarrollo.
+const parseApiUrl: Parser<string> = (raw) =>
+	typeof raw === "string" ? raw : undefined;
+
+// AUTH_ENABLED: solo "true"/"false" (sin distinguir mayúsculas) cuentan como
+// configurado. La cadena vacía —lo que escribe envsubst para una variable
+// ausente— y cualquier otro valor cuentan como ausencia, no como "false".
+const parseAuthEnabled: Parser<boolean> = (raw) => {
+	if (typeof raw === "boolean") return raw;
+	if (typeof raw !== "string" || raw === "") return undefined;
+	const normalized = raw.toLowerCase();
+	if (normalized === "true") return true;
+	if (normalized === "false") return false;
+	return undefined;
+};
+
+export const apiUrl: string = resolve(
+	[config?.API_URL, __API_URL__],
+	parseApiUrl,
+	"",
+);
+
+// Default final: habilitada. Una configuración ausente falla cerrada, igual
+// que el backend (`AuthSettings.AUTH_ENABLED` default `True`).
+export const isAuthEnabled: boolean = resolve(
+	[config?.AUTH_ENABLED, __AUTH_ENABLED__],
+	parseAuthEnabled,
+	true,
+);
