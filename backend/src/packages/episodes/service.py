@@ -3,7 +3,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from database.client import db
+from database.client import engine
 from exceptions import ConflictError, NotFoundError
 from worker import download_anime_episode
 
@@ -46,23 +46,26 @@ async def get_download_episodes_controller(
     q: str | None = None,
 ) -> dict:
     logger.debug("Getting downloads")
-    count, rows = await repository.list_user_downloads(
-        user_id, anime_id, limit, page, q
-    )
+    async with engine.connect() as conn:
+        count, rows = await repository.list_user_downloads(
+            conn, user_id, anime_id, limit, page, q
+        )
     episode_downloads = [_build_download_dict(r) for r in rows]
     return cast_episode_download_list(episode_downloads, count)
 
 
 async def get_last_downloaded_episodes_controller(user_id: str) -> dict:
     logger.debug("Getting last downloaded episodes")
-    rows = await repository.list_last_user_downloads(user_id, limit=5)
+    async with engine.connect() as conn:
+        rows = await repository.list_last_user_downloads(conn, user_id, limit=5)
     episodes = [_build_download_dict(r) for r in rows]
     return cast_episode_download_list(episodes, len(episodes))
 
 
 async def get_downloaded_animes_controller(user_id: str) -> dict:
     logger.debug("Getting downloaded animes")
-    animes = await repository.list_user_downloaded_animes(user_id)
+    async with engine.connect() as conn:
+        animes = await repository.list_user_downloaded_animes(conn, user_id)
     animes_info = [{"id": a["id"], "title": a["title"]} for a in animes]
     return cast_downloaded_anime_list(animes_info, len(animes_info))
 
@@ -71,27 +74,34 @@ async def download_anime_episode_controller(
     episode_id: int, force_download: bool, user_id: str
 ) -> str:
     logger.debug(f"Downloading episode with id: {episode_id}")
-    episode = await repository.get_episode_with_anime(episode_id)
-    if not episode:
-        raise NotFoundError("Episode not found")
+    async with engine.connect() as conn:
+        episode = await repository.get_episode_with_anime(conn, episode_id)
+        if not episode:
+            raise NotFoundError("Episode not found")
 
-    anime_id = episode["anime_id"]
-    episode_number = episode["ep_number"]
+        anime_id = episode["anime_id"]
+        episode_number = episode["ep_number"]
 
-    user_download = await repository.get_user_episode_download(user_id, episode_id)
-    if user_download and not force_download:
-        raise ConflictError("Download already in progress")
+        user_download = await repository.get_user_episode_download(
+            conn, user_id, episode_id
+        )
+        if user_download and not force_download:
+            raise ConflictError("Download already in progress")
 
-    any_download = await repository.get_any_episode_download_with_job(episode_id)
+        any_download = await repository.get_any_episode_download_with_job(
+            conn, episode_id
+        )
     if any_download and not force_download:
         return cast_job_id(any_download["job_id"])
 
     result = download_anime_episode.send(anime_id, episode_number, user_id)
 
-    async with db.transaction():
+    async with engine.begin() as conn:
         if not force_download:
-            await repository.insert_user_episode_download(user_id, episode_id)
-        await repository.update_episode_job(episode_id, result.message_id, "PENDING")
+            await repository.insert_user_episode_download(conn, user_id, episode_id)
+        await repository.update_episode_job(
+            conn, episode_id, result.message_id, "PENDING"
+        )
 
     logger.debug(f"Enqueued download with job id: {result.message_id}")
     return cast_job_id(result.message_id)
@@ -99,17 +109,22 @@ async def download_anime_episode_controller(
 
 async def delete_download_episode_controller(episode_id: int, user_id: str) -> str:
     logger.debug(f"Deleting download episode with id: {episode_id}")
-    episode = await repository.get_episode_with_anime(episode_id)
-    if not episode:
-        raise NotFoundError("Episode not found")
+    async with engine.connect() as conn:
+        episode = await repository.get_episode_with_anime(conn, episode_id)
+        if not episode:
+            raise NotFoundError("Episode not found")
 
-    user_download = await repository.get_user_episode_download(user_id, episode_id)
-    if not user_download:
-        raise NotFoundError("Download not found")
+        user_download = await repository.get_user_episode_download(
+            conn, user_id, episode_id
+        )
+        if not user_download:
+            raise NotFoundError("Download not found")
 
-    await repository.delete_user_episode_download(user_id, episode_id)
+    async with engine.begin() as conn:
+        await repository.delete_user_episode_download(conn, user_id, episode_id)
 
-    users_downloads = await repository.count_episode_downloads(episode_id)
+    async with engine.connect() as conn:
+        users_downloads = await repository.count_episode_downloads(conn, episode_id)
     if users_downloads == 0:
         parsed_season = str(episode["anime_season"]).zfill(2)
         franchise_id = episode["anime_franchise_id"]
@@ -150,9 +165,10 @@ async def download_anime_episode_bulk_controller(
     success_enqueued = []
     failed_enqueued = []
 
-    episodes = await repository.get_episodes_with_user_download_status(
-        anime_id, episode_numbers, user_id
-    )
+    async with engine.connect() as conn:
+        episodes = await repository.get_episodes_with_user_download_status(
+            conn, anime_id, episode_numbers, user_id
+        )
     episodes_by_number = {ep["ep_number"]: ep for ep in episodes}
 
     for ep_number in episode_numbers:
@@ -173,10 +189,12 @@ async def download_anime_episode_bulk_controller(
             )
             logger.debug(f"Enqueued download with job id: {result.message_id}")
 
-            async with db.transaction():
-                await repository.insert_user_episode_download(user_id, episode["id"])
+            async with engine.begin() as conn:
+                await repository.insert_user_episode_download(
+                    conn, user_id, episode["id"]
+                )
                 await repository.update_episode_job(
-                    episode["id"], result.message_id, "PENDING"
+                    conn, episode["id"], result.message_id, "PENDING"
                 )
 
             success_enqueued.append([result.message_id, ep_number])
@@ -199,7 +217,10 @@ async def get_animes_storage_controller(
 ) -> dict:
     logger.info("Getting animes storage controller")
     offset = (page - 1) * limit
-    count, total_size, rows = await repository.list_animes_storage(limit, offset, q)
+    async with engine.connect() as conn:
+        count, total_size, rows = await repository.list_animes_storage(
+            conn, limit, offset, q
+        )
     logger.debug(f"Found {count} animes")
 
     animes_info = [
@@ -210,15 +231,16 @@ async def get_animes_storage_controller(
 
 async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Deleting anime with id: {anime_id}")
-    anime = await repository.get_anime_with_episodes_for_storage(anime_id)
+    async with engine.connect() as conn:
+        anime = await repository.get_anime_with_episodes_for_storage(conn, anime_id)
     if not anime:
         raise NotFoundError("Anime not found")
 
     episode_ids = [ep["id"] for ep in anime["episodes"]]
 
-    async with db.transaction():
-        await repository.delete_user_downloads_for_episodes(episode_ids)
-        await repository.reset_episodes_storage(anime_id)
+    async with engine.begin() as conn:
+        await repository.delete_user_downloads_for_episodes(conn, episode_ids)
+        await repository.reset_episodes_storage(conn, anime_id)
 
     logger.debug("Reset episode sizes and job ids")
 

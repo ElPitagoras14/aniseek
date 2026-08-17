@@ -11,10 +11,18 @@ Design summary (full rationale in the change's design.md):
   database has to exist and the environment variables have to be set *before*
   pytest collects any test module. That has to happen in pytest_configure,
   which runs before collection — a fixture would run too late.
+
+Windows note (unify-database-access): psycopg3's async mode refuses to run on
+asyncio's default `ProactorEventLoop` on Windows. The engine only needs
+`SelectorEventLoop`-compatible behavior (no subprocess/pipe support), so the
+policy is switched process-wide before any event loop is created. Irrelevant
+on Linux, where production and CI run.
 """
 
+import asyncio
 import os
 import shutil
+import sys
 import tempfile
 
 import asyncpg
@@ -23,6 +31,9 @@ from dbutils import truncate_mutable_tables
 from testcontainers.community.postgres import PostgresContainer
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.network import Network
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _DB_SOURCE_DIR = os.path.join(_REPO_ROOT, "db")
@@ -34,6 +45,10 @@ _DB_ALIAS = "aniseek-test-db"
 _network: Network | None = None
 _postgres: PostgresContainer | None = None
 _animes_folder: str | None = None
+# asyncpg parses its own DSN and doesn't understand SQLAlchemy's "+driver"
+# suffix, so the raw pool below keeps a bare "postgresql://" URL, separate
+# from the app's DB_URL (which needs "+psycopg" — see unify-database-access).
+_raw_dsn: str | None = None
 
 
 def _apply_migrations() -> None:
@@ -63,7 +78,7 @@ def _apply_migrations() -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    global _network, _postgres, _animes_folder
+    global _network, _postgres, _animes_folder, _raw_dsn
 
     _network = Network()
     _network.create()
@@ -76,11 +91,14 @@ def pytest_configure(config: pytest.Config) -> None:
     _apply_migrations()
 
     _animes_folder = tempfile.mkdtemp(prefix="aniseek-test-animes-")
+    _raw_dsn = _postgres.get_connection_url(driver=None)
 
     # Fixed before any application module is imported (design D5). Every
     # BaseSettings subclass in src/ is covered here — see the config.py files
-    # under src/, src/database/, and src/packages/*/.
-    os.environ["DB_URL"] = _postgres.get_connection_url(driver=None)
+    # under src/, src/database/, and src/packages/*/. Same scheme as
+    # production (unify-database-access): a single DB_URL, unchanged, works
+    # for the app's async engine.
+    os.environ["DB_URL"] = _postgres.get_connection_url(driver="psycopg")
     os.environ["SECRET_KEY"] = "test-secret-key"
     os.environ["ALGORITHM"] = "HS256"
     os.environ["REDIS_URL"] = "redis://localhost:6379"
@@ -100,9 +118,10 @@ def pytest_unconfigure(config: pytest.Config) -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 async def _app_db_pool():
-    """Connects the application's own connection pool (`database.client.db`) for
-    the whole session. Deferred import: config resolves on import, so this has
-    to happen after pytest_configure, not at module load time."""
+    """Verifies the application's own engine (`database.client.engine`) can reach
+    the database, for the whole session. Deferred import: config resolves on
+    import, so this has to happen after pytest_configure, not at module load
+    time."""
     from database.client import connect_db, disconnect_db
 
     await connect_db()
@@ -113,11 +132,21 @@ async def _app_db_pool():
 
 
 @pytest.fixture(scope="session")
+def raw_dsn() -> str:
+    """The bare "postgresql://" DSN (see `_raw_dsn` above), for tests that need
+    to open a connection asyncpg can parse directly instead of going through
+    `DB_URL`."""
+    return _raw_dsn
+
+
+@pytest.fixture(scope="session")
 async def pg_pool():
-    """A connection pool independent from the application's own (`db`), used to
+    """A connection pool independent from the application's own engine, used to
     seed/inspect data directly and, in the isolation checks, to prove that a
-    write made through `db` is visible from an unrelated connection."""
-    pool = await asyncpg.create_pool(dsn=os.environ["DB_URL"])
+    write made through the app's engine is visible from an unrelated
+    connection. Uses `_raw_dsn` (bare "postgresql://"), not `DB_URL`: asyncpg
+    doesn't understand the "+psycopg" driver suffix the app needs."""
+    pool = await asyncpg.create_pool(dsn=_raw_dsn)
     try:
         yield pool
     finally:

@@ -2,6 +2,7 @@ from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
+from database.client import engine
 from .config import auth_settings, ADMIN_USER
 from .repository import (
     get_user_by_id,
@@ -18,7 +19,8 @@ class JWTBearer(HTTPBearer):
 
     async def __call__(self, request: Request) -> dict:
         if not auth_settings.AUTH_ENABLED:
-            user = await get_user_by_username(ADMIN_USER)
+            async with engine.connect() as conn:
+                user = await get_user_by_username(conn, ADMIN_USER)
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -46,7 +48,8 @@ class JWTBearer(HTTPBearer):
                         detail="Invalid token",
                     )
 
-                user = await get_user_by_id(user_id)
+                async with engine.connect() as conn:
+                    user = await get_user_by_id(conn, user_id)
                 if not user:
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,

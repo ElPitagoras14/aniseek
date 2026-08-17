@@ -1,25 +1,30 @@
 [project]
 name = "aniseek-api"
-version = "2.0.16"
+version = "2.0.17"
 description = "REST API for anime streaming and scraping management"
 readme = "README.md"
 requires-python = ">=3.10.14"
 dependencies = [
     "ani-scrapy==0.7.0",
     "bcrypt>=5.0.0",
-    "databases[asyncpg]>=0.9.0",
     "dramatiq>=2.1.0",
     "fastapi[standard]>=0.136.1",
     "loguru>=0.7.3",
     "passlib[bcrypt]>=1.7.4",
+    "psycopg[binary]>=3.2.0",
     "pydantic-settings>=2.14.1",
     "python-dotenv>=1.2.2",
     "python-jose>=3.5.0",
     "redis>=7.4.0",
+    "sqlalchemy>=2.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    # Independent of the app's own driver (psycopg3): conftest.py uses this
+    # directly to inspect/seed data from outside the app's engine (see
+    # openspec/changes/add-backend-testing).
+    "asyncpg>=0.31.0",
     "isort>=8.0.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
@@ -33,7 +38,7 @@ dev = [
 pythonpath = ["src"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-# Session-scoped: the app's `db` pool and the raw asyncpg pool are each set up
+# Session-scoped: the app's engine and the raw asyncpg pool are each set up
 # once per session (conftest.py) and reused by every test, so all async code
 # has to run on the same event loop for the whole session.
 asyncio_default_fixture_loop_scope = "session"

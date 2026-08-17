@@ -1,5 +1,6 @@
 from fastapi import Depends
 
+from database.client import engine
 from packages.auth import auth_scheme
 from exceptions import NotFoundError
 
@@ -11,7 +12,8 @@ async def valid_franchise_id(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Validates that the franchise exists and returns the required data."""
-    franchise = await repository.get_franchise_by_id(franchise_id)
+    async with engine.connect() as conn:
+        franchise = await repository.get_franchise_by_id(conn, franchise_id)
     if not franchise:
         raise NotFoundError(f"Franchise {franchise_id} not found")
 
@@ -27,7 +29,8 @@ async def valid_anime_for_franchise(
     current_user: dict = Depends(auth_scheme),
 ) -> dict:
     """Validates that the anime exists and has no franchise assigned yet."""
-    anime = await repository.get_anime_without_franchise(anime_id)
+    async with engine.connect() as conn:
+        anime = await repository.get_anime_without_franchise(conn, anime_id)
     if not anime:
         raise NotFoundError(f"Anime {anime_id} not found or already has franchise")
 

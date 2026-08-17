@@ -30,7 +30,7 @@ services:
       - AUTH_ENABLED=${AUTH_ENABLED}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
-      - DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
+      - DB_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://aniseek-redis:6379
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - ACCESS_TOKEN_EXP_MIN=${ACCESS_TOKEN_EXP_MIN}
@@ -59,7 +59,7 @@ services:
       aniseek-redis:
         condition: service_healthy
     environment:
-      - DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
+      - DB_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://aniseek-redis:6379
       - ANIMES_FOLDER=${ANIMES_FOLDER}
       - MAX_DOWNLOAD_RETRIES=${MAX_DOWNLOAD_RETRIES}

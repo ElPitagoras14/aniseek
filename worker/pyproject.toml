@@ -1,6 +1,6 @@
 [project]
 name = "aniseek-worker"
-version = "2.0.16"
+version = "2.0.17"
 description = "Background worker for anime scraping tasks"
 readme = "README.md"
 requires-python = ">=3.10.14"
@@ -8,7 +8,7 @@ dependencies = [
     "ani-scrapy>=0.6.2",
     "dramatiq[redis]>=1.19.0",
     "loguru>=0.7.3",
-    "psycopg2-binary>=2.9.10",
+    "psycopg[binary]>=3.2.0",
     "pydantic-settings>=2.11.0",
     "python-dotenv>=1.2.2",
     "redis>=6.4.0",

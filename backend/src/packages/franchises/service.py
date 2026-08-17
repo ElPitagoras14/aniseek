@@ -1,6 +1,6 @@
 from loguru import logger
 
-from database.client import db
+from database.client import engine
 from exceptions import ConflictError
 from utils import to_kebab_case
 from worker import order_franchise
@@ -12,7 +12,8 @@ from .utils import cast_anime_franchise_list, cast_franchise_list
 
 async def get_franchises_controller(user_id: str) -> dict:
     logger.debug("Getting franchises")
-    rows = await repository.list_franchises_with_animes()
+    async with engine.connect() as conn:
+        rows = await repository.list_franchises_with_animes(conn)
 
     grouped: dict[str, dict] = {}
     for row in rows:
@@ -50,10 +51,10 @@ async def create_franchise_controller(franchise_info: FranchiseCreate) -> str:
         logger.debug(f"Franchise name share by anime: {franchise_id}")
         raise ConflictError("Franchise name share by anime")
 
-    async with db.transaction():
-        await repository.insert_franchise(franchise_id, franchise_info.franchise)
+    async with engine.begin() as conn:
+        await repository.insert_franchise(conn, franchise_id, franchise_info.franchise)
         logger.debug(f"Inserted franchise: {franchise_id}")
-        await repository.assign_animes_to_franchise(animes_ids, franchise_id)
+        await repository.assign_animes_to_franchise(conn, animes_ids, franchise_id)
 
     franchise_payload = {
         "id": franchise_id,
@@ -69,7 +70,8 @@ async def create_franchise_controller(franchise_info: FranchiseCreate) -> str:
 
 async def get_animes_for_franchises_controller(user_id: str) -> dict:
     logger.debug("Getting animes")
-    animes = await repository.list_animes_without_franchise()
+    async with engine.connect() as conn:
+        animes = await repository.list_animes_without_franchise(conn)
 
     animes_info = [
         {
