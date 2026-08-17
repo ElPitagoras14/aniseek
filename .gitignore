@@ -161,6 +161,17 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Vite / TanStack build output and caches
+dist-ssr
+.nitro
+.tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+*.local
+todos.json
+
 # --- General ---
 # Docker
 docker-data/
