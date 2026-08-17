@@ -1,8 +1,9 @@
+import asyncio
 import json
 import time
 from pathlib import Path
 
-import requests
+import aiohttp
 from ani_scrapy import AnimeAV1Scraper, JKAnimeScraper
 from loguru import logger
 
@@ -28,33 +29,37 @@ MAX_CHUNK_RETRIES = 3
 UPDATE_INTERVAL = 1
 
 
-def _notify_job(job_id: str, state: str, meta: dict) -> None:
+async def _notify_job(job_id: str, state: str, meta: dict) -> None:
     payload = {"job_id": job_id, "state": state, "meta": meta}
-    redis_db.publish("job_updates", json.dumps(payload))
+    await redis_db.publish("job_updates", json.dumps(payload))
 
 
-def _finalize_franchise_download(franchise_id: str | None) -> None:
+async def _finalize_franchise_download(franchise_id: str | None) -> None:
     if not franchise_id:
         return
-    if redis_db.decr(download_lock_key(franchise_id)) == 0:
-        stream_add_event(franchise_id, "downloads_done")
+    if await redis_db.decr(download_lock_key(franchise_id)) == 0:
+        await stream_add_event(franchise_id, "downloads_done")
 
 
-def _server_supports_range(
+async def _server_supports_range(
     url: str, headers: dict | None = None
 ) -> tuple[bool, int | None]:
     try:
-        response = requests.head(url, headers=headers, allow_redirects=True, timeout=10)
-        accept_ranges = response.headers.get("Accept-Ranges", "").lower()
-        content_length = int(response.headers.get("Content-Length", 0))
-        if accept_ranges == "bytes" and content_length > 0:
-            return True, content_length
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.head(
+                url, headers=headers, allow_redirects=True
+            ) as response:
+                accept_ranges = response.headers.get("Accept-Ranges", "").lower()
+                content_length = int(response.headers.get("Content-Length", 0))
+                if accept_ranges == "bytes" and content_length > 0:
+                    return True, content_length
     except Exception as e:
         logger.warning(f"Error checking Range support: {e}")
     return False, None
 
 
-def _download_file(
+async def _download_file(
     job_id: str,
     anime_id: str,
     franchise_id: str | None,
@@ -62,7 +67,7 @@ def _download_file(
     episode_number: int,
     download_link: str,
 ) -> tuple[bool, int | None]:
-    """Synchronous download using requests. Returns (success, total_size)."""
+    """Asynchronous download using aiohttp. Returns (success, total_size)."""
     start_time = time.time()
     parsed_season = str(season).zfill(2)
     parsed_ep_number = str(episode_number).zfill(2)
@@ -77,7 +82,7 @@ def _download_file(
     headers: dict[str, str] = {}
     resume_mode = False
 
-    supports_range, total_size = _server_supports_range(download_link)
+    supports_range, total_size = await _server_supports_range(download_link)
 
     if supports_range and file_exists:
         if downloaded < (total_size or 0):
@@ -94,45 +99,49 @@ def _download_file(
         )
 
     try:
-        with requests.get(
-            download_link, headers=headers, stream=True, timeout=(10, 300)
-        ) as response:
-            response.raise_for_status()
-            total_size = int(response.headers.get("Content-Length", 0)) + downloaded
+        timeout = aiohttp.ClientTimeout(connect=10, sock_read=300)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(download_link, headers=headers) as response:
+                response.raise_for_status()
+                total_size = (
+                    int(response.headers.get("Content-Length", 0)) + downloaded
+                )
 
-            if total_size > 0:
-                update_episode_size(anime_id, episode_number, total_size)
+                if total_size > 0:
+                    await update_episode_size(anime_id, episode_number, total_size)
 
-            last_update_time = time.time()
-            mode = "ab" if resume_mode else "wb"
+                last_update_time = time.time()
+                mode = "ab" if resume_mode else "wb"
 
-            with open(save_path, mode) as f:
-                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                    if not chunk:
-                        continue
+                with open(save_path, mode) as f:
+                    async for chunk in response.content.iter_chunked(CHUNK_SIZE):
+                        if not chunk:
+                            continue
 
-                    for attempt in range(MAX_CHUNK_RETRIES):
-                        try:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                            break
-                        except Exception as e:
-                            logger.error(
-                                f"[{job_id}] Chunk failed, attempt {attempt + 1}: {e}"
+                        for attempt in range(MAX_CHUNK_RETRIES):
+                            try:
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                break
+                            except Exception as e:
+                                logger.error(
+                                    f"[{job_id}] Chunk failed, attempt {attempt + 1}: {e}"
+                                )
+                                await asyncio.sleep(1)
+                        else:
+                            raise RuntimeError("Max retries reached for chunk")
+
+                        current_time = time.time()
+                        if current_time - last_update_time > UPDATE_INTERVAL:
+                            last_update_time = current_time
+                            progress = (
+                                downloaded / total_size * 100 if total_size else 0
                             )
-                            time.sleep(1)
-                    else:
-                        raise RuntimeError("Max retries reached for chunk")
-
-                    current_time = time.time()
-                    if current_time - last_update_time > UPDATE_INTERVAL:
-                        last_update_time = current_time
-                        progress = downloaded / total_size * 100 if total_size else 0
-                        _notify_job(
-                            job_id,
-                            "DOWNLOADING",
-                            {"size": total_size, "progress": progress},
-                        )
+                            await _notify_job(
+                                job_id,
+                                "DOWNLOADING",
+                                {"size": total_size, "progress": progress},
+                            )
 
         elapsed = time.time() - start_time
         logger.debug(
@@ -140,15 +149,11 @@ def _download_file(
             f"S{season:02d}E{episode_number:02d} ({total_size} bytes, {elapsed:.1f}s)"
         )
         return True, total_size
-    except requests.exceptions.HTTPError as e:
+    except aiohttp.ClientResponseError as e:
         logger.error(
             f"[{job_id}] HTTP error downloading {anime_id} E{episode_number}: {e}"
         )
-        if (
-            e.response is not None
-            and e.response.status_code == 416
-            and save_path.exists()
-        ):
+        if e.status == 416 and save_path.exists():
             save_path.unlink()
         return False, None
     except Exception as e:
@@ -227,22 +232,22 @@ async def download_anime_episode_controller(
     is_first_try = retries == 0
 
     with logger.contextualize(user_id=user_id, job_id=job_id):
-        info = get_episode_franchise_and_season(anime_id)
+        info = await get_episode_franchise_and_season(anime_id)
         if info is None:
             logger.error(f"Anime {anime_id} not found")
             return
         franchise_id, season = info
 
         if franchise_id and is_first_try:
-            if redis_db.exists(ordering_lock_key(franchise_id)):
-                stream_wait_event(franchise_id, "ordering_done")
-            redis_db.incr(download_lock_key(franchise_id))
+            if await redis_db.exists(ordering_lock_key(franchise_id)):
+                await stream_wait_event(franchise_id, "ordering_done")
+            await redis_db.incr(download_lock_key(franchise_id))
 
         try:
-            update_episode_status(
+            await update_episode_status(
                 anime_id, episode_number, "GETTING-LINK", job_id=job_id
             )
-            _notify_job(job_id, "GETTING-LINK", {})
+            await _notify_job(job_id, "GETTING-LINK", {})
 
             valid_link = await _resolve_download_link(job_id, anime_id, episode_number)
             if not valid_link:
@@ -250,9 +255,9 @@ async def download_anime_episode_controller(
                     f"No download link available for {anime_id} E{episode_number}"
                 )
 
-            update_episode_status(anime_id, episode_number, "DOWNLOADING")
+            await update_episode_status(anime_id, episode_number, "DOWNLOADING")
 
-            success, total_size = _download_file(
+            success, total_size = await _download_file(
                 job_id,
                 anime_id,
                 franchise_id,
@@ -264,26 +269,28 @@ async def download_anime_episode_controller(
                 raise Exception(f"Download failed for {anime_id} E{episode_number}")
 
             if total_size is not None:
-                update_episode_size(anime_id, episode_number, total_size)
+                await update_episode_size(anime_id, episode_number, total_size)
 
-            update_episode_status(anime_id, episode_number, "SUCCESS", job_id=None)
-            _notify_job(job_id, "SUCCESS", {})
+            await update_episode_status(anime_id, episode_number, "SUCCESS", job_id=None)
+            await _notify_job(job_id, "SUCCESS", {})
 
-            _finalize_franchise_download(franchise_id)
+            await _finalize_franchise_download(franchise_id)
 
         except Exception as e:
             logger.error(f"Error: {e}")
 
             if retries >= MAX_DOWNLOAD_RETRIES:
                 logger.error("Max retries exceeded, marking as FAILED")
-                update_episode_status(anime_id, episode_number, "FAILED", job_id=job_id)
-                _notify_job(job_id, "FAILED", {})
-                _finalize_franchise_download(franchise_id)
+                await update_episode_status(
+                    anime_id, episode_number, "FAILED", job_id=job_id
+                )
+                await _notify_job(job_id, "FAILED", {})
+                await _finalize_franchise_download(franchise_id)
                 raise
 
             logger.warning(f"Will retry (attempt {retries + 1}/{MAX_DOWNLOAD_RETRIES})")
-            update_episode_status(anime_id, episode_number, "RETRYING")
-            _notify_job(
+            await update_episode_status(anime_id, episode_number, "RETRYING")
+            await _notify_job(
                 job_id,
                 "RETRYING",
                 {"retry_count": retries + 1, "max_retries": MAX_DOWNLOAD_RETRIES},

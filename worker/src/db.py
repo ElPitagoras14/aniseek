@@ -1,10 +1,12 @@
+import asyncio
+
 from loguru import logger
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from config import general_settings
 
-engine: Engine = create_engine(
+engine: AsyncEngine = create_async_engine(
     general_settings.DB_URL,
     pool_size=10,
     max_overflow=5,
@@ -13,45 +15,59 @@ engine: Engine = create_engine(
 )
 
 
-def execute(sql: str, params: dict | None = None) -> None:
+async def execute(sql: str, params: dict | None = None) -> None:
     """Run a write query inside an auto-committed transaction."""
-    with engine.begin() as conn:
-        conn.execute(text(sql), params or {})
+    async with engine.begin() as conn:
+        await conn.execute(text(sql), params or {})
 
 
-def fetch_one(sql: str, params: dict | None = None):
+async def fetch_one(sql: str, params: dict | None = None):
     """Return the first matching row as a dict-like mapping, or None."""
-    with engine.connect() as conn:
-        return conn.execute(text(sql), params or {}).mappings().first()
+    async with engine.connect() as conn:
+        result = await conn.execute(text(sql), params or {})
+        return result.mappings().first()
 
 
-def fetch_all(sql: str, params: dict | None = None):
+async def fetch_all(sql: str, params: dict | None = None):
     """Return all matching rows as dict-like mappings."""
-    with engine.connect() as conn:
-        return conn.execute(text(sql), params or {}).mappings().all()
+    async with engine.connect() as conn:
+        result = await conn.execute(text(sql), params or {})
+        return result.mappings().all()
 
 
-def fetch_val(sql: str, params: dict | None = None):
+async def fetch_val(sql: str, params: dict | None = None):
     """Return the first column of the first row, or None."""
-    with engine.connect() as conn:
-        return conn.execute(text(sql), params or {}).scalar()
+    async with engine.connect() as conn:
+        result = await conn.execute(text(sql), params or {})
+        return result.scalar()
 
 
+async def _check_connection() -> None:
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
+
+
+# One-off throwaway loop: runs before the worker's persistent event loop
+# exists (that loop is created later, when the AsyncIO middleware boots).
+# Dispose right after so no pooled connection stays bound to this loop.
 try:
-    with engine.connect() as _conn:
-        _conn.execute(text("SELECT 1"))
+    asyncio.run(_check_connection())
     logger.success("Database engine connected")
 except Exception as e:
     logger.error(f"Database engine failed to connect: {e}")
     raise
+finally:
+    asyncio.run(engine.dispose())
 
 
 # Sentinel: distinguishes "don't touch job_id" from "set job_id to NULL"
 _UNSET = object()
 
 
-def get_episode_franchise_and_season(anime_id: str) -> tuple[str | None, int] | None:
-    row = fetch_one(
+async def get_episode_franchise_and_season(
+    anime_id: str,
+) -> tuple[str | None, int] | None:
+    row = await fetch_one(
         "SELECT franchise_id, season FROM animes WHERE id = :anime_id",
         {"anime_id": anime_id},
     )
@@ -60,7 +76,7 @@ def get_episode_franchise_and_season(anime_id: str) -> tuple[str | None, int] | 
     return row["franchise_id"], row["season"]
 
 
-def update_episode_status(
+async def update_episode_status(
     anime_id: str,
     episode_number: int,
     status: str,
@@ -72,22 +88,22 @@ def update_episode_status(
     if job_id is not _UNSET:
         sets.append("job_id = :job_id")
         params["job_id"] = job_id
-    execute(
+    await execute(
         f"UPDATE episodes SET {', '.join(sets)} WHERE anime_id = :anime_id AND ep_number = :ep_number",
         params,
     )
 
 
-def update_episode_size(anime_id: str, episode_number: int, size: int) -> None:
-    execute(
+async def update_episode_size(anime_id: str, episode_number: int, size: int) -> None:
+    await execute(
         "UPDATE episodes SET size = :size, updated_at = CURRENT_TIMESTAMP WHERE anime_id = :anime_id AND ep_number = :ep_number",
         {"size": size, "anime_id": anime_id, "ep_number": episode_number},
     )
 
 
-def get_started_download_count(franchise_id: str) -> int:
+async def get_started_download_count(franchise_id: str) -> int:
     return (
-        fetch_val(
+        await fetch_val(
             """
             SELECT COUNT(DISTINCT e.id)
             FROM animes a
@@ -101,15 +117,15 @@ def get_started_download_count(franchise_id: str) -> int:
     )
 
 
-def list_franchise_animes(franchise_id: str):
-    return fetch_all(
+async def list_franchise_animes(franchise_id: str):
+    return await fetch_all(
         "SELECT id, season FROM animes WHERE franchise_id = :franchise_id",
         {"franchise_id": franchise_id},
     )
 
 
-def update_anime_season(anime_id: str, season: int) -> None:
-    execute(
+async def update_anime_season(anime_id: str, season: int) -> None:
+    await execute(
         "UPDATE animes SET season = :season WHERE id = :anime_id",
         {"season": season, "anime_id": anime_id},
     )
