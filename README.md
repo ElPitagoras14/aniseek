@@ -151,6 +151,21 @@ docker compose -f compose.dev.yaml up aniseek-db aniseek-redis -d
 
 Then launch the three services from VS Code via **Tasks: Run Task** — `Run Backend`, `Run Dramatiq`, and `Run Frontend`.
 
+## Testing
+
+The backend has an automated test suite covering the atomicity of its
+transactional paths. It requires Docker running — the suite provisions its own
+ephemeral PostgreSQL database (schema built via the dbmate migrations under
+`db/migrations/`) and tears it down when it finishes, successfully or not.
+
+```bash
+cd backend
+uv run pytest
+```
+
+No other setup is needed: the suite does not use the development database, Redis,
+or the network.
+
 ## Upgrading
 
 Starting from this version, the database schema is managed by [dbmate](https://github.com/amacneil/dbmate) migrations under `db/migrations/`, applied automatically by a one-shot `aniseek-migrate` service before the API and worker start. `postgres/init.sql` no longer exists.
