@@ -1,5 +1,9 @@
 # Claude Code Instructions
 
+## Idioma
+
+- Responder siempre en español, en toda la conversación.
+
 ## Exploración del código
 
 Usar **codegraph** (`codegraph_explore`) como herramienta por defecto para explorar el proyecto, antes de recurrir a `Grep` o `Read`.
