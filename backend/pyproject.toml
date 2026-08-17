@@ -21,5 +21,20 @@ dependencies = [
 [dependency-groups]
 dev = [
     "isort>=8.0.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.15.13",
+    "testcontainers[postgres]>=4.15.0",
 ]
+
+[tool.pytest.ini_options]
+# `src` as import root: tests import app modules the same way the app does
+# (`from config import ...`), not as a nested package (see design D7).
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# Session-scoped: the app's `db` pool and the raw asyncpg pool are each set up
+# once per session (conftest.py) and reused by every test, so all async code
+# has to run on the same event loop for the whole session.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
