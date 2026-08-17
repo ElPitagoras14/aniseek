@@ -196,6 +196,8 @@ Skipping step 3 makes `aniseek-migrate` fail with a "relation already exists" er
 
 New deployments don't need any of this: the schema is built entirely from the migrations on first start.
 
+**If your deployment never set `AUTH_ENABLED`**: starting from this version, an unset `AUTH_ENABLED` makes the frontend require login, matching what the backend has always enforced. Previously an unset value silently disabled the login screen while the API still rejected every request. If you rely on running without login, set `AUTH_ENABLED=false` explicitly before upgrading.
+
 ## Deployment
 
 This project is designed for **local or self-hosted deployment** and does not include HTTPS natively.
