@@ -2,7 +2,7 @@
 
 Design summary (full rationale in the change's design.md):
 - D2: pytest starts and tears down a real, ephemeral PostgreSQL container itself.
-- D3: its schema is built by running dbmate against db/migrations/, the same
+- D3: its schema is built by running dbmate against dbmate/migrations/, the same
   artifact that builds the production schema.
 - D4: isolation between tests is by truncating mutable tables, never by wrapping
   a test in a transaction — that would degrade the transaction under test to a
@@ -36,7 +36,7 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-_DB_SOURCE_DIR = os.path.join(_REPO_ROOT, "db")
+_DBMATE_SOURCE_DIR = os.path.join(_REPO_ROOT, "dbmate")
 
 # Same major version as production (see compose.dev.yaml's aniseek-db service).
 _POSTGRES_IMAGE = "postgres:18.1-alpine"
@@ -63,7 +63,7 @@ def _apply_migrations() -> None:
         f"postgresql://{_postgres.username}:{_postgres.password}"
         f"@{_DB_ALIAS}:5432/{_postgres.dbname}?sslmode=disable",
     )
-    migrate.with_volume_mapping(_DB_SOURCE_DIR, "/db", "ro")
+    migrate.with_volume_mapping(_DBMATE_SOURCE_DIR, "/db", "ro")
     migrate.start()
     try:
         exit_code = migrate.wait()

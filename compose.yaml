@@ -97,8 +97,10 @@ services:
       retries: 5
       timeout: 5s
 
+  # Las migraciones vienen empaquetadas en la imagen: no montar nada sobre
+  # /db, eso anularia el contenido publicado con esta version.
   aniseek-migrate:
-    image: ghcr.io/amacneil/dbmate
+    image: ghcr.io/elpitagoras14/aniseek-migrate:latest
     pull_policy: always
     container_name: aniseek-migrate
     command: ["--no-dump-schema", "up"]
@@ -107,8 +109,6 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}?sslmode=disable
-    volumes:
-      - ./db:/db
 
   aniseek-redis:
     image: redis:8.4.0-alpine

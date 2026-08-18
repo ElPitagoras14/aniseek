@@ -97,7 +97,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@aniseek-db:5432/postgres?sslmode=disable
     volumes:
-      - ./db:/db
+      # Bind mount a proposito: editar una migracion surte efecto sin reconstruir.
+      - ./dbmate:/db
 
   aniseek-redis:
     image: redis:8.4.0-alpine
