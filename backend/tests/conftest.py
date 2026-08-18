@@ -55,7 +55,7 @@ def _apply_migrations() -> None:
     """Build the schema the same way production does: run dbmate against the
     ephemeral database (design D3). If `adopt-dbmate` is ever replaced, this is
     the single point to change."""
-    migrate = DockerContainer("ghcr.io/amacneil/dbmate")
+    migrate = DockerContainer("ghcr.io/amacneil/dbmate:2.35.0")
     migrate.with_network(_network)
     migrate.with_command(["--no-dump-schema", "up"])
     migrate.with_env(

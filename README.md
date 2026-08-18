@@ -172,6 +172,10 @@ Starting from this version, the database schema is managed by [dbmate](https://g
 
 The migrations ship inside the `ghcr.io/elpitagoras14/aniseek-migrate` image, published with the same version as the other services, so a deployment needs nothing on the host but `compose.yaml` and `.env`.
 
+**The dbmate version is pinned to `2.35.0` on purpose.** That image is rebuilt on every version bump, so an untagged base would quietly pull a different dbmate into the one startup step that writes to the database. Four places declare the version — `dbmate/Dockerfile`, `compose.dev.yaml`, `backend/tests/conftest.py`, and the `pg_dump` command below — and `grep -rn "amacneil/dbmate"` finds them all. Raising dbmate means changing all four together; the natural moment to consider it is the commit that bumps the service versions, since that same commit is what triggers the rebuild.
+
+That image also carries the `pg_dump` used to generate `dbmate/schema.sql`, and `pg_dump` must be at or above the server version — today `18.4` against `postgres:18.1-alpine`. With the version pinned this no longer resolves itself, so **raising the Postgres version means checking that the pinned image's client still reaches it**, and bumping dbmate along with it if it doesn't.
+
 **If your deployment already mounted the migrations directory** (`./db:/db`, or an absolute path like `/dokploy-bk/aniseek/db:/db`), **remove that mount** when you move to the new image. Leaving it in place would shadow the packaged migrations with whatever is on the host — the migration step would still succeed, with the wrong files.
 
 **If you're upgrading an existing deployment created before this change**, dbmate needs to be told that the schema it already has matches the first migration, without re-running any SQL. Do this once, **before** pulling the new images:
@@ -180,7 +184,7 @@ The migrations ship inside the `ghcr.io/elpitagoras14/aniseek-migrate` image, pu
 2. **Recommended**: verify your schema actually matches `dbmate/schema.sql` before assuming it does. Dump it with the same tool dbmate uses internally, so the comparison isn't skewed by a different `pg_dump` version:
 
    ```bash
-   docker run --rm --entrypoint pg_dump ghcr.io/amacneil/dbmate \
+   docker run --rm --entrypoint pg_dump ghcr.io/amacneil/dbmate:2.35.0 \
      --schema-only --no-owner --no-privileges "<your DB_URL>?sslmode=disable" \
      > real-schema.sql
    ```
