@@ -23,7 +23,7 @@ jobs:
       previous: ${{ steps.compare.outputs.previous }}
       should-release: ${{ steps.compare.outputs.should-release }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -69,14 +69,14 @@ jobs:
           - image: migrate
             dir: dbmate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -103,7 +103,7 @@ jobs:
 
       - name: Build image
         if: steps.decide.outputs.action == 'build'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         with:
@@ -138,7 +138,7 @@ jobs:
       # necesita emulación QEMU para arm64 pese a construir multi-arch.
       - name: Push stamped image
         if: steps.decide.outputs.action == 'stamp'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.promote
@@ -150,10 +150,10 @@ jobs:
     needs: [detect, publish]
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -176,7 +176,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.detect.outputs.version }}
           generate_release_notes: true
