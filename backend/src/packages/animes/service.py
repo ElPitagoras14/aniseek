@@ -54,30 +54,43 @@ def build_anime_response(anime_db: dict) -> dict:
     return cast_anime_info(get_anime_info_to_dict(anime_db), anime_db["saved_info"])
 
 
-async def add_new_anime(base_url: str, anime_id: str) -> None:
-    logger.debug(f"Adding anime to database: {anime_id}")
-    anime_info = await scrape_anime_info(anime_id, include_episodes=True)
+def _anime_fields_from_info(anime_info, current_time: datetime) -> dict:
     week_day = (
         anime_info.next_episode_date.strftime("%A")
         if anime_info.next_episode_date
         else None
     )
+    return {
+        "title": anime_info.title,
+        "description": anime_info.description,
+        "poster": anime_info.poster,
+        "type": anime_info.type.value,
+        "is_finished": anime_info.is_finished,
+        "week_day": week_day,
+        "last_scraped_at": current_time,
+    }
+
+
+def _episode_values(episodes, anime_id: str, base_url: str) -> list[dict]:
+    return [
+        {
+            "anime_id": anime_id,
+            "ep_number": ep.episode_number,
+            "preview": ep.image_preview,
+            "url": f"{base_url}/{ep.episode_number}",
+        }
+        for ep in episodes
+    ]
+
+
+async def add_new_anime(base_url: str, anime_id: str) -> None:
+    logger.debug(f"Adding anime to database: {anime_id}")
+    anime_info = await scrape_anime_info(anime_id, include_episodes=True)
     current_time = datetime.now(timezone.utc)
+    anime_fields = _anime_fields_from_info(anime_info, current_time)
 
     async with engine.begin() as conn:
-        await repository.upsert_scraped_anime(
-            conn,
-            {
-                "id": anime_info.id,
-                "title": anime_info.title,
-                "description": anime_info.description,
-                "poster": anime_info.poster,
-                "type": anime_info.type.value,
-                "is_finished": anime_info.is_finished,
-                "week_day": week_day,
-                "last_scraped_at": current_time,
-            },
-        )
+        await repository.upsert_scraped_anime(conn, {"id": anime_info.id, **anime_fields})
         logger.debug(f"Upserted anime: {anime_info.id}")
 
         await repository.insert_genres(conn, anime_info.id, list(anime_info.genres))
@@ -90,43 +103,29 @@ async def add_new_anime(base_url: str, anime_id: str) -> None:
             )
         logger.debug("Inserted related animes")
 
-        episode_values = [
-            {
-                "anime_id": anime_info.id,
-                "ep_number": ep.episode_number,
-                "preview": ep.image_preview,
-                "url": f"{base_url}/{ep.episode_number}",
-            }
-            for ep in anime_info.episodes
-        ]
+        episode_values = _episode_values(anime_info.episodes, anime_info.id, base_url)
         await repository.insert_episodes(conn, episode_values)
         logger.debug("Inserted episodes")
 
 
 async def update_anime_info(base_url: str, anime_id: str) -> None:
+    # Fase de recoleccion: todo el I/O externo (scraping, espera de rate limit)
+    # ocurre antes de abrir la transaccion de escritura, para no retener una
+    # conexion del pool mientras se espera una respuesta de red.
     current_time = datetime.now(timezone.utc)
     anime_info = await scrape_anime_info(anime_id, include_episodes=False)
+    anime_fields = _anime_fields_from_info(anime_info, current_time)
 
-    week_day = (
-        anime_info.next_episode_date.strftime("%A")
-        if anime_info.next_episode_date
-        else None
-    )
+    async with engine.connect() as conn:
+        last_ep_number = await repository.get_max_episode_number(conn, anime_id)
 
+    await asyncio.sleep(1.5)
+    new_episodes = await scrape_new_episodes(anime_id, last_ep_number)
+    new_episode_values = _episode_values(new_episodes, anime_id, base_url)
+
+    # Fase de escritura: una unica transaccion corta, sin I/O externo dentro.
     async with engine.begin() as conn:
-        await repository.update_anime_fields(
-            conn,
-            anime_id,
-            {
-                "title": anime_info.title,
-                "description": anime_info.description,
-                "poster": anime_info.poster,
-                "type": anime_info.type.value,
-                "is_finished": anime_info.is_finished,
-                "week_day": week_day,
-                "last_scraped_at": current_time,
-            },
-        )
+        await repository.update_anime_fields(conn, anime_id, anime_fields)
 
         for related in anime_info.related_info:
             await repository.insert_dummy_anime(conn, related.id, related.title)
@@ -134,23 +133,7 @@ async def update_anime_info(base_url: str, anime_id: str) -> None:
                 conn, anime_info.id, related.id, related_types_id[related.type.value]
             )
 
-        await asyncio.sleep(1.5)
-        last_ep_number = await repository.get_max_episode_number(conn, anime_id)
-        new_episodes = await scrape_new_episodes(anime_id, last_ep_number)
-
-        await repository.insert_new_episodes(
-            conn,
-            anime_id,
-            [
-                {
-                    "anime_id": anime_id,
-                    "ep_number": ep.episode_number,
-                    "preview": ep.image_preview,
-                    "url": f"{base_url}/{ep.episode_number}",
-                }
-                for ep in new_episodes
-            ],
-        )
+        await repository.insert_new_episodes(conn, anime_id, new_episode_values)
 
 
 async def update_anime_controller(anime_id: str, user_id: str) -> dict:

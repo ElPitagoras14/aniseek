@@ -5,6 +5,11 @@ the transaction makes after its first write, so it fails without depending on
 a schema constraint. Design D6 also notes the scraping calls have to be
 substituted regardless of where the failure lands, so no test ever reaches the
 network.
+
+decouple-anime-scrape-persist: update_anime_info now runs both scrapes (and
+the rate-limit sleep between them) before opening its write transaction, so
+scrape_new_episodes and asyncio.sleep must be substituted too — they're no
+longer shielded by a failure injected inside the transaction.
 """
 
 from datetime import datetime, timezone
@@ -31,11 +36,15 @@ def _fake_anime_info(anime_id: str, **overrides) -> AnimeInfo:
     return AnimeInfo(**fields)
 
 
-def _fake_scrape(anime_info: AnimeInfo):
+def _fake_scrape(result):
     async def _scrape(*args, **kwargs):
-        return anime_info
+        return result
 
     return _scrape
+
+
+async def _no_sleep(*args, **kwargs) -> None:
+    pass
 
 
 async def _boom(*args, **kwargs):
@@ -62,6 +71,8 @@ async def test_add_new_anime_leaves_no_trace_on_mid_transaction_failure(
 async def test_update_anime_info_keeps_previous_fields_on_mid_transaction_failure(
     raw_conn, monkeypatch
 ):
+    import asyncio
+
     from packages.animes import repository, service
 
     anime_id = "atomic-update-anime"
@@ -88,6 +99,11 @@ async def test_update_anime_info_keeps_previous_fields_on_mid_transaction_failur
         related_info=[RelatedInfo(id="related-anime", title="Related", type=RelatedType.SEQUEL)],
     )
     monkeypatch.setattr(service, "scrape_anime_info", _fake_scrape(fake_info))
+    # Both scrapes and the rate-limit sleep now run before the write
+    # transaction opens, so they must be substituted regardless of where the
+    # failure lands inside that transaction.
+    monkeypatch.setattr(service, "scrape_new_episodes", _fake_scrape([]))
+    monkeypatch.setattr(asyncio, "sleep", _no_sleep)
     # First write is update_anime_fields; interrupt right after it, in the
     # related_info loop.
     monkeypatch.setattr(repository, "insert_dummy_anime", _boom)
