@@ -9,6 +9,7 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@/components/ui/sidebar";
+import { appVersion } from "@/config";
 import { mainNavigationData, secondaryNavigationData } from "../sidebar-data";
 import { NavMain } from "./nav-main";
 import { NavSecondary } from "./nav-secondary";
@@ -35,7 +36,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 								<div className="grid flex-1 text-left text-sm leading-tight">
 									<span className="truncate font-medium">AniSeek</span>
 									<span className="text-xs text-muted-foreground font-mono">
-										v{__APP_VERSION__}
+										v{appVersion}
 									</span>
 								</div>
 							</div>

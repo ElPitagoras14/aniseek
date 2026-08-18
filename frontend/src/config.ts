@@ -58,3 +58,17 @@ export const isAuthEnabled: boolean = resolve(
 	parseAuthEnabled,
 	true,
 );
+
+// APP_VERSION: cualquier string no vacío cuenta como configurado. La cadena
+// vacía —lo que escribe envsubst para una variable ausente— cuenta como
+// ausencia, para que la interfaz no aparente un release que no existe.
+const parseAppVersion: Parser<string> = (raw) =>
+	typeof raw === "string" && raw !== "" ? raw : undefined;
+
+// Sin capa de build-time: la imagen siempre trae el archivo, y en desarrollo
+// la clave se resuelve por el `.env` de la raíz o cae al default.
+export const appVersion: string = resolve(
+	[config?.APP_VERSION],
+	parseAppVersion,
+	"dev",
+);

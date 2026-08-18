@@ -10,6 +10,9 @@ RUN pnpm run build
 
 FROM nginx:stable-alpine AS production
 
+ARG APP_VERSION
+RUN printf '%s' "$APP_VERSION" > /app-version
+
 RUN apk add --no-cache gettext
 
 COPY --from=builder /app/dist /usr/share/nginx/html

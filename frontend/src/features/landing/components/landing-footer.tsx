@@ -1,4 +1,5 @@
 import { Separator } from "@/components/ui/separator";
+import { appVersion } from "@/config";
 import { LandingLogo } from "./landing-logo";
 
 export function LandingFooter() {
@@ -10,7 +11,7 @@ export function LandingFooter() {
 						<LandingLogo />
 						<Separator orientation="vertical" className="h-4" />
 						<span className="font-mono text-xs text-muted-foreground">
-							v{__APP_VERSION__}
+							v{appVersion}
 						</span>
 					</div>
 					<div className="flex flex-col items-center gap-1 sm:items-end">

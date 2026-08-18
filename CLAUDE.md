@@ -28,4 +28,5 @@ Recurrir a `Grep` o `Read` cuando codegraph no aplica: archivos que no son códi
 
 ## Versiones
 
-- Al cambiar la versión en cualquier `pyproject.toml`, ejecutar `uv lock` en ese directorio para mantener el `uv.lock` sincronizado.
+- El número de versión de un release vive únicamente en `VERSION`, en la raíz del repositorio. Los campos `version` de `backend/pyproject.toml`, `worker/pyproject.toml` y `frontend/package.json` quedan congelados y no participan del release.
+- Para publicar un release: bumpear `VERSION` a un valor estrictamente mayor (semver) e integrarlo a `main`. El pipeline de release (`release.yml`) se dispara con ese push y compara contra el tag más alto ya publicado.

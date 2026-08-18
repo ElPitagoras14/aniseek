@@ -6,8 +6,6 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
-const { version } = JSON.parse(readFileSync("./package.json", "utf-8"));
-
 const ENV_DIR = "..";
 
 // Sirve /config.js en desarrollo igual que entrypoint.sh lo escribe en el
@@ -58,7 +56,6 @@ export default defineConfig(({ mode }) => {
 	return {
 		envDir: ENV_DIR,
 		define: {
-			__APP_VERSION__: JSON.stringify(version),
 			__API_URL__: JSON.stringify(env.API_URL),
 			__AUTH_ENABLED__: JSON.stringify(env.AUTH_ENABLED),
 		},
