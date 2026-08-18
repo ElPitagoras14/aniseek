@@ -31,3 +31,4 @@ Recurrir a `Grep` o `Read` cuando codegraph no aplica: archivos que no son códi
 
 - El número de versión de un release vive únicamente en `VERSION`, en la raíz del repositorio. Los campos `version` de `backend/pyproject.toml`, `worker/pyproject.toml` y `frontend/package.json` quedan congelados y no participan del release.
 - Para publicar un release: bumpear `VERSION` a un valor estrictamente mayor (semver) e integrarlo a `main`. El pipeline de release (`release.yml`) se dispara con ese push y compara contra el tag más alto ya publicado.
+- Al cerrar un PR que amerite release (incluyendo la implementación de un change de OpenSpec), bumpear `VERSION` como parte de ese mismo PR, no como un paso aparte que se pueda olvidar.
