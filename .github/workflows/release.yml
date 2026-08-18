@@ -106,6 +106,7 @@ jobs:
         uses: docker/build-push-action@v7
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           provenance: false
           sbom: false
@@ -139,6 +140,8 @@ jobs:
       - name: Push stamped image
         if: steps.decide.outputs.action == 'stamp'
         uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
           file: Dockerfile.promote

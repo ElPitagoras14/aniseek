@@ -20,6 +20,7 @@ Recurrir a `Grep` o `Read` cuando codegraph no aplica: archivos que no son códi
 
 - No hacer commit automáticamente después de cada cambio. Solo hacer commit cuando el usuario lo pida explícitamente.
 - No agregar coautor (`Co-Authored-By`) a los commits.
+- Los mensajes de commit siguen conventional commits en inglés, con descripción corta (sin cuerpo extenso salvo que se pida explícitamente).
 
 ## OpenSpec
 
