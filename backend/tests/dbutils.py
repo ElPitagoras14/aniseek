@@ -4,8 +4,8 @@ imported from test modules too (see test_infra_smoke.py)."""
 
 # Tables that hold reference data the application depends on, plus dbmate's own
 # migration-tracking table. Truncating them between tests would either wipe seed
-# data (role_types, related_types, avatars — see db/migrations/) or make dbmate
-# think its migrations need re-applying. Keep this in sync with db/migrations/
+# data (role_types, related_types, avatars — see dbmate/migrations/) or make dbmate
+# think its migrations need re-applying. Keep this in sync with dbmate/migrations/
 # when a new reference table is added (see spec: "Una tabla nueva queda cubierta
 # sin tocar la infraestructura").
 PRESERVED_TABLES = frozenset({"role_types", "related_types", "avatars", "schema_migrations"})
