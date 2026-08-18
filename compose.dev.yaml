@@ -10,7 +10,7 @@ services:
     ports:
       - 3000:80
     environment:
-      - AUTH_ENABLED=false
+      - AUTH_ENABLED=False
 
   aniseek-api:
     build:
