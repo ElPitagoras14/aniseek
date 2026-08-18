@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-08-18
+goal: Fijar dbmate a la version 2.35.0 en todas sus referencias, en vez de usar
+  el tag flotante

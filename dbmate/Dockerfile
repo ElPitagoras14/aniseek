@@ -1,4 +1,9 @@
-FROM ghcr.io/amacneil/dbmate
+# Version exacta a proposito: esta imagen se reconstruye en cada bump de version
+# del proyecto, asi que sin tag el rebuild traeria un dbmate distinto en silencio.
+# Las otras tres referencias a la imagen publica —compose.dev.yaml, la suite de
+# pruebas del backend y el README— declaran esta misma version; subirla implica
+# tocar las cuatro (`grep -rn "amacneil/dbmate"`).
+FROM ghcr.io/amacneil/dbmate:2.35.0
 
 # El directorio del repositorio viaja adentro de la imagen: un despliegue con
 # imagenes pre-construidas no necesita las migraciones en el host.
