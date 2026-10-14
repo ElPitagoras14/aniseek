@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10.14"
 dependencies = [
     "aiohttp>=3.9.0",
-    "ani-scrapy>=0.6.2",
+    "ani-scrapy==0.8.0",
     "dramatiq[redis]>=1.19.0",
     "loguru>=0.7.3",
     "psycopg[binary]>=3.2.0",

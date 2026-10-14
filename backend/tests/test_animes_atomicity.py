@@ -1,15 +1,9 @@
-"""Atomicity of the two transactional paths in packages/animes/service.py.
+"""Atomicity of the single sync flow in packages/animes/service.py.
 
-Design D6: the failure is injected by substituting one of the repository calls
-the transaction makes after its first write, so it fails without depending on
-a schema constraint. Design D6 also notes the scraping calls have to be
-substituted regardless of where the failure lands, so no test ever reaches the
-network.
-
-decouple-anime-scrape-persist: update_anime_info now runs both scrapes (and
-the rate-limit sleep between them) before opening its write transaction, so
-scrape_new_episodes and asyncio.sleep must be substituted too — they're no
-longer shielded by a failure injected inside the transaction.
+The failure is injected by substituting one of the repository calls
+_persist_snapshot makes after its first write, so it fails without depending
+on a schema constraint. The scrape is always substituted, so no test ever
+reaches the network.
 """
 
 from datetime import datetime, timezone
@@ -43,15 +37,11 @@ def _fake_scrape(result):
     return _scrape
 
 
-async def _no_sleep(*args, **kwargs) -> None:
-    pass
-
-
 async def _boom(*args, **kwargs):
     raise RuntimeError("boom")
 
 
-async def test_add_new_anime_leaves_no_trace_on_mid_transaction_failure(
+async def test_sync_of_new_anime_leaves_no_trace_on_mid_transaction_failure(
     raw_conn, monkeypatch
 ):
     from packages.animes import repository, service
@@ -62,17 +52,15 @@ async def test_add_new_anime_leaves_no_trace_on_mid_transaction_failure(
     monkeypatch.setattr(repository, "insert_genres", _boom)
 
     with pytest.raises(RuntimeError, match="boom"):
-        await service.add_new_anime("https://example.test", anime_id)
+        await service.sync_anime(anime_id)
 
     row = await raw_conn.fetchrow("SELECT id FROM animes WHERE id = $1", anime_id)
     assert row is None
 
 
-async def test_update_anime_info_keeps_previous_fields_on_mid_transaction_failure(
+async def test_sync_of_existing_anime_keeps_previous_state_on_mid_transaction_failure(
     raw_conn, monkeypatch
 ):
-    import asyncio
-
     from packages.animes import repository, service
 
     anime_id = "atomic-update-anime"
@@ -99,17 +87,12 @@ async def test_update_anime_info_keeps_previous_fields_on_mid_transaction_failur
         related_info=[RelatedInfo(id="related-anime", title="Related", type=RelatedType.SEQUEL)],
     )
     monkeypatch.setattr(service, "scrape_anime_info", _fake_scrape(fake_info))
-    # Both scrapes and the rate-limit sleep now run before the write
-    # transaction opens, so they must be substituted regardless of where the
-    # failure lands inside that transaction.
-    monkeypatch.setattr(service, "scrape_new_episodes", _fake_scrape([]))
-    monkeypatch.setattr(asyncio, "sleep", _no_sleep)
-    # First write is update_anime_fields; interrupt right after it, in the
-    # related_info loop.
-    monkeypatch.setattr(repository, "insert_dummy_anime", _boom)
+    # upsert_scraped_anime and insert_genres have already written by now;
+    # interrupt on the relations write.
+    monkeypatch.setattr(repository, "upsert_relations", _boom)
 
     with pytest.raises(RuntimeError, match="boom"):
-        await service.update_anime_info("https://example.test", anime_id)
+        await service.sync_anime(anime_id)
 
     row = await raw_conn.fetchrow(
         """
@@ -124,3 +107,5 @@ async def test_update_anime_info_keeps_previous_fields_on_mid_transaction_failur
     assert row["is_finished"] is False
     assert row["week_day"] == "Monday"
     assert row["last_scraped_at"] == previous_last_scraped
+    genres = await raw_conn.fetch("SELECT name FROM genres WHERE anime_id = $1", anime_id)
+    assert genres == []

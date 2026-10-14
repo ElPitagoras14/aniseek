@@ -16,6 +16,7 @@ class EpisodeInfo(CamelCaseModel):
     id: int
     anime_id: str
     image_preview: str | None = None
+    url: str
     is_user_downloaded: bool
     is_global_downloaded: bool
 
@@ -44,7 +45,6 @@ class SearchAnimeResultListOut(SuccessResponse):
 
 class Anime(BaseAnime):
     season: int | None = None
-    platform: str
     description: str
     genres: list[str]
     related_info: list[RelatedInfo]

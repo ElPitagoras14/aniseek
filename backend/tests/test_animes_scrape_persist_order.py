@@ -1,20 +1,21 @@
-"""decouple-anime-scrape-persist: covers the two things that change in
-packages/animes/service.py:
-
-- The pure mapping helpers (_anime_fields_from_info, _episode_values)
-  extracted out of add_new_anime/update_anime_info — no I/O, so no database
-  or scraping fixtures needed.
-- That update_anime_info actually performs both scrapes (and the rate-limit
-  sleep between them) before it opens its write transaction, not just after
-  the reorder "looks right" in the diff.
-"""
+"""Pure mapping helpers of packages/animes (no I/O) and the ordering of the
+single sync flow: the scrape happens exactly once and before the write
+transaction opens."""
 
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
-from ani_scrapy.core import AnimeType, EpisodeInfo
+from ani_scrapy.core import AnimeType, EpisodeInfo, RelatedInfo, RelatedType
 from factories import create_anime
 
-from test_animes_atomicity import _fake_anime_info, _no_sleep
+from test_animes_atomicity import _fake_anime_info
+
+
+def test_episode_url_follows_provider_format():
+    from packages.animes.catalog import episode_url, media_url
+
+    assert episode_url("x", 3) == "https://animeav1.com/media/x/3"
+    assert media_url("x") == "https://animeav1.com/media/x"
 
 
 def test_anime_fields_from_info_maps_columns_without_week_day():
@@ -56,20 +57,20 @@ def test_episode_values_maps_episodes_to_insertable_rows():
         EpisodeInfo(episode_number=2, anime_id="anime-1", image_preview=None),
     ]
 
-    values = _episode_values(episodes, "anime-1", "https://example.test/media/anime-1")
+    values = _episode_values(episodes, "anime-1")
 
     assert values == [
         {
             "anime_id": "anime-1",
             "ep_number": 1,
             "preview": "preview-1.png",
-            "url": "https://example.test/media/anime-1/1",
+            "url": "https://animeav1.com/media/anime-1/1",
         },
         {
             "anime_id": "anime-1",
             "ep_number": 2,
             "preview": None,
-            "url": "https://example.test/media/anime-1/2",
+            "url": "https://animeav1.com/media/anime-1/2",
         },
     ]
 
@@ -77,47 +78,57 @@ def test_episode_values_maps_episodes_to_insertable_rows():
 def test_episode_values_of_empty_list_is_empty():
     from packages.animes.service import _episode_values
 
-    assert _episode_values([], "anime-1", "https://example.test") == []
+    assert _episode_values([], "anime-1") == []
 
 
-async def test_update_anime_info_scrapes_before_opening_write_transaction(
-    raw_conn, monkeypatch
-):
-    import asyncio
+def test_relation_rows_maps_known_types_and_skips_unknown_ones():
+    from packages.animes.service import _relation_rows
 
+    info = SimpleNamespace(
+        id="anime-1",
+        related_info=[
+            RelatedInfo(id="seq", title="Sequel T", type=RelatedType.SEQUEL),
+            SimpleNamespace(id="odd", title="Odd", type=SimpleNamespace(value="Spin-off")),
+        ],
+    )
+
+    placeholders, relations = _relation_rows(info)
+
+    assert placeholders == [{"id": "seq", "title": "Sequel T"}]
+    assert relations == [
+        {"anime_id": "anime-1", "related_anime_id": "seq", "type_related_id": 2}
+    ]
+
+
+async def test_sync_scrapes_once_before_opening_write_transaction(raw_conn, monkeypatch):
     from packages.animes import repository, service
 
     anime_id = "order-update-anime"
     await create_anime(raw_conn, anime_id=anime_id, title="Previous Title")
 
     call_order = []
-
-    def _tracking_scrape(name, result):
-        async def _scrape(*args, **kwargs):
-            call_order.append(name)
-            return result
-
-        return _scrape
-
+    scrape_calls = []
     fake_info = _fake_anime_info(anime_id, related_info=[])
-    monkeypatch.setattr(
-        service, "scrape_anime_info", _tracking_scrape("scrape_anime_info", fake_info)
-    )
-    monkeypatch.setattr(
-        service, "scrape_new_episodes", _tracking_scrape("scrape_new_episodes", [])
-    )
-    monkeypatch.setattr(asyncio, "sleep", _no_sleep)
 
-    original_update_anime_fields = repository.update_anime_fields
+    async def _tracking_scrape(*args, **kwargs):
+        scrape_calls.append((args, kwargs))
+        call_order.append("scrape_anime_info")
+        return fake_info
 
-    async def _tracking_update_anime_fields(conn, anime_id, values):
-        # The first write inside update_anime_info's transaction: reaching it
-        # proves the write transaction has opened by this point.
-        call_order.append("update_anime_fields")
-        return await original_update_anime_fields(conn, anime_id, values)
+    monkeypatch.setattr(service, "scrape_anime_info", _tracking_scrape)
 
-    monkeypatch.setattr(repository, "update_anime_fields", _tracking_update_anime_fields)
+    original = repository.upsert_scraped_anime
 
-    await service.update_anime_info("https://example.test", anime_id)
+    async def _tracking_upsert(conn, values):
+        # First write inside the transaction: reaching it proves the write
+        # transaction has opened by this point.
+        call_order.append("upsert_scraped_anime")
+        return await original(conn, values)
 
-    assert call_order == ["scrape_anime_info", "scrape_new_episodes", "update_anime_fields"]
+    monkeypatch.setattr(repository, "upsert_scraped_anime", _tracking_upsert)
+
+    await service.sync_anime(anime_id)
+
+    assert len(scrape_calls) == 1
+    assert scrape_calls[0][1].get("include_episodes", True) is True
+    assert call_order == ["scrape_anime_info", "upsert_scraped_anime"]

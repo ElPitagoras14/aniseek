@@ -5,11 +5,10 @@ import { EpisodesTable } from "./episodes-table";
 
 interface EpisodesTabProps {
 	animeId: string;
-	platform: string;
 	episodes: EpisodeInfo[];
 }
 
-export function EpisodesTab({ animeId, platform, episodes }: EpisodesTabProps) {
+export function EpisodesTab({ animeId, episodes }: EpisodesTabProps) {
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
 	const toggleSort = () => setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
@@ -26,7 +25,6 @@ export function EpisodesTab({ animeId, platform, episodes }: EpisodesTabProps) {
 			)}
 			<EpisodesTable
 				animeId={animeId}
-				platform={platform}
 				episodes={episodes}
 				sortOrder={sortOrder}
 			/>

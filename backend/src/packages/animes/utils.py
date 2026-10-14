@@ -20,7 +20,6 @@ def cast_anime_info(anime: dict, saved: dict) -> Anime:
         is_saved=saved["is_saved"],
         save_date=saved["save_date"],
         season=1,
-        platform="AnimeAV1",
         description=anime["description"],
         genres=anime["genres"],
         related_info=[
@@ -35,6 +34,7 @@ def cast_anime_info(anime: dict, saved: dict) -> Anime:
                 id=ep["id"],
                 anime_id=ep["anime_id"],
                 image_preview=ep["image_preview"],
+                url=ep["url"],
                 is_user_downloaded=ep["is_user_downloaded"],
                 is_global_downloaded=ep["is_global_downloaded"],
             )

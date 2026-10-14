@@ -7,6 +7,7 @@ from packages.auth import auth_scheme
 from exceptions import ConflictError, NotFoundError, TooManyRequestsError
 
 from . import repository
+from .service import is_scraped
 
 
 async def valid_anime_for_update(
@@ -17,10 +18,10 @@ async def valid_anime_for_update(
     async with engine.connect() as conn:
         anime = await repository.get_anime_by_id(conn, anime_id)
 
-    if not anime or not anime["last_scraped_at"]:
+    if not is_scraped(anime):
         raise NotFoundError(
             "Anime not found or not yet created. "
-            "Use GET /animes/info/{anime_id} to create it first."
+            "Use GET /animes/{anime_id} to create it first."
         )
 
     current_time = datetime.now(timezone.utc)

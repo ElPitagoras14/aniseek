@@ -11,12 +11,10 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { downloadEpisode } from "@/features/anime/api";
-import { buildEpisodeUrl } from "@/features/anime/lib/build-episode-url";
 import type { EpisodeInfo } from "@/features/anime/types";
 
 interface EpisodesTableProps {
 	animeId: string;
-	platform: string;
 	episodes: EpisodeInfo[];
 	sortOrder: "asc" | "desc";
 }
@@ -54,7 +52,6 @@ function DownloadedIcon({ ep }: { ep: EpisodeInfo }) {
 
 export function EpisodesTable({
 	animeId,
-	platform,
 	episodes,
 	sortOrder,
 }: EpisodesTableProps) {
@@ -141,7 +138,6 @@ export function EpisodesTable({
 					>
 						{virtualizer.getVirtualItems().map((virtualRow) => {
 							const ep = sortedEpisodes[virtualRow.index];
-							const episodeUrl = buildEpisodeUrl(platform, animeId, ep.id);
 
 							return (
 								<div
@@ -172,11 +168,7 @@ export function EpisodesTable({
 											<Download className="size-4" />
 										</Button>
 
-										<a
-											href={episodeUrl || "#"}
-											target="_blank"
-											rel="noreferrer"
-										>
+										<a href={ep.url} target="_blank" rel="noreferrer">
 											<Button variant="ghost" size="icon">
 												<Play className="size-4" />
 											</Button>

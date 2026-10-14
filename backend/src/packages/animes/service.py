@@ -8,7 +8,8 @@ from database.client import engine
 from database.utils import related_types_id
 
 from . import repository
-from .scraper import scrape_anime_info, scrape_new_episodes, scrape_search_anime
+from .catalog import episode_url
+from .scraper import scrape_anime_info, scrape_search_anime
 from .utils import (
     cast_anime_info,
     cast_in_emission_anime_list,
@@ -42,6 +43,7 @@ def get_anime_info_to_dict(anime_db: dict) -> dict:
                 "id": ep["ep_number"],
                 "anime_id": ep["anime_id"],
                 "image_preview": ep["preview"],
+                "url": ep["url"],
                 "is_user_downloaded": ep["is_user_downloaded"],
                 "is_global_downloaded": ep["is_global_downloaded"],
             }
@@ -71,74 +73,103 @@ def _anime_fields_from_info(anime_info, current_time: datetime) -> dict:
     }
 
 
-def _episode_values(episodes, anime_id: str, base_url: str) -> list[dict]:
+def _episode_values(episodes, anime_id: str) -> list[dict]:
     return [
         {
             "anime_id": anime_id,
             "ep_number": ep.episode_number,
             "preview": ep.image_preview,
-            "url": f"{base_url}/{ep.episode_number}",
+            "url": episode_url(anime_id, ep.episode_number),
         }
         for ep in episodes
     ]
 
 
-async def add_new_anime(base_url: str, anime_id: str) -> None:
-    logger.debug(f"Adding anime to database: {anime_id}")
-    anime_info = await scrape_anime_info(anime_id, include_episodes=True)
-    current_time = datetime.now(timezone.utc)
+def _relation_rows(anime_info) -> tuple[list[dict], list[dict]]:
+    """Builds the placeholder-anime rows and the relation rows for a scraped
+    anime. Relations whose type is unknown are logged and skipped."""
+    placeholders: list[dict] = []
+    relations: list[dict] = []
+    for related in anime_info.related_info:
+        type_id = related_types_id.get(related.type.value)
+        if type_id is None:
+            logger.warning(
+                f"Skipping relation {anime_info.id} -> {related.id}: "
+                f"unknown relation type {related.type.value!r}"
+            )
+            continue
+        placeholders.append({"id": related.id, "title": related.title})
+        relations.append(
+            {
+                "anime_id": anime_info.id,
+                "related_anime_id": related.id,
+                "type_related_id": type_id,
+            }
+        )
+    return placeholders, relations
+
+
+def is_scraped(row: dict | None) -> bool:
+    """An anime counts as scraped only if a sync has completed for it; a
+    placeholder row (created as someone's relation) is treated as missing."""
+    return bool(row and row.get("last_scraped_at"))
+
+
+async def _scrape_snapshot(anime_id: str):
+    # Single GET to the provider, with no DB connection held.
+    return await scrape_anime_info(anime_id, include_episodes=True)
+
+
+async def _persist_snapshot(conn, anime_info, current_time: datetime) -> None:
     anime_fields = _anime_fields_from_info(anime_info, current_time)
+    await repository.upsert_scraped_anime(conn, {"id": anime_info.id, **anime_fields})
+    await repository.insert_genres(conn, anime_info.id, list(anime_info.genres))
+    placeholders, relations = _relation_rows(anime_info)
+    await repository.upsert_relations(conn, placeholders, relations)
+    await repository.insert_episodes(
+        conn, _episode_values(anime_info.episodes, anime_info.id)
+    )
+
+
+async def _do_sync(anime_id: str) -> None:
+    logger.debug(f"Syncing anime: {anime_id}")
+    # All external I/O happens before the write transaction opens, so no pool
+    # connection is held while waiting on the network.
+    current_time = datetime.now(timezone.utc)
+    anime_info = await _scrape_snapshot(anime_id)
 
     async with engine.begin() as conn:
-        await repository.upsert_scraped_anime(conn, {"id": anime_info.id, **anime_fields})
-        logger.debug(f"Upserted anime: {anime_info.id}")
-
-        await repository.insert_genres(conn, anime_info.id, list(anime_info.genres))
-        logger.debug("Inserted genres")
-
-        for related in anime_info.related_info:
-            await repository.insert_dummy_anime(conn, related.id, related.title)
-            await repository.insert_anime_relation(
-                conn, anime_info.id, related.id, related_types_id[related.type.value]
-            )
-        logger.debug("Inserted related animes")
-
-        episode_values = _episode_values(anime_info.episodes, anime_info.id, base_url)
-        await repository.insert_episodes(conn, episode_values)
-        logger.debug("Inserted episodes")
+        await _persist_snapshot(conn, anime_info, current_time)
 
 
-async def update_anime_info(base_url: str, anime_id: str) -> None:
-    # Fase de recoleccion: todo el I/O externo (scraping, espera de rate limit)
-    # ocurre antes de abrir la transaccion de escritura, para no retener una
-    # conexion del pool mientras se espera una respuesta de red.
-    current_time = datetime.now(timezone.utc)
-    anime_info = await scrape_anime_info(anime_id, include_episodes=False)
-    anime_fields = _anime_fields_from_info(anime_info, current_time)
+# Single-flight de syncs por anime. Supone UN solo proceso del backend
+# (uvicorn sin workers, un unico contenedor): con varios procesos o replicas
+# esto deja de deduplicar y habria que migrar a un lock en Redis.
+_sync_inflight: dict[str, asyncio.Task] = {}
 
+
+async def sync_anime(anime_id: str) -> None:
+    task = _sync_inflight.get(anime_id)
+    if task is None:
+        task = asyncio.create_task(_do_sync(anime_id))
+        _sync_inflight[anime_id] = task
+        # Drop the entry whether it succeeded or failed, so errors aren't memoized.
+        task.add_done_callback(lambda _: _sync_inflight.pop(anime_id, None))
+    # shield: if a waiter is cancelled (client disconnect), the shared sync
+    # that other waiters depend on keeps running.
+    await asyncio.shield(task)
+
+
+async def ensure_anime_scraped(anime_id: str) -> None:
     async with engine.connect() as conn:
-        last_ep_number = await repository.get_max_episode_number(conn, anime_id)
-
-    await asyncio.sleep(1.5)
-    new_episodes = await scrape_new_episodes(anime_id, last_ep_number)
-    new_episode_values = _episode_values(new_episodes, anime_id, base_url)
-
-    # Fase de escritura: una unica transaccion corta, sin I/O externo dentro.
-    async with engine.begin() as conn:
-        await repository.update_anime_fields(conn, anime_id, anime_fields)
-
-        for related in anime_info.related_info:
-            await repository.insert_dummy_anime(conn, related.id, related.title)
-            await repository.insert_anime_relation(
-                conn, anime_info.id, related.id, related_types_id[related.type.value]
-            )
-
-        await repository.insert_new_episodes(conn, anime_id, new_episode_values)
+        anime_db = await repository.get_anime_by_id(conn, anime_id)
+    if not is_scraped(anime_db):
+        logger.debug(f"Anime {anime_id} not scraped yet, syncing...")
+        await sync_anime(anime_id)
 
 
 async def update_anime_controller(anime_id: str, user_id: str) -> dict:
-    base_url = f"https://animeav1.com/media/{anime_id}"
-    await update_anime_info(base_url, anime_id)
+    await sync_anime(anime_id)
     async with engine.connect() as conn:
         anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
     return build_anime_response(anime_db)
@@ -146,17 +177,9 @@ async def update_anime_controller(anime_id: str, user_id: str) -> dict:
 
 async def get_anime_controller(anime_id: str, user_id: str) -> dict:
     logger.debug(f"Getting anime with id: {anime_id}")
-    base_url = f"https://animeav1.com/media/{anime_id}"
-
+    await ensure_anime_scraped(anime_id)
     async with engine.connect() as conn:
         anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
-
-    if not anime_db or not anime_db.get("last_scraped_at"):
-        logger.debug("Anime not in DB or dummy row found, creating...")
-        await add_new_anime(base_url, anime_id)
-        async with engine.connect() as conn:
-            anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
-
     return build_anime_response(anime_db)
 
 
@@ -208,12 +231,7 @@ async def get_saved_animes_controller(user_id: str) -> dict:
 
 async def save_anime_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Saving anime with id: {anime_id}")
-    base_url = f"https://animeav1.com/media/{anime_id}"
-
-    async with engine.connect() as conn:
-        anime_db = await repository.get_anime_by_id(conn, anime_id)
-    if not anime_db or not anime_db.get("last_scraped_at"):
-        await add_new_anime(base_url, anime_id)
+    await ensure_anime_scraped(anime_id)
 
     async with engine.begin() as conn:
         await repository.insert_user_saved_anime(conn, user_id, anime_id)
