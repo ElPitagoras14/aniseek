@@ -7,6 +7,7 @@ export interface RelatedInfo {
 export interface EpisodeInfo {
 	id: number;
 	animeId: string;
+	url: string;
 	imagePreview: string;
 	isUserDownloaded: boolean;
 	isGlobalDownloaded: boolean;
@@ -20,7 +21,6 @@ export interface AnimeDetail {
 	isSaved: boolean;
 	saveDate: string | null;
 	season: number | null;
-	platform: string;
 	description: string;
 	genres: string[];
 	relatedInfo: RelatedInfo[];

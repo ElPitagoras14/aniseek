@@ -4,14 +4,14 @@ import type { AnimeDetail } from "@/features/anime/types";
 
 function translateRelatedType(type: string): string {
 	switch (type) {
-		case "sequel":
-			return "Sequel";
 		case "prequel":
 			return "Prequel";
+		case "sequel":
+			return "Sequel";
+		case "alternative":
+			return "Alternative";
 		case "spin_off":
 			return "Spin-off";
-		case "side_story":
-			return "Side Story";
 		default:
 			return type.charAt(0).toUpperCase() + type.slice(1);
 	}

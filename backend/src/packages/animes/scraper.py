@@ -1,8 +1,16 @@
 from urllib.parse import urlparse
 
 from ani_scrapy import AnimeAV1Scraper
-from ani_scrapy.core import AnimeInfo, EpisodeInfo, PagedSearchAnimeInfo
+from ani_scrapy.core import (
+    AnimeInfo,
+    PagedSearchAnimeInfo,
+    ScraperBlockedError,
+    ScraperError,
+    ScraperNotFoundError,
+)
 from loguru import logger
+
+from exceptions import ExternalServiceError, NotFoundError, TooManyRequestsError
 
 
 def _normalize_anime_id(anime_id: str) -> str:
@@ -15,6 +23,17 @@ def _normalize_anime_id(anime_id: str) -> str:
     return anime_id
 
 
+def _translate_scraper_error(exc: ScraperError) -> Exception:
+    """Maps ani-scrapy errors to API errors. `status_code` may be None."""
+    status = getattr(exc, "status_code", None)
+    logger.warning(f"Provider error {type(exc).__name__} (status={status}): {exc}")
+    if isinstance(exc, ScraperNotFoundError):
+        return NotFoundError("Anime not found in the catalog provider")
+    if isinstance(exc, ScraperBlockedError):
+        return TooManyRequestsError("The catalog provider is blocking requests")
+    return ExternalServiceError("The catalog provider failed to respond correctly")
+
+
 async def scrape_anime_info(
     anime_id: str,
     include_episodes: bool = True,
@@ -22,25 +41,14 @@ async def scrape_anime_info(
     anime_id = _normalize_anime_id(anime_id)
     logger.debug(f"Scraping anime info: {anime_id}")
 
-    async with AnimeAV1Scraper() as scraper:
-        return await scraper.get_anime_info(
-            anime_id=anime_id,
-            include_episodes=include_episodes,
-        )
-
-
-async def scrape_new_episodes(
-    anime_id: str,
-    last_episode_number: int,
-) -> list[EpisodeInfo]:
-    anime_id = _normalize_anime_id(anime_id)
-    logger.debug(f"Scraping new episodes: {anime_id} after {last_episode_number}")
-
-    async with AnimeAV1Scraper() as scraper:
-        return await scraper.get_new_episodes(
-            anime_id=anime_id,
-            last_episode_number=last_episode_number,
-        )
+    try:
+        async with AnimeAV1Scraper() as scraper:
+            return await scraper.get_anime_info(
+                anime_id=anime_id,
+                include_episodes=include_episodes,
+            )
+    except ScraperError as exc:
+        raise _translate_scraper_error(exc) from exc
 
 
 async def scrape_search_anime(
@@ -48,7 +56,10 @@ async def scrape_search_anime(
 ) -> PagedSearchAnimeInfo:
     logger.debug(f"Searching anime: {query}")
 
-    async with AnimeAV1Scraper() as scraper:
-        return await scraper.search_anime(
-            query=query,
-        )
+    try:
+        async with AnimeAV1Scraper() as scraper:
+            return await scraper.search_anime(
+                query=query,
+            )
+    except ScraperError as exc:
+        raise _translate_scraper_error(exc) from exc

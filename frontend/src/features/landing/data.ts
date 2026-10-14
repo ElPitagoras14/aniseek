@@ -64,7 +64,7 @@ export const LANDING_FEATURES: LandingFeature[] = [
 		icon: Globe,
 		title: "Multi-Source Support",
 		description:
-			"AniSeek aggregates content from AnimeFLV, JKAnime, and AnimeAV1 so you always have a working mirror, even when one source goes down.",
+			"AniSeek aggregates content from JKAnime and AnimeAV1 so you always have a working mirror, even when one source goes down.",
 		iconClassName: "text-rose-500",
 	},
 ];
@@ -96,4 +96,4 @@ export const LANDING_STEPS: LandingStep[] = [
 	},
 ];
 
-export const LANDING_SOURCES = ["AnimeFLV", "JKAnime", "AnimeAV1"] as const;
+export const LANDING_SOURCES = ["JKAnime", "AnimeAV1"] as const;

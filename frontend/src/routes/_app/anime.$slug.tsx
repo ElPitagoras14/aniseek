@@ -62,11 +62,7 @@ function AnimeDetailPage() {
 							<InfoTab anime={anime} />
 						</TabsContent>
 						<TabsContent value="episodes" className="mt-2">
-							<EpisodesTab
-								animeId={anime.id}
-								platform={anime.platform}
-								episodes={anime.episodes}
-							/>
+							<EpisodesTab animeId={anime.id} episodes={anime.episodes} />
 						</TabsContent>
 					</Tabs>
 				</div>

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from database.client import execute, execute_many, fetch_all, fetch_one, fetch_val
+from database.client import execute, execute_many, fetch_all, fetch_one
 
 
 async def get_anime_by_id(conn: AsyncConnection, anime_id: str) -> dict | None:
@@ -114,14 +114,31 @@ async def upsert_scraped_anime(conn: AsyncConnection, values: dict) -> None:
     await execute(conn, query, values)
 
 
-async def insert_dummy_anime(conn: AsyncConnection, anime_id: str, title: str) -> None:
-    """INSERT with ON CONFLICT DO NOTHING — for placeholder animes used in relations."""
-    query = """
-        INSERT INTO animes (id, title)
-        VALUES (:id, :title)
-        ON CONFLICT (id) DO NOTHING
-    """
-    await execute(conn, query, {"id": anime_id, "title": title})
+async def upsert_relations(
+    conn: AsyncConnection, placeholders: list[dict], relations: list[dict]
+) -> None:
+    """Batch insert of placeholder animes (for related animes not yet in the
+    DB) and the relations pointing at them. Both are ON CONFLICT DO NOTHING."""
+    if placeholders:
+        await execute_many(
+            conn,
+            """
+            INSERT INTO animes (id, title)
+            VALUES (:id, :title)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            placeholders,
+        )
+    if relations:
+        await execute_many(
+            conn,
+            """
+            INSERT INTO anime_relations (anime_id, related_anime_id, type_related_id)
+            VALUES (:anime_id, :related_anime_id, :type_related_id)
+            ON CONFLICT (anime_id, related_anime_id, type_related_id) DO NOTHING
+            """,
+            relations,
+        )
 
 
 async def insert_genres(conn: AsyncConnection, anime_id: str, names: list[str]) -> None:
@@ -135,25 +152,6 @@ async def insert_genres(conn: AsyncConnection, anime_id: str, names: list[str]) 
     await execute_many(conn, query, [{"anime_id": anime_id, "name": n} for n in names])
 
 
-async def insert_anime_relation(
-    conn: AsyncConnection, anime_id: str, related_anime_id: str, type_related_id: int
-) -> None:
-    query = """
-        INSERT INTO anime_relations (anime_id, related_anime_id, type_related_id)
-        VALUES (:anime_id, :related_anime_id, :type_related_id)
-        ON CONFLICT (anime_id, related_anime_id, type_related_id) DO NOTHING
-    """
-    await execute(
-        conn,
-        query,
-        {
-            "anime_id": anime_id,
-            "related_anime_id": related_anime_id,
-            "type_related_id": type_related_id,
-        },
-    )
-
-
 async def insert_episodes(conn: AsyncConnection, episodes: list[dict]) -> None:
     if not episodes:
         return
@@ -163,26 +161,6 @@ async def insert_episodes(conn: AsyncConnection, episodes: list[dict]) -> None:
         ON CONFLICT (anime_id, ep_number) DO NOTHING
     """
     await execute_many(conn, query, episodes)
-
-
-async def update_anime_fields(conn: AsyncConnection, anime_id: str, values: dict) -> None:
-    query = """
-        UPDATE animes SET
-            title = :title,
-            description = :description,
-            poster = :poster,
-            type = :type,
-            is_finished = :is_finished,
-            week_day = :week_day,
-            last_scraped_at = :last_scraped_at
-        WHERE id = :anime_id
-    """
-    await execute(conn, query, {"anime_id": anime_id, **values})
-
-
-async def get_max_episode_number(conn: AsyncConnection, anime_id: str) -> int:
-    query = "SELECT COALESCE(MAX(ep_number), 0) FROM episodes WHERE anime_id = :id"
-    return await fetch_val(conn, query, {"id": anime_id}) or 0
 
 
 async def get_user_saved_anime(
@@ -242,16 +220,3 @@ async def delete_user_saved_anime(conn: AsyncConnection, user_id: str, anime_id:
         WHERE user_id = :user_id AND anime_id = :anime_id
     """
     await execute(conn, query, {"user_id": UUID(user_id), "anime_id": anime_id})
-
-
-async def insert_new_episodes(
-    conn: AsyncConnection, anime_id: str, episodes: list[dict]
-) -> None:
-    if not episodes:
-        return
-    query = """
-        INSERT INTO episodes (anime_id, ep_number, preview, url)
-        VALUES (:anime_id, :ep_number, :preview, :url)
-        ON CONFLICT (anime_id, ep_number) DO NOTHING
-    """
-    await execute_many(conn, query, episodes)
