@@ -19,56 +19,71 @@ export function DownloadRow({ item, progress }: DownloadRowProps) {
 	const meta = progress?.meta ?? {};
 	const isDownloading = liveStatus === "DOWNLOADING";
 
+	const size = formatBytes(meta.size ?? item.size);
+
 	return (
+		// Below md the row is a card; the md:contents wrapper lets its children
+		// become the desktop grid cells, so the desktop row is unchanged.
 		<div
-			className={`grid ${ROW_COLS} items-center gap-4 px-4 py-2 border-b last:border-b-0`}
+			className={`flex items-start gap-3 border-b px-3 py-3 last:border-b-0 md:grid ${ROW_COLS} md:items-center md:gap-4 md:px-4 md:py-2`}
 		>
 			<img
 				src={item.poster}
 				alt={item.title}
-				className="aspect-2/3 object-cover rounded"
+				className="aspect-2/3 w-12 shrink-0 rounded object-cover md:w-auto"
 			/>
 
-			<div className="min-w-0 flex flex-col gap-1">{item.title}</div>
+			<div className="flex min-w-0 flex-1 flex-col gap-1.5 md:contents">
+				<div className="line-clamp-2 min-w-0 md:line-clamp-none">
+					{item.title}
+				</div>
 
-			<span className="text-sm text-muted-foreground text-center">
-				{item.episodeNumber}
-			</span>
+				<span className="text-xs text-muted-foreground md:hidden">
+					Ep {item.episodeNumber} · {size}
+				</span>
 
-			<div className="flex items-center justify-center">
-				{liveStatus === "SUCCESS" ? (
-					<Button
-						variant="ghost"
-						size="icon"
-						asChild
-						aria-label="Download episode"
-					>
-						<a href={episodeFileUrl(item.animeId, item.episodeNumber)} download>
-							<Download className="size-4" />
-						</a>
-					</Button>
-				) : isDownloading ? (
-					<div className="flex items-center gap-2 w-full px-2">
-						<div className="h-2.5 flex-1 bg-muted rounded-full overflow-hidden">
-							<div
-								className="h-full bg-primary transition-all"
-								style={{
-									width: `${Math.min(100, Math.max(0, meta.progress ?? 0))}%`,
-								}}
-							/>
+				<span className="hidden text-center text-sm text-muted-foreground md:block">
+					{item.episodeNumber}
+				</span>
+
+				<div className="flex items-center md:justify-center">
+					{liveStatus === "SUCCESS" ? (
+						<Button
+							variant="ghost"
+							size="icon"
+							asChild
+							aria-label="Download episode"
+						>
+							<a
+								href={episodeFileUrl(item.animeId, item.episodeNumber)}
+								download
+							>
+								<Download className="size-4" />
+							</a>
+						</Button>
+					) : isDownloading ? (
+						<div className="flex w-full items-center gap-2 md:px-2">
+							<div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+								<div
+									className="h-full bg-primary transition-all"
+									style={{
+										width: `${Math.min(100, Math.max(0, meta.progress ?? 0))}%`,
+									}}
+								/>
+							</div>
+							<span className="shrink-0 text-xs text-muted-foreground">
+								{(meta.progress ?? 0).toFixed(0)}%
+							</span>
 						</div>
-						<span className="text-xs text-muted-foreground shrink-0">
-							{(meta.progress ?? 0).toFixed(0)}%
-						</span>
-					</div>
-				) : (
-					<DownloadProgressDisplay status={item.status} progress={progress} />
-				)}
-			</div>
+					) : (
+						<DownloadProgressDisplay status={item.status} progress={progress} />
+					)}
+				</div>
 
-			<span className="text-sm text-muted-foreground text-center">
-				{formatBytes(meta.size ?? item.size)}
-			</span>
+				<span className="hidden text-center text-sm text-muted-foreground md:block">
+					{size}
+				</span>
+			</div>
 
 			<DownloadRowActions
 				animeId={item.animeId}

@@ -6,10 +6,16 @@ import "../styles.css";
 import type { AuthContext } from "@/auth";
 import { NotFound } from "@/components/not-found";
 import { Toaster } from "@/components/ui/sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MyRouterContext {
 	auth: AuthContext;
 }
+
+// Lift toasts above the mobile bottom nav (h-16 + safe area)
+const MOBILE_TOAST_OFFSET = {
+	bottom: "calc(4rem + env(safe-area-inset-bottom) + 16px)",
+};
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootComponent,
@@ -17,10 +23,16 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootComponent() {
+	const isMobile = useIsMobile();
+
 	return (
 		<>
 			<Outlet />
-			<Toaster position="bottom-right" />
+			<Toaster
+				position="bottom-right"
+				offset={isMobile ? MOBILE_TOAST_OFFSET : undefined}
+				mobileOffset={isMobile ? MOBILE_TOAST_OFFSET : undefined}
+			/>
 			<TanStackDevtools
 				config={{
 					position: "bottom-right",
