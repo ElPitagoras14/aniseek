@@ -2,10 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppSidebar } from "@/features/root/components/app-sidebar";
-import { MobileHeader } from "@/features/root/components/mobile-header";
+import { AppShell } from "@/features/root/components/app-shell";
 
 export function NotFoundContent() {
 	return (
@@ -37,14 +34,8 @@ export function NotFound() {
 	}
 
 	return (
-		<SidebarProvider>
-			<TooltipProvider>
-				<AppSidebar variant="sidebar" />
-				<SidebarInset>
-					<MobileHeader />
-					<NotFoundContent />
-				</SidebarInset>
-			</TooltipProvider>
-		</SidebarProvider>
+		<AppShell>
+			<NotFoundContent />
+		</AppShell>
 	);
 }

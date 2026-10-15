@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useMatchRoute } from "@tanstack/react-router";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -14,13 +14,19 @@ export function NavSecondary({
 }: { items: NavSection[] } & React.ComponentPropsWithoutRef<
 	typeof SidebarGroup
 >) {
+	const matchRoute = useMatchRoute();
+
 	return (
 		<SidebarGroup {...props}>
 			<SidebarGroupContent>
 				<SidebarMenu>
 					{items.map((item) => (
 						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton asChild disabled={item.disabled}>
+							<SidebarMenuButton
+								asChild
+								disabled={item.disabled}
+								isActive={!!matchRoute({ to: item.url, fuzzy: true })}
+							>
 								<Link to={item.url}>
 									<item.icon />
 									<span>{item.title}</span>

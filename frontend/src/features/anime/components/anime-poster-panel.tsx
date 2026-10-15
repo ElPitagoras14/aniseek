@@ -21,7 +21,9 @@ export function AnimePosterPanel({ anime, episodes }: AnimePosterPanelProps) {
 	});
 
 	return (
-		<div className="flex flex-col gap-4">
+		// Below md: compact poster with status and stats beside it. The md:contents
+		// wrapper restores the stacked desktop column unchanged.
+		<div className="grid grid-cols-[7rem_1fr] gap-4 md:flex md:flex-col">
 			{/* Poster image with bookmark overlay */}
 			<div className="relative aspect-2/3 w-full overflow-hidden rounded-md">
 				<img
@@ -36,14 +38,14 @@ export function AnimePosterPanel({ anime, episodes }: AnimePosterPanelProps) {
 							type="button"
 							disabled={isPending}
 							onClick={toggle}
-							className="absolute top-1 right-1 p-1.5 rounded-md bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
+							className="absolute top-1 right-1 p-1 md:p-1.5 rounded-md bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
 						>
 							{isPending ? (
-								<Loader2 className="size-6 animate-spin" />
+								<Loader2 className="size-5 md:size-6 animate-spin" />
 							) : (
 								<Bookmark
 									className={cn(
-										"size-6",
+										"size-5 md:size-6",
 										isSaved && "fill-current text-indigo-500",
 									)}
 								/>
@@ -56,43 +58,45 @@ export function AnimePosterPanel({ anime, episodes }: AnimePosterPanelProps) {
 				</Tooltip>
 			</div>
 
-			{/* Status block — full width, large text */}
-			{anime.isFinished ? (
-				<div className="w-full rounded-md bg-destructive/60 text-white flex items-center justify-center py-3 text-xl font-bold">
-					Finished
-				</div>
-			) : (
-				<div className="flex flex-col w-full rounded-md bg-green-600 text-white items-center justify-center py-4 text-xl font-bold">
-					<span>In Emission</span>
-					<span className="text-sm text-white/80">{anime.weekDay}</span>
-				</div>
-			)}
+			<div className="flex min-w-0 flex-col justify-center gap-3 md:contents">
+				{/* Status block — full width, large text */}
+				{anime.isFinished ? (
+					<div className="w-full rounded-md bg-destructive/60 text-white flex items-center justify-center py-2 text-base md:py-3 md:text-xl font-bold">
+						Finished
+					</div>
+				) : (
+					<div className="flex flex-col w-full rounded-md bg-green-600 text-white items-center justify-center py-2 text-base md:py-4 md:text-xl font-bold">
+						<span>In Emission</span>
+						<span className="text-sm text-white/80">{anime.weekDay}</span>
+					</div>
+				)}
 
-			{/* Episode stats — single row */}
-			{episodes.length > 0 && (
-				<div className="grid grid-cols-3 gap-1.5">
-					<div className="rounded-lg border bg-card py-2 flex flex-col items-center gap-0.5">
-						<span className="text-base font-bold">{episodes.length}</span>
-						<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
-							Total
-						</span>
+				{/* Episode stats — single row */}
+				{episodes.length > 0 && (
+					<div className="grid grid-cols-3 gap-1.5">
+						<div className="rounded-lg border bg-card py-2 flex flex-col items-center gap-0.5">
+							<span className="text-base font-bold">{episodes.length}</span>
+							<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
+								Total
+							</span>
+						</div>
+						<div className="rounded-lg border bg-card py-2 flex flex-col items-center gap-0.5">
+							<span className="text-base font-bold text-green-500">
+								{episodes.filter((e) => e.isUserDownloaded).length}
+							</span>
+							<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
+								Download
+							</span>
+						</div>
+						<div className="rounded-lg border bg-card py-2 flex flex-col items-center gap-0.5">
+							<span className="text-base font-bold">—</span>
+							<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
+								Storage
+							</span>
+						</div>
 					</div>
-					<div className="rounded-lg border bg-card py-2 flex flex-col items-center gap-0.5">
-						<span className="text-base font-bold text-green-500">
-							{episodes.filter((e) => e.isUserDownloaded).length}
-						</span>
-						<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
-							Download
-						</span>
-					</div>
-					<div className="rounded-lg border bg-card py-2 flex flex-col items-center gap-0.5">
-						<span className="text-base font-bold">—</span>
-						<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
-							Storage
-						</span>
-					</div>
-				</div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 }

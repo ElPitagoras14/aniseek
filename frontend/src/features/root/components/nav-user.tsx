@@ -3,21 +3,14 @@ import { useState } from "react";
 import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { LogoutDialog } from "./logout-dialog";
 
 export function NavUser() {
-	const { user, logout } = useAuth();
+	const { user } = useAuth();
 	const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
 	return (
@@ -49,25 +42,7 @@ export function NavUser() {
 					</div>
 				</SidebarMenuButton>
 
-				<Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Sign out</DialogTitle>
-							<DialogDescription>
-								Are you sure you want to sign out? You'll need to sign in again
-								to access your account.
-							</DialogDescription>
-						</DialogHeader>
-						<DialogFooter>
-							<Button variant="outline" onClick={() => setIsLogoutOpen(false)}>
-								Cancel
-							</Button>
-							<Button variant="destructive" onClick={logout}>
-								Sign out
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+				<LogoutDialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen} />
 			</SidebarMenuItem>
 		</SidebarMenu>
 	);

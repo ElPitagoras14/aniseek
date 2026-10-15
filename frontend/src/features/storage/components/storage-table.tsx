@@ -39,7 +39,7 @@ export function StorageTable({
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead className="w-12">#</TableHead>
+						<TableHead className="hidden w-12 md:table-cell">#</TableHead>
 						<TableHead>Anime</TableHead>
 						<TableHead className="text-right">Size</TableHead>
 						<TableHead className="w-12" />
@@ -50,11 +50,11 @@ export function StorageTable({
 						Array.from({ length: 5 }).map((_, i) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
 							<TableRow key={i}>
-								<TableCell>
+								<TableCell className="hidden md:table-cell">
 									<Skeleton className="h-4 w-6" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className="h-4 w-48" />
+									<Skeleton className="h-4 w-40 md:w-48" />
 								</TableCell>
 								<TableCell className="text-right">
 									<Skeleton className="h-4 w-16 ml-auto" />
@@ -64,7 +64,7 @@ export function StorageTable({
 						))
 					) : isError ? (
 						<TableRow>
-							<TableCell colSpan={3}>
+							<TableCell colSpan={4}>
 								<div className="flex items-center gap-3 py-4">
 									<p className="text-sm text-destructive">
 										Failed to load storage data.
@@ -78,7 +78,7 @@ export function StorageTable({
 					) : (data?.items ?? []).length === 0 ? (
 						<TableRow>
 							<TableCell
-								colSpan={3}
+								colSpan={4}
 								className="text-center text-sm text-muted-foreground py-8"
 							>
 								No storage data.
@@ -87,10 +87,10 @@ export function StorageTable({
 					) : (
 						(data?.items ?? []).map((item, index) => (
 							<TableRow key={item.id}>
-								<TableCell className="text-muted-foreground">
+								<TableCell className="hidden text-muted-foreground md:table-cell">
 									{(page - 1) * limit + index + 1}
 								</TableCell>
-								<TableCell className="max-w-xs truncate">
+								<TableCell className="w-full max-w-0 truncate md:w-auto md:max-w-xs">
 									{item.title}
 								</TableCell>
 								<TableCell className="text-right">

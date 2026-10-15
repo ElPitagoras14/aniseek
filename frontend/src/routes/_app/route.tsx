@@ -1,11 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { api } from "@/api";
 import { NotFoundContent } from "@/components/not-found";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { isAuthEnabled } from "@/config";
-import { AppSidebar } from "@/features/root/components/app-sidebar";
-import { MobileHeader } from "@/features/root/components/mobile-header";
+import { AppShell } from "@/features/root/components/app-shell";
 
 interface LoginResponse {
 	payload: { access: string; refresh: string };
@@ -38,16 +35,8 @@ export const Route = createFileRoute("/_app")({
 
 function RouteComponent() {
 	return (
-		<div>
-			<SidebarProvider>
-				<TooltipProvider>
-					<AppSidebar variant="sidebar" />
-					<SidebarInset>
-						<MobileHeader />
-						<Outlet />
-					</SidebarInset>
-				</TooltipProvider>
-			</SidebarProvider>
-		</div>
+		<AppShell>
+			<Outlet />
+		</AppShell>
 	);
 }

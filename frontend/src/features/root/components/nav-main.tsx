@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useMatchRoute } from "@tanstack/react-router";
 import {
 	SidebarGroup,
 	SidebarGroupLabel,
@@ -9,6 +9,8 @@ import {
 import type { NavGroup, NavSection } from "../sidebar-data";
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
+	const matchRoute = useMatchRoute();
+
 	return groups?.map((group: NavGroup) => (
 		<SidebarGroup key={group.title}>
 			<SidebarGroupLabel>{group.title}</SidebarGroupLabel>
@@ -19,6 +21,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
 							asChild
 							className="cursor-pointer"
 							disabled={section.disabled}
+							isActive={!!matchRoute({ to: section.url, fuzzy: true })}
 						>
 							<Link to={section.url}>
 								{section.icon && <section.icon />}
