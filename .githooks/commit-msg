@@ -1,0 +1,10 @@
+#!/bin/sh
+# Strips any "Co-Authored-By:" trailer from the commit message, so commits never carry a co-author.
+# Enable once per clone with: git config core.hooksPath .githooks
+
+msg_file="$1"
+
+sed -i '/^[[:space:]]*[Cc][Oo]-[Aa][Uu][Tt][Hh][Oo][Rr][Ee][Dd]-[Bb][Yy]:/d' "$msg_file"
+
+# Drop trailing blank lines left behind by the removed trailer.
+sed -i -e ':a' -e '/^[[:space:]]*$/{$d;N;ba' -e '}' "$msg_file"
