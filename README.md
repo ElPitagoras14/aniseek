@@ -55,8 +55,23 @@ Setting `AUTH_ENABLED=false` disables the login screen entirely — useful for l
 - **Worker**: Dramatiq, [ani-scrapy](https://pypi.org/project/ani-scrapy/)
 - **DevOps**: Docker, Docker Compose, GitHub Actions
 
+## Roadmap
+
+| Phase | Deliverable |
+|---|---|
+| 0 | **Users and access** — owner, admin and member roles, controlled registration |
+| 1 | **MCP server** for AI agents, enabled per instance by the owner |
+| 2 | **Multi-provider** scraping with fallback |
+| 3 | **AniList metadata** and provider-independent identity |
+| 4 | **Automation** — auto-download, notifications, download queue |
+| 5 | **Player and watch progress** |
+| 6 | **Platform** — quotas, observability, backups, test coverage |
+
+Details for each phase live in [docs/roadmap](docs/roadmap/README.md).
+
 ## Documentation
 
+- [Roadmap](docs/roadmap/README.md) — planned phases, one file per phase
 - [Architecture](docs/architecture.md) — components, data flow and startup order
 - [Deployment](docs/deployment.md) — HTTPS and internet-facing setups
 - [Upgrading](docs/upgrading.md) — migration notes for existing deployments
