@@ -1,5 +1,10 @@
 # Ani Seek
 
+[![Release](https://img.shields.io/github/v/release/ElPitagoras14/aniseek)](https://github.com/ElPitagoras14/aniseek/releases)
+[![Release workflow](https://img.shields.io/github/actions/workflow/status/ElPitagoras14/aniseek/release.yml?label=release)](https://github.com/ElPitagoras14/aniseek/actions/workflows/release.yml)
+[![License](https://img.shields.io/github/license/ElPitagoras14/aniseek)](LICENSE)
+[![Docker](https://img.shields.io/badge/ghcr.io-aniseek-2496ED?logo=docker&logoColor=white)](https://github.com/ElPitagoras14?tab=packages&repo_name=aniseek)
+
 Self-hosted app to search, save and download anime episodes. Search by title, keep a personal list, see what is airing this week and download episodes or whole seasons with real-time progress.
 
 https://github.com/user-attachments/assets/f1604c46-6c52-4401-9d66-e5d1b9f932f4
