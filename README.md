@@ -18,11 +18,7 @@ Ani Seek is a comprehensive system for scraping, managing, and downloading anime
 
 ## Demo
 
-<video src="https://github.com/user-attachments/assets/c6555beb-edcf-4ed9-956c-2a3472832024" controls width="100%"></video>
-
-### Mobile
-
-<video src="docs/media/mobile-demo.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/a8ed421d-87c9-4fad-a341-d8d7eef701bc" controls width="100%"></video>
 
 ## Features
 
