@@ -61,6 +61,21 @@ Registration is **by invitation** by default: an owner or admin creates a single
 
 `OWNER_USERNAME` and `OWNER_PASSWORD` are only read when the instance has no owner yet. Upgrading an existing instance needs no new variables: see [`docs/upgrading.md`](docs/upgrading.md).
 
+### AI agents (MCP)
+
+Ani Seek includes an [MCP](https://modelcontextprotocol.io) server so AI agents can search, save and download anime for you. It is **off by default**:
+
+1. The owner turns it on in **Instance Settings → MCP server**.
+2. Each user generates an API key in **Profile → AI agents**. The agent acts as that user, with their current role.
+3. Add it to Claude Code (the same section shows this command ready to copy):
+
+   ```bash
+   claude mcp add --transport http aniseek https://<your-instance>/api/mcp \
+     --header "Authorization: Bearer <your-api-key>"
+   ```
+
+Claude Desktop, the full list of tools and other details are in [`docs/mcp.md`](docs/mcp.md).
+
 ## Tech stack
 
 - **Web**: React, Vite, TypeScript, TanStack Router/Query, shadcn/ui
