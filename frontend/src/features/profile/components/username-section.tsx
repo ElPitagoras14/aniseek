@@ -51,14 +51,16 @@ export function UsernameSection() {
 								}}
 							</form.Subscribe>
 						</div>
-						{field.state.meta.errors.filter(Boolean).map((err) => {
-							const message = typeof err === "string" ? err : err.message;
-							return (
-								<p key={message} className="text-xs text-destructive">
-									{message}
-								</p>
-							);
-						})}
+						{field.state.meta.errors
+							.filter((err) => err !== undefined)
+							.map((err) => {
+								const message = typeof err === "string" ? err : err.message;
+								return (
+									<p key={message} className="text-xs text-destructive">
+										{message}
+									</p>
+								);
+							})}
 					</div>
 				)}
 			</form.Field>
