@@ -2,6 +2,7 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { copyText } from "@/lib/clipboard";
 
 export function CopyButton({
 	text,
@@ -16,7 +17,7 @@ export function CopyButton({
 
 	const copy = async () => {
 		try {
-			await navigator.clipboard.writeText(text);
+			await copyText(text);
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		} catch {

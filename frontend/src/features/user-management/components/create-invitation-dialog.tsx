@@ -27,6 +27,7 @@ import {
 } from "@/features/access/api";
 import { parseApiError } from "@/features/access/lib/parse-error";
 import type { AccessUser, Role } from "@/features/access/types";
+import { copyText } from "@/lib/clipboard";
 
 const MAX_DAYS = 30;
 
@@ -66,7 +67,7 @@ export function CreateInvitationDialog({ me }: { me: AccessUser }) {
 	const copy = async () => {
 		if (!link) return;
 		try {
-			await navigator.clipboard.writeText(link);
+			await copyText(link);
 			setCopied(true);
 		} catch {
 			toast.error("Could not copy. Select the link and copy it manually.");
