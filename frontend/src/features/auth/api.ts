@@ -7,3 +7,11 @@ export async function loginRequest(
 	const { data } = await api.post<LoginResponse>("/auth/login", payload);
 	return data;
 }
+
+export async function registerRequest(payload: {
+	username: string;
+	password: string;
+	invitationToken?: string;
+}): Promise<void> {
+	await api.post("/auth/register", payload);
+}

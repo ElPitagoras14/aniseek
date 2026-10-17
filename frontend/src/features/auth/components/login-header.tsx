@@ -1,7 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Clapperboard } from "lucide-react";
+import { registrationPolicyQueryOptions } from "@/features/access/api";
 
 export function LoginHeader() {
+	const policy = useQuery(registrationPolicyQueryOptions);
+
 	return (
 		<div className="flex flex-col items-center gap-2 text-center">
 			<Clapperboard className="size-10 text-muted-foreground" />
@@ -9,15 +13,17 @@ export function LoginHeader() {
 			<p className="text-sm text-muted-foreground">
 				A simple way to scrap anime
 			</p>
-			<p className="text-sm text-muted-foreground">
-				Don&apos;t have an account?{" "}
-				<Link
-					to="/register"
-					className="text-cyan-400 underline-offset-4 hover:underline hover:text-cyan-300 transition-colors"
-				>
-					Sign up
-				</Link>
-			</p>
+			{policy.data === "open" && (
+				<p className="text-sm text-muted-foreground">
+					Don&apos;t have an account?{" "}
+					<Link
+						to="/register"
+						className="text-cyan-400 underline-offset-4 hover:underline hover:text-cyan-300 transition-colors"
+					>
+						Sign up
+					</Link>
+				</p>
+			)}
 		</div>
 	);
 }

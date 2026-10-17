@@ -8,6 +8,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useHasRole } from "@/features/access/hooks/use-current-user";
 import type { StorageResponse } from "@/features/storage/types";
 import { formatBytes } from "@/lib/format-bytes";
 import { DeleteAnimeDialog } from "./delete-anime-dialog";
@@ -34,6 +35,9 @@ export function StorageTable({
 	onPageChange,
 	onLimitChange,
 }: StorageTableProps) {
+	// Deleting global files is admin-only: a member never sees the button.
+	const canDelete = useHasRole("admin");
+
 	return (
 		<div>
 			<Table>
@@ -97,7 +101,7 @@ export function StorageTable({
 									{formatBytes(item.size)}
 								</TableCell>
 								<TableCell>
-									<DeleteAnimeDialog anime={item} />
+									{canDelete && <DeleteAnimeDialog anime={item} />}
 								</TableCell>
 							</TableRow>
 						))

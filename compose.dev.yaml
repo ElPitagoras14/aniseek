@@ -28,8 +28,8 @@ services:
       - 8000:8000
     environment:
       - AUTH_ENABLED=False
-      - ADMIN_USER=admin
-      - ADMIN_PASS=admin123
+      - OWNER_USERNAME=owner
+      - OWNER_PASSWORD=owner123
       - SECRET_KEY=secret
       - ALGORITHM=HS256
       - DB_URL=postgresql+psycopg://postgres:postgres@aniseek-db:5432/postgres

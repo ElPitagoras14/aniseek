@@ -1,25 +1,13 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { api } from "@/api";
 import { NotFoundContent } from "@/components/not-found";
 import { isAuthEnabled } from "@/config";
 import { AppShell } from "@/features/root/components/app-shell";
 
-interface LoginResponse {
-	payload: { access: string; refresh: string };
-}
-
 export const Route = createFileRoute("/_app")({
 	beforeLoad: async ({ context, location }) => {
+		// Single-user mode: the backend resolves every request as the owner, so
+		// there is nothing to log in to.
 		if (!isAuthEnabled) {
-			if (!context.auth.isAuthenticated) {
-				try {
-					const { data } = await api.post<LoginResponse>("/auth/login", {
-						username: "admin",
-						password: "admin123",
-					});
-					context.auth.login(data.payload.access);
-				} catch {}
-			}
 			return;
 		}
 		if (!context.auth.isAuthenticated) {

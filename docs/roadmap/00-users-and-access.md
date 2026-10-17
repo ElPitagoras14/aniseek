@@ -1,6 +1,6 @@
 # Phase 0: Users and access
 
-**Status:** not started. **Depends on:** nothing. **Blocks:** Phase 1.
+**Status:** in progress (OpenSpec change `users-and-access`). **Depends on:** nothing. **Blocks:** Phase 1.
 
 ## Goal
 
@@ -58,7 +58,12 @@ Define a real access model for single-user and multi-user instances, enforce it 
 
 ### Registration policy
 
-Configurable by the owner: **closed** (default), **invitation only** (single-use link carrying a preassigned role), or **open**. Invitations need a new table.
+Configurable by the owner or an admin, with two values: **invite** (default; single-use links carrying a preassigned role) or **open** (anyone can sign up as `member`). Invitations and direct user creation work under both. A third `closed` value that rejected invitations was dropped: "nobody gets in" is achieved by not issuing invitations. Invitations need a new table.
+
+## Deviations from this plan
+
+- **The admin is promoted at startup, not in the migration.** The migration only changes the schema (adds `owner`, drops `guest` after reassigning its users). `ensure_owner` runs in the API `lifespan`: it keeps an existing owner, otherwise promotes the oldest *active* admin, otherwise creates one from `OWNER_USERNAME` / `OWNER_PASSWORD`. One idempotent code path that the test suite can exercise, which a promotion inside the migration would not allow.
+- **Two registration values, not three** (see "Registration policy" above).
 
 ## Implementation notes
 

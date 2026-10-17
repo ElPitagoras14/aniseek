@@ -6,13 +6,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from database import connect_db, disconnect_db, engine
+from database import connect_db, disconnect_db
 from exceptions import AppError
 from handlers import app_error_handler, unhandled_error_handler
 from log import configure_logs
 from middleware import TracingMiddleware
-from packages.auth import get_hash, get_user_id_by_username, insert_user, auth_settings
-from packages.auth.config import ADMIN_USER, ADMIN_PASS
+from packages.auth import ensure_owner
 from routes import router
 from config import Environment, general_settings
 
@@ -22,24 +21,10 @@ ENVIRONMENT = general_settings.ENVIRONMENT
 configure_logs()
 
 
-async def _seed_admin_user():
-    # Owns its own connection (design D2): this runs at startup, outside any
-    # service, so there is no caller to receive one from.
-    async with engine.connect() as conn:
-        existing = await get_user_id_by_username(conn, ADMIN_USER)
-    if existing:
-        logger.info(f"Admin user '{ADMIN_USER}' already exists")
-        return
-    hashed = get_hash(ADMIN_PASS)
-    async with engine.begin() as conn:
-        await insert_user(conn, ADMIN_USER, hashed, role_id=1)
-    logger.info(f"Seeded admin user '{ADMIN_USER}' (role admin)")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
-    await _seed_admin_user()
+    await ensure_owner()
     logger.info("Application starting up...")
     yield
     await disconnect_db()

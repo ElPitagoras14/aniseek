@@ -1,9 +1,12 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from fastapi import HTTPException
 from jose import jwt
 from starlette import status
+
+from exceptions import BadRequestError
 
 from .config import auth_settings
 from .responses import AccessToken, Tokens
@@ -40,19 +43,23 @@ def parse_jwt_data(token: str) -> dict | None:
 
 
 def create_access_token(user_data: dict):
+    now = datetime.now(timezone.utc)
     payload = {
         **user_data,
         "type": "access",
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXP_MIN),
+        "iat": now,
+        "exp": now + timedelta(minutes=ACCESS_TOKEN_EXP_MIN),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(user_data: dict):
+    now = datetime.now(timezone.utc)
     payload = {
         **user_data,
         "type": "refresh",
-        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXP_DAY),
+        "iat": now,
+        "exp": now + timedelta(days=REFRESH_TOKEN_EXP_DAY),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -71,3 +78,53 @@ def cast_tokens(access_token: str, refresh_token: str):
 
 def cast_access_token(access_token: str):
     return AccessToken(access=access_token)
+
+
+def build_token_payload(user: dict) -> dict:
+    return {
+        "id": str(user["id"]),
+        "username": user["username"],
+        "isActive": user["is_active"],
+        "role": user["role_name"],
+        "avatarUrl": user["avatar_url"],
+        "avatarLabel": user["avatar_label"],
+    }
+
+
+def is_token_stale(payload: dict, credentials_changed_at: datetime | None) -> bool:
+    """True if the token predates the user's last credentials change (design D5).
+
+    `iat` has second resolution and `credentials_changed_at` microsecond
+    resolution, so the latter is truncated to the second and only a strictly
+    older `iat` is rejected: the token issued right after the change, within
+    the same second, stays valid."""
+    if credentials_changed_at is None:
+        return False
+    iat = payload.get("iat")
+    if iat is None:
+        return True
+    return iat < int(credentials_changed_at.timestamp())
+
+
+def hash_invitation_token(token: str) -> str:
+    """SHA-256 is enough here: the token is 32 random bytes, not a
+    human-chosen secret, so there is nothing to brute-force."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def validate_credentials(username: str, password: str) -> None:
+    """Rules shared by registration, direct creation, password resets and the
+    owner bootstrap."""
+    if not username or not username.strip():
+        raise BadRequestError("Username is required")
+    if len(username) > 64:
+        raise BadRequestError("Username must be at most 64 characters")
+    validate_password(password)
+
+
+def validate_password(password: str) -> None:
+    if not password or len(password) < 6:
+        raise BadRequestError("Password must be at least 6 characters")
+    # bcrypt only hashes the first 72 bytes and rejects longer input.
+    if len(password.encode()) > 72:
+        raise BadRequestError("Password must be at most 72 bytes")

@@ -2,13 +2,8 @@ import { Calendar, Clock, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "@/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { ROLE_LABELS } from "@/features/access/lib/roles";
 import { useProfile } from "../hooks/use-profile";
-
-const ROLE_LABELS: Record<string, string> = {
-	admin: "Administrator",
-	member: "Member",
-	guest: "Guest",
-};
 
 function formatDate(iso: string): string {
 	return new Date(iso).toLocaleDateString("en-US", {
@@ -31,9 +26,16 @@ function relativeTime(unixSec: number): string {
 }
 
 export function ProfileInfoCard() {
-	const { user } = useAuth();
+	const { user: tokenUser } = useAuth();
 	const { data: profile } = useProfile();
 
+	// Identity and role come from /users/me (the token role can be stale).
+	const user = profile && {
+		username: profile.username,
+		role: profile.role,
+		avatarUrl: profile.avatarUrl,
+		loginAt: tokenUser?.loginAt ?? null,
+	};
 	const roleLabel = ROLE_LABELS[user?.role ?? ""] ?? user?.role ?? "";
 
 	return (
@@ -64,7 +66,7 @@ export function ProfileInfoCard() {
 						<ShieldCheck className="size-4 shrink-0 text-muted-foreground" />
 						<div>
 							<p className="text-xs text-muted-foreground">Role</p>
-							<p className="text-sm font-medium">{user?.role}</p>
+							<p className="text-sm font-medium">{roleLabel}</p>
 						</div>
 					</div>
 

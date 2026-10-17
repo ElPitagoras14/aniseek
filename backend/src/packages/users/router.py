@@ -1,15 +1,25 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 
-from packages.auth import auth_scheme
+from packages.auth import auth_scheme, require_role
 from responses import SuccessResponse
 
-from .schemas import UserUpdateInfo
+from .schemas import (
+    PasswordResetInfo,
+    UserAdminUpdateInfo,
+    UserCreateInfo,
+    UserUpdateInfo,
+)
 from .service import (
     check_username_controller,
+    create_user_controller,
     get_avatars_controller,
     get_me_controller,
     get_user_statistics_controller,
     get_users_controller,
+    reset_user_password_controller,
+    update_managed_user_controller,
     update_user_controller,
 )
 
@@ -18,7 +28,7 @@ users_router = APIRouter()
 
 @users_router.get("")
 async def get_users(
-    current_user: dict = Depends(auth_scheme),
+    current_user: dict = Depends(require_role("admin")),
 ):
     payload = await get_users_controller(current_user["id"])
     return SuccessResponse(payload=payload, message="Users retrieved")
@@ -64,3 +74,36 @@ async def get_user_statistics(
 ):
     payload = await get_user_statistics_controller(current_user["id"])
     return SuccessResponse(payload=payload, message="User statistics retrieved")
+
+
+@users_router.post("")
+async def create_user(
+    user_info: UserCreateInfo,
+    current_user: dict = Depends(require_role("admin")),
+):
+    payload = await create_user_controller(current_user, user_info)
+    return SuccessResponse(payload=payload, message="User created")
+
+
+@users_router.patch("/{user_id}")
+async def update_managed_user(
+    user_id: UUID,
+    user_info: UserAdminUpdateInfo,
+    current_user: dict = Depends(require_role("admin")),
+):
+    payload = await update_managed_user_controller(
+        current_user, str(user_id), user_info
+    )
+    return SuccessResponse(payload=payload, message="User updated")
+
+
+@users_router.put("/{user_id}/password")
+async def reset_user_password(
+    user_id: UUID,
+    password_info: PasswordResetInfo,
+    current_user: dict = Depends(require_role("admin")),
+):
+    payload = await reset_user_password_controller(
+        current_user, str(user_id), password_info.password
+    )
+    return SuccessResponse(payload=payload, message="Password updated")

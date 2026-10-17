@@ -39,14 +39,26 @@ https://github.com/user-attachments/assets/f1604c46-6c52-4401-9d66-e5d1b9f932f4
 
 The app is available at **http://localhost:3000**.
 
-> [!WARNING]
-> On first startup the API creates an `admin` user with password `admin123`. Log in and change both from the **Profile** page right away.
+> [!IMPORTANT]
+> A fresh install needs `OWNER_USERNAME` and `OWNER_PASSWORD` in `.env`: on first startup the API creates the **owner** with them. Without them (and without an existing owner or admin) the API refuses to start. There are no default credentials.
 
 ## Configuration
 
 All configuration lives in `.env`; every variable is listed and commented in `.env.example`. Before any internet-facing deployment, at minimum change `SECRET_KEY` — the JWT signing secret; use a long random string.
 
-Setting `AUTH_ENABLED=false` disables the login screen entirely — useful for local development or trusted single-user setups. If `AUTH_ENABLED` is unset, login is required.
+Setting `AUTH_ENABLED=false` disables the login screen entirely — useful for local development or trusted single-user setups: every request is then treated as the owner. If `AUTH_ENABLED` is unset, login is required.
+
+### Users and access
+
+There are three roles:
+
+- **Owner**: exactly one per instance. Full control; can't be deleted, deactivated or demoted, and can hand the role to someone else (User Management → Settings → Transfer ownership).
+- **Admin**: manages members, invitations and the registration policy, and can delete downloaded files and create franchises.
+- **Member**: browses, saves and downloads.
+
+Registration is **by invitation** by default: an owner or admin creates a single-use link (User Management → Invitations) and shares it. They can also create accounts directly, or switch the registration policy to **open** so anyone can sign up as a member.
+
+`OWNER_USERNAME` and `OWNER_PASSWORD` are only read when the instance has no owner yet. Upgrading an existing instance needs no new variables: see [`docs/upgrading.md`](docs/upgrading.md).
 
 ## Tech stack
 

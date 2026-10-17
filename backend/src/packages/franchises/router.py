@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from packages.auth import auth_scheme
+from packages.auth import auth_scheme, require_role
 from responses import SuccessResponse
 
 from .responses import AnimeFranchiseListOut, FranchiseListOut
@@ -22,7 +22,11 @@ async def get_franchises(
     return SuccessResponse(payload=payload, message="Franchises retrieved")
 
 
-@franchises_router.post("", response_model=SuccessResponse)
+@franchises_router.post(
+    "",
+    response_model=SuccessResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
 async def create_franchise(
     franchise_info: FranchiseCreate,
     current_user: dict = Depends(auth_scheme),

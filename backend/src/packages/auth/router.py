@@ -4,7 +4,12 @@ from responses import SuccessResponse
 
 from .responses import AccessTokenOut, TokenOut
 from .schemas import LoginInfo, RegisterInfo
-from .service import login_controller, refresh_controller, register_controller
+from .service import (
+    get_registration_policy_controller,
+    login_controller,
+    refresh_controller,
+    register_controller,
+)
 
 auth_router = APIRouter()
 
@@ -15,13 +20,23 @@ async def login(login_info: LoginInfo):
     return SuccessResponse(payload=payload, message="User logged in successfully")
 
 
+@auth_router.get("/registration", response_model=SuccessResponse)
+async def get_registration_policy():
+    payload = await get_registration_policy_controller()
+    return SuccessResponse(payload=payload, message="Registration policy retrieved")
+
+
 @auth_router.post("/register", response_model=SuccessResponse)
 async def register(register_info: RegisterInfo):
-    payload = await register_controller(register_info.username, register_info.password)
+    payload = await register_controller(
+        register_info.username,
+        register_info.password,
+        register_info.invitation_token,
+    )
     return SuccessResponse(payload=payload, message="User registered successfully")
 
 
 @auth_router.post("/refresh", response_model=AccessTokenOut)
 async def refresh_token(refresh_token: str):
-    payload = refresh_controller(refresh_token)
+    payload = await refresh_controller(refresh_token)
     return SuccessResponse(payload=payload, message="Token refreshed successfully")

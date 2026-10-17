@@ -1,9 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getUserProfile } from "../api";
+import { useCurrentUser } from "@/features/access/hooks/use-current-user";
 
 export function useProfile() {
-	return useQuery({
-		queryKey: ["profile"],
-		queryFn: getUserProfile,
-	});
+	return useCurrentUser();
 }

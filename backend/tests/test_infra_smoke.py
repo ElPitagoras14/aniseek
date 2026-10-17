@@ -68,6 +68,11 @@ async def test_reference_data_survives_repeated_truncation(raw_conn):
     }
     avatar_count = await raw_conn.fetchval("SELECT count(*) FROM avatars")
 
-    assert role_names == {"admin", "member", "guest"}
+    policy = await raw_conn.fetchval(
+        "SELECT registration_policy FROM instance_settings"
+    )
+
+    assert role_names == {"owner", "admin", "member"}
+    assert policy == "invite"
     assert related_type_names == {"prequel", "sequel", "alternative", "spin_off"}
     assert avatar_count > 0

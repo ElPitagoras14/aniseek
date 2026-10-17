@@ -4,38 +4,36 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.client import fetch_one, fetch_val, execute
 
+_USER_COLUMNS = """
+    u.id, u.username, u.password, u.is_active,
+    u.avatar_id, u.role_id, u.created_at, u.credentials_changed_at,
+    r.name AS role_name,
+    a.url AS avatar_url,
+    a.label AS avatar_label
+"""
+
+_USER_JOINS = """
+    FROM users u
+    LEFT JOIN role_types r ON r.id = u.role_id
+    LEFT JOIN avatars a ON a.id = u.avatar_id
+"""
+
 
 async def get_user_by_username(conn: AsyncConnection, username: str) -> dict | None:
-    query = """
-        SELECT
-            u.id, u.username, u.password, u.is_active,
-            u.avatar_id, u.role_id,
-            r.name AS role_name,
-            a.url AS avatar_url,
-            a.label AS avatar_label
-        FROM users u
-        LEFT JOIN role_types r ON r.id = u.role_id
-        LEFT JOIN avatars a ON a.id = u.avatar_id
-        WHERE u.username = :username
-    """
+    query = f"SELECT {_USER_COLUMNS} {_USER_JOINS} WHERE u.username = :username"
     row = await fetch_one(conn, query, {"username": username})
     return dict(row) if row else None
 
 
 async def get_user_by_id(conn: AsyncConnection, user_id: str) -> dict | None:
-    query = """
-        SELECT
-            u.id, u.username, u.password, u.is_active,
-            u.avatar_id, u.role_id,
-            r.name AS role_name,
-            a.url AS avatar_url,
-            a.label AS avatar_label
-        FROM users u
-        LEFT JOIN role_types r ON r.id = u.role_id
-        LEFT JOIN avatars a ON a.id = u.avatar_id
-        WHERE u.id = :user_id
-    """
+    query = f"SELECT {_USER_COLUMNS} {_USER_JOINS} WHERE u.id = :user_id"
     row = await fetch_one(conn, query, {"user_id": UUID(user_id)})
+    return dict(row) if row else None
+
+
+async def get_owner_user(conn: AsyncConnection) -> dict | None:
+    query = f"SELECT {_USER_COLUMNS} {_USER_JOINS} WHERE r.name = 'owner'"
+    row = await fetch_one(conn, query)
     return dict(row) if row else None
 
 
@@ -45,14 +43,84 @@ async def get_user_id_by_username(conn: AsyncConnection, username: str) -> str |
 
 
 async def insert_user(
-    conn: AsyncConnection, username: str, hashed_password: str, role_id: int = 2
-) -> None:
+    conn: AsyncConnection,
+    username: str,
+    hashed_password: str,
+    role_name: str = "member",
+) -> UUID:
+    """Inserts a user with the role resolved by name (never by id) and returns
+    its id. Fails if the role does not exist."""
     query = """
         INSERT INTO users (id, username, password, role_id)
-        VALUES (gen_random_uuid(), :username, :password, :role_id)
+        VALUES (
+            gen_random_uuid(), :username, :password,
+            (SELECT id FROM role_types WHERE name = :role_name)
+        )
+        RETURNING id
     """
-    await execute(
+    return await fetch_val(
         conn,
         query,
-        {"username": username, "password": hashed_password, "role_id": role_id},
+        {"username": username, "password": hashed_password, "role_name": role_name},
     )
+
+
+async def get_owner_id(conn: AsyncConnection) -> UUID | None:
+    query = """
+        SELECT u.id FROM users u
+        JOIN role_types r ON r.id = u.role_id
+        WHERE r.name = 'owner'
+    """
+    return await fetch_val(conn, query)
+
+
+async def get_oldest_active_admin_id(conn: AsyncConnection) -> UUID | None:
+    query = """
+        SELECT u.id FROM users u
+        JOIN role_types r ON r.id = u.role_id
+        WHERE r.name = 'admin' AND u.is_active
+        ORDER BY u.created_at, u.id
+        LIMIT 1
+    """
+    return await fetch_val(conn, query)
+
+
+async def set_user_role(conn: AsyncConnection, user_id: str | UUID, role_name: str) -> None:
+    query = """
+        UPDATE users
+        SET role_id = (SELECT id FROM role_types WHERE name = :role_name),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :user_id
+    """
+    await execute(
+        conn, query, {"user_id": UUID(str(user_id)), "role_name": role_name}
+    )
+
+
+async def get_registration_policy(conn: AsyncConnection) -> str:
+    return await fetch_val(conn, "SELECT registration_policy FROM instance_settings")
+
+
+async def consume_invitation(conn: AsyncConnection, token_hash: str) -> dict | None:
+    """Atomically marks a pending invitation as used (design D8). The UPDATE
+    locks the row, so of two concurrent registrations only one gets it back."""
+    query = """
+        UPDATE invitations i
+        SET used_at = CURRENT_TIMESTAMP
+        FROM role_types r
+        WHERE r.id = i.role_id
+          AND i.token_hash = :token_hash
+          AND i.used_at IS NULL
+          AND i.revoked_at IS NULL
+          AND i.expires_at > CURRENT_TIMESTAMP
+        RETURNING i.id, r.name AS role_name
+    """
+    row = await fetch_one(conn, query, {"token_hash": token_hash})
+    return dict(row) if row else None
+
+
+async def set_invitation_used_by(
+    conn: AsyncConnection, invitation_id: UUID, user_id: UUID
+) -> None:
+    query = "UPDATE invitations SET used_by = :user_id WHERE id = :invitation_id"
+    await execute(conn, query, {"user_id": user_id, "invitation_id": invitation_id})
