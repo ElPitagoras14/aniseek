@@ -40,9 +40,9 @@ Let an AI agent search, organize and download anime through the Model Context Pr
 - **`delete_anime_files`:** admin and owner only, annotated as destructive (`destructiveHint`) so clients ask for confirmation. No `confirm` parameter, since an agent would fill it in by itself.
 - Tools a role cannot use are hidden from `list_tools`; the role is still checked at execution time because it can change mid-session.
 
-## Current state (verified 2026-10-16)
+## State before implementation (verified 2026-10-16)
 
-The REST API already covers most of what the tools need:
+Kept as the starting point the plan was written against; what changed is under "Deviations" below. The REST API already covered most of what the tools need:
 
 - Animes: `GET /animes/search`, `/saved`, `/in-emission`, `/{anime_id}`, `PUT /{anime_id}` (refresh), `/{anime_id}/save`, `/{anime_id}/unsave`.
 - Episodes: `GET /episodes/downloads`, `/downloads/last`, `/downloads/animes`, `/storage`, `DELETE /storage/{anime_id}` (admin), `GET /stream/status` (SSE), `GET /{anime_id}/{episode_number}/file`, `POST /{anime_id}/download/bulk`.
@@ -77,10 +77,11 @@ Both deserve a `VERSION` bump.
 - **User propagation:** the SDK serves stateless requests from a task group opened in the lifespan, so a contextvar set by the gate does not reach the tools. The gate stores the user in the ASGI scope and the tools read it from the request the SDK hands them.
 - **Business rules moved to the services** (refresh cooldown, anime existence, double save/unsave) so REST and MCP share them. The bulk download reports a `reason` per failed episode.
 - **`get_download_status` works by anime and episode number,** not by job id: the worker clears the job id when a download succeeds.
-- **Instance Settings page:** the registration policy, the MCP switch and the ownership transfer moved from a User Management tab to a new **Instance Settings** page above **Profile** in the sidebar.
+- **Instance Settings page:** the registration policy, the MCP switch and the ownership transfer moved from a User Management tab to a new **Instance Settings** page (`/instance-settings`, admin and owner) above **Profile** in the sidebar. In single-user mode it only shows the MCP switch.
 - **Profile → AI agents** replaces the API key section: the key, the endpoint and a ready-to-copy Claude Code command, dimmed while the MCP is off. Any user reads that state from `GET /settings/mcp`.
 - **Resources and prompts** (`aniseek://saved`, etc.) were left for later.
 
 ## Open questions
 
 - Per-tool rate limiting (deferred to Phase 6 with quotas).
+- Resources (`aniseek://saved`, `aniseek://calendar`) and prompts ("what am I missing from what I follow"): not built in `mcp-server`; a follow-up change if agents need them.
