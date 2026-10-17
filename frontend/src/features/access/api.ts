@@ -6,6 +6,7 @@ import type {
 	ApiKey,
 	CreatedApiKey,
 	CreatedInvitation,
+	InstanceSettings,
 	InvitationList,
 	RegistrationPolicy,
 	Role,
@@ -40,11 +41,8 @@ export const invitationsQueryOptions = queryOptions({
 
 export const settingsQueryOptions = queryOptions({
 	queryKey: ["settings"] as const,
-	queryFn: async (): Promise<{ registrationPolicy: RegistrationPolicy }> => {
-		const { data } =
-			await api.get<ApiEnvelope<{ registrationPolicy: RegistrationPolicy }>>(
-				"/settings",
-			);
+	queryFn: async (): Promise<InstanceSettings> => {
+		const { data } = await api.get<ApiEnvelope<InstanceSettings>>("/settings");
 		return data.payload;
 	},
 });
@@ -107,6 +105,21 @@ export async function updateRegistrationPolicy(
 	registrationPolicy: RegistrationPolicy,
 ): Promise<void> {
 	await api.put("/settings", { registrationPolicy });
+}
+
+// Any user: whether agents can connect to this instance.
+export const mcpStatusQueryOptions = queryOptions({
+	queryKey: ["settings", "mcp"] as const,
+	queryFn: async (): Promise<{ enabled: boolean }> => {
+		const { data } =
+			await api.get<ApiEnvelope<{ enabled: boolean }>>("/settings/mcp");
+		return data.payload;
+	},
+});
+
+// Owner only.
+export async function updateMcpEnabled(enabled: boolean): Promise<void> {
+	await api.put("/settings/mcp", { enabled });
 }
 
 export const ownApiKeyQueryOptions = queryOptions({

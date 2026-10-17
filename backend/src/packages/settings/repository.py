@@ -2,14 +2,19 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from database.client import execute, fetch_one
+from database.client import execute, fetch_one, fetch_val
 
 
 async def get_settings(conn: AsyncConnection) -> dict:
     row = await fetch_one(
-        conn, "SELECT registration_policy, updated_at FROM instance_settings"
+        conn,
+        "SELECT registration_policy, mcp_enabled, updated_at FROM instance_settings",
     )
     return dict(row)
+
+
+async def is_mcp_enabled(conn: AsyncConnection) -> bool:
+    return bool(await fetch_val(conn, "SELECT mcp_enabled FROM instance_settings"))
 
 
 async def update_registration_policy(
@@ -22,3 +27,15 @@ async def update_registration_policy(
             updated_at = CURRENT_TIMESTAMP
     """
     await execute(conn, query, {"policy": policy, "updated_by": UUID(updated_by)})
+
+
+async def update_mcp_enabled(
+    conn: AsyncConnection, enabled: bool, updated_by: str
+) -> None:
+    query = """
+        UPDATE instance_settings
+        SET mcp_enabled = :enabled,
+            updated_by = :updated_by,
+            updated_at = CURRENT_TIMESTAMP
+    """
+    await execute(conn, query, {"enabled": enabled, "updated_by": UUID(updated_by)})

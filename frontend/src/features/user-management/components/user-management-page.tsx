@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrentUser } from "@/features/access/hooks/use-current-user";
 import { hasRole } from "@/features/access/lib/roles";
 import { InvitationsTab } from "./invitations-tab";
-import { SettingsTab } from "./settings-tab";
 import { UsersTab } from "./users-tab";
 
 export function UserManagementPage() {
@@ -28,20 +27,17 @@ export function UserManagementPage() {
 			<div>
 				<h1 className="text-2xl font-semibold">User Management</h1>
 				<p className="text-sm text-muted-foreground">
-					Manage accounts, invitations and how people join this instance
+					Manage accounts and invitations
 				</p>
 			</div>
 
 			<Tabs defaultValue="users" className="gap-5">
-				<TabsList className="h-auto w-full max-w-md">
+				<TabsList className="h-auto w-full max-w-xs">
 					<TabsTrigger value="users" className="w-full">
 						Users
 					</TabsTrigger>
 					<TabsTrigger value="invitations" className="w-full">
 						Invitations
-					</TabsTrigger>
-					<TabsTrigger value="settings" className="w-full">
-						Settings
 					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="users" className="pt-1">
@@ -49,9 +45,6 @@ export function UserManagementPage() {
 				</TabsContent>
 				<TabsContent value="invitations" className="pt-1">
 					<InvitationsTab me={me} />
-				</TabsContent>
-				<TabsContent value="settings" className="pt-1">
-					<SettingsTab me={me} />
 				</TabsContent>
 			</Tabs>
 		</div>

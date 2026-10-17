@@ -18,6 +18,7 @@ https://github.com/user-attachments/assets/f1604c46-6c52-4401-9d66-e5d1b9f932f4
 - **History & storage** — browse downloaded episodes, monitor disk usage per anime and delete files
 - **Dashboard** — download stats, recent episodes and storage consumption
 - **Profile** — update your username and password
+- **MCP server** — let AI agents search, save and download anime with a per-user API key ([docs](docs/mcp.md))
 
 ## Quick Start
 
@@ -52,7 +53,7 @@ Setting `AUTH_ENABLED=false` disables the login screen entirely — useful for l
 
 There are three roles:
 
-- **Owner**: exactly one per instance. Full control; can't be deleted, deactivated or demoted, and can hand the role to someone else (User Management → Settings → Transfer ownership).
+- **Owner**: exactly one per instance. Full control; can't be deleted, deactivated or demoted, and can hand the role to someone else (Instance Settings → Ownership).
 - **Admin**: manages members, invitations and the registration policy, and can delete downloaded files and create franchises.
 - **Member**: browses, saves and downloads.
 
@@ -86,6 +87,7 @@ Details for each phase live in [docs/roadmap](docs/roadmap/README.md).
 - [Roadmap](docs/roadmap/README.md) — planned phases, one file per phase
 - [Architecture](docs/architecture.md) — components, data flow and startup order
 - [Deployment](docs/deployment.md) — HTTPS and internet-facing setups
+- [MCP server](docs/mcp.md) — connect AI agents (Claude Code, Claude Desktop)
 - [Upgrading](docs/upgrading.md) — migration notes for existing deployments
 - [Development](docs/development.md) — build from source, run locally, tests
 - [Contributing](CONTRIBUTING.md) — conventions and maintainer notes

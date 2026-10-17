@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 
 from packages.auth import auth_scheme, require_role
-from packages.animes.dependencies import valid_anime_id
 from responses import SuccessResponse
 
 from .config import episodes_settings
@@ -85,10 +84,10 @@ async def get_animes_storage(
     dependencies=[Depends(require_role("admin"))],
 )
 async def delete_anime_storage(
-    anime_data: dict = Depends(valid_anime_id),
+    anime_id: str,
     current_user: dict = Depends(auth_scheme),
 ):
-    await delete_anime_storage_controller(anime_data["anime_id"], current_user["id"])
+    await delete_anime_storage_controller(anime_id, current_user["id"])
     return SuccessResponse(payload=None, message="Anime storage deleted successfully")
 
 
@@ -164,10 +163,9 @@ async def download_anime_episode_bulk(
     anime_id: str,
     episodes: list[int],
     current_user: dict = Depends(auth_scheme),
-    anime_data: dict = Depends(valid_anime_id),
 ):
     payload = await download_anime_episode_bulk_controller(
-        anime_data["anime_id"],
+        anime_id,
         episodes,
         current_user["id"],
     )

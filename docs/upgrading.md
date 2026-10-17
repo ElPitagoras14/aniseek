@@ -48,6 +48,14 @@ Skipping step 3 makes `aniseek-migrate` fail with a "relation already exists" er
 
 If your deployment never set `AUTH_ENABLED`: an unset value now makes the frontend require login, matching what the backend has always enforced. Previously an unset value silently disabled the login screen while the API still rejected every request. If you rely on running without login, set `AUTH_ENABLED=false` explicitly before upgrading.
 
+## 3.2.0: MCP server
+
+Migration `0004` adds `instance_settings.mcp_enabled`, **off** by default, so upgrading exposes nothing new. The owner turns the MCP server on from **Instance Settings → MCP server** (see [MCP server](mcp.md)).
+
+The instance settings moved out of **User Management**: the registration policy and the ownership transfer now live in the new **Instance Settings** page, next to **Profile** in the sidebar.
+
+To roll back, run `dbmate down` for migration `0004` before starting the previous image. API keys are not affected.
+
 ## 3.1.0: API keys
 
 Migration `0003` drops the `api_keys` and `api_scopes` tables from the initial schema and creates a new `api_keys` table (one key per user, stored as a hash). No code ever used the old tables, so nothing is lost unless you inserted rows into them by hand. Users generate their key from **Profile** (see [Deployment](deployment.md#api-keys)).
@@ -62,7 +70,7 @@ To roll back, run `dbmate down` for migration `0003` before starting the previou
 
 - **The admin becomes the owner.** The API promotes the oldest *active* user with role `admin` to **owner**, whatever their username is, keeping their password, saved list and history. A deactivated admin is skipped. You don't need `OWNER_USERNAME` / `OWNER_PASSWORD` in this case (they are ignored).
 - **`guest` no longer exists.** Users with that role become `member`.
-- **Registration is by invitation only.** Open sign-up used to work; now `POST /auth/register` answers 403 unless the person has an invitation. Owner and admins can create invitations or accounts from **User Management**, or reopen sign-up under User Management → Settings → Registration (set it to *Open*).
+- **Registration is by invitation only.** Open sign-up used to work; now `POST /auth/register` answers 403 unless the person has an invitation. Owner and admins can create invitations or accounts from **User Management**, or reopen sign-up under Instance Settings → Registration (set it to *Open*).
 - **Some actions now need `admin`:** deleting downloaded files (Storage), creating franchises and listing users. Members lose them.
 - **Sessions are stricter:** deactivated users are rejected immediately (not only at login), and changing a password closes the user's other sessions.
 - **The `admin` / `admin123` seed is gone.** If you never changed that password, change it now from **Profile**.

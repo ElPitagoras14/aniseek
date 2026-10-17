@@ -7,6 +7,7 @@ import {
 	Home,
 	type LucideIcon,
 	Search,
+	Settings,
 	UserRound,
 	Users,
 } from "lucide-react";
@@ -96,6 +97,13 @@ export const mainNavigationData: NavGroup[] = [
 ];
 
 export const secondaryNavigationData: NavSection[] = [
+	{
+		title: "Instance Settings",
+		mobile: "account",
+		icon: Settings,
+		url: "/instance-settings",
+		minRole: "admin",
+	},
 	{
 		title: "Profile",
 		mobile: "account",

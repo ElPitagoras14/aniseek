@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -52,6 +53,8 @@ class DownloadTaskOut(SuccessResponse):
 class DownloadTaskStatus(DownloadTask):
     episode_number: int
     success: bool
+    # Why the episode was not enqueued; None when it was.
+    reason: Literal["already_downloaded", "not_found", "enqueue_failed"] | None = None
 
 
 class DownloadTaskList(BaseModel):

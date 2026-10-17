@@ -18,6 +18,7 @@ import { Route as AppStorageRouteImport } from './routes/_app/storage'
 import { Route as AppSearchRouteImport } from './routes/_app/search'
 import { Route as AppSavedRouteImport } from './routes/_app/saved'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppInstanceSettingsRouteImport } from './routes/_app/instance-settings'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppFranchiseRouteImport } from './routes/_app/franchise'
 import { Route as AppDownloadsRouteImport } from './routes/_app/downloads'
@@ -68,6 +69,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppInstanceSettingsRoute = AppInstanceSettingsRouteImport.update({
+  id: '/instance-settings',
+  path: '/instance-settings',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppHomeRoute = AppHomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/downloads': typeof AppDownloadsRoute
   '/franchise': typeof AppFranchiseRoute
   '/home': typeof AppHomeRoute
+  '/instance-settings': typeof AppInstanceSettingsRoute
   '/profile': typeof AppProfileRoute
   '/saved': typeof AppSavedRoute
   '/search': typeof AppSearchRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/downloads': typeof AppDownloadsRoute
   '/franchise': typeof AppFranchiseRoute
   '/home': typeof AppHomeRoute
+  '/instance-settings': typeof AppInstanceSettingsRoute
   '/profile': typeof AppProfileRoute
   '/saved': typeof AppSavedRoute
   '/search': typeof AppSearchRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_app/downloads': typeof AppDownloadsRoute
   '/_app/franchise': typeof AppFranchiseRoute
   '/_app/home': typeof AppHomeRoute
+  '/_app/instance-settings': typeof AppInstanceSettingsRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/saved': typeof AppSavedRoute
   '/_app/search': typeof AppSearchRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/downloads'
     | '/franchise'
     | '/home'
+    | '/instance-settings'
     | '/profile'
     | '/saved'
     | '/search'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/downloads'
     | '/franchise'
     | '/home'
+    | '/instance-settings'
     | '/profile'
     | '/saved'
     | '/search'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/_app/downloads'
     | '/_app/franchise'
     | '/_app/home'
+    | '/_app/instance-settings'
     | '/_app/profile'
     | '/_app/saved'
     | '/_app/search'
@@ -262,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/instance-settings': {
+      id: '/_app/instance-settings'
+      path: '/instance-settings'
+      fullPath: '/instance-settings'
+      preLoaderRoute: typeof AppInstanceSettingsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/home': {
       id: '/_app/home'
       path: '/home'
@@ -305,6 +324,7 @@ interface AppRouteRouteChildren {
   AppDownloadsRoute: typeof AppDownloadsRoute
   AppFranchiseRoute: typeof AppFranchiseRoute
   AppHomeRoute: typeof AppHomeRoute
+  AppInstanceSettingsRoute: typeof AppInstanceSettingsRoute
   AppProfileRoute: typeof AppProfileRoute
   AppSavedRoute: typeof AppSavedRoute
   AppSearchRoute: typeof AppSearchRoute
@@ -318,6 +338,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppDownloadsRoute: AppDownloadsRoute,
   AppFranchiseRoute: AppFranchiseRoute,
   AppHomeRoute: AppHomeRoute,
+  AppInstanceSettingsRoute: AppInstanceSettingsRoute,
   AppProfileRoute: AppProfileRoute,
   AppSavedRoute: AppSavedRoute,
   AppSearchRoute: AppSearchRoute,

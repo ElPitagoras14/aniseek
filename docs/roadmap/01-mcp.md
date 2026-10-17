@@ -1,6 +1,6 @@
 # Phase 1: MCP server for AI agents
 
-**Status:** in progress. `api-keys` implemented (branch `feat/api-keys`); `mcp-server` not started. **Depends on:** Phase 0 (done).
+**Status:** done. OpenSpec changes `api-keys` (3.1.0) and `mcp-server` (3.2.0). Usage in [`docs/mcp.md`](../mcp.md). **Depends on:** Phase 0 (done).
 
 ## Goal
 
@@ -69,6 +69,17 @@ Resources and prompts: `aniseek://saved`, `aniseek://calendar`; prompts such as 
 2. **`mcp-server`:** `mcp_enabled` column and `PUT /settings/mcp`, 404 guard, MCP session manager in the lifespan, tools and id translation, `mcp` SDK dependency, toggle in the Settings tab, `docs/mcp.md` with Claude Desktop and Claude Code examples.
 
 Both deserve a `VERSION` bump.
+
+## Deviations from this plan (`mcp-server`)
+
+- **Location:** `backend/src/mcp_server/`, next to `routes.py`, not a package under `packages/`: the MCP is a second interface over the domain services, not a domain. Not named `mcp`, which would shadow the SDK on the import path.
+- **SDK:** official `mcp` 2.x (`MCPServer`), without its OAuth-oriented auth. A small ASGI gate at `/api/mcp` checks `mcp_enabled` (404) and then the API key (401).
+- **User propagation:** the SDK serves stateless requests from a task group opened in the lifespan, so a contextvar set by the gate does not reach the tools. The gate stores the user in the ASGI scope and the tools read it from the request the SDK hands them.
+- **Business rules moved to the services** (refresh cooldown, anime existence, double save/unsave) so REST and MCP share them. The bulk download reports a `reason` per failed episode.
+- **`get_download_status` works by anime and episode number,** not by job id: the worker clears the job id when a download succeeds.
+- **Instance Settings page:** the registration policy, the MCP switch and the ownership transfer moved from a User Management tab to a new **Instance Settings** page above **Profile** in the sidebar.
+- **Profile → AI agents** replaces the API key section: the key, the endpoint and a ready-to-copy Claude Code command, dimmed while the MCP is off. Any user reads that state from `GET /settings/mcp`.
+- **Resources and prompts** (`aniseek://saved`, etc.) were left for later.
 
 ## Open questions
 
