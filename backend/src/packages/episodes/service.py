@@ -5,6 +5,7 @@ from loguru import logger
 
 from database.client import engine
 from exceptions import ConflictError, NotFoundError
+from packages.animes.service import assert_anime_exists
 from worker import download_anime_episode
 
 from . import repository
@@ -158,10 +159,31 @@ async def delete_download_episode_controller(episode_id: int, user_id: str) -> s
     return "Episode deleted successfully"
 
 
+async def get_episodes_download_status(
+    anime_id: str, episode_numbers: list[int], user_id: str
+) -> dict[int, dict]:
+    """Status of the given episodes by number: the global download status
+    (`episodes.status`) and whether `user_id` requested it. Missing numbers
+    are left out."""
+    async with engine.connect() as conn:
+        episodes = await repository.get_episodes_with_user_download_status(
+            conn, anime_id, episode_numbers, user_id
+        )
+    return {
+        ep["ep_number"]: {
+            "status": ep["status"],
+            "requested_by_user": ep["already_downloaded"],
+        }
+        for ep in episodes
+    }
+
+
 async def download_anime_episode_bulk_controller(
     anime_id: str, episode_numbers: list[int], user_id: str
 ) -> dict:
     logger.debug(f"Downloading anime with id: {anime_id}")
+    await assert_anime_exists(anime_id)
+
     success_enqueued = []
     failed_enqueued = []
 
@@ -172,18 +194,17 @@ async def download_anime_episode_bulk_controller(
     episodes_by_number = {ep["ep_number"]: ep for ep in episodes}
 
     for ep_number in episode_numbers:
+        episode = episodes_by_number.get(ep_number)
+        if not episode:
+            failed_enqueued.append([ep_number, "not_found"])
+            continue
+
+        if episode["already_downloaded"]:
+            logger.warning(f"Episode {episode['id']} already enqueued for user {user_id}")
+            failed_enqueued.append([ep_number, "already_downloaded"])
+            continue
+
         try:
-            episode = episodes_by_number.get(ep_number)
-            if not episode:
-                raise NotFoundError("Episode not found")
-
-            if episode["already_downloaded"]:
-                logger.warning(
-                    f"Episode {episode['id']} already enqueued for user {user_id}"
-                )
-                failed_enqueued.append([None, ep_number])
-                continue
-
             result = download_anime_episode.send(
                 anime_id, episode["ep_number"], user_id
             )
@@ -200,13 +221,13 @@ async def download_anime_episode_bulk_controller(
             success_enqueued.append([result.message_id, ep_number])
         except Exception as e:
             logger.error(f"Error downloading episode: {e}")
-            failed_enqueued.append([None, ep_number])
+            failed_enqueued.append([ep_number, "enqueue_failed"])
 
     parsed_data = [
-        {"job_id": s[0], "episode_number": s[1], "success": True}
+        {"job_id": s[0], "episode_number": s[1], "success": True, "reason": None}
         for s in success_enqueued
     ] + [
-        {"job_id": f[0], "episode_number": f[1], "success": False}
+        {"job_id": None, "episode_number": f[0], "success": False, "reason": f[1]}
         for f in failed_enqueued
     ]
     return cast_download_task_list(parsed_data, len(parsed_data))
@@ -231,6 +252,7 @@ async def get_animes_storage_controller(
 
 async def delete_anime_storage_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Deleting anime with id: {anime_id}")
+    await assert_anime_exists(anime_id)
     async with engine.connect() as conn:
         anime = await repository.get_anime_with_episodes_for_storage(conn, anime_id)
     if not anime:

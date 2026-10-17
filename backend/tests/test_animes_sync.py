@@ -223,22 +223,22 @@ async def test_save_anime_on_placeholder_syncs_before_saving(raw_conn, monkeypat
     assert await raw_conn.fetchval("SELECT count(*) FROM user_save_anime") == 1
 
 
-async def test_update_dependency_rejects_placeholder_with_corrected_message(raw_conn):
+async def test_refresh_rejects_placeholder_with_corrected_message(raw_conn):
     from exceptions import NotFoundError
-    from packages.animes.dependencies import valid_anime_for_update
+    from packages.animes.service import assert_anime_refreshable
 
     await create_anime(raw_conn, anime_id="ph", title="Placeholder")
 
     with pytest.raises(NotFoundError) as exc:
-        await valid_anime_for_update("ph", current_user={"id": "u"})
+        await assert_anime_refreshable("ph")
 
     assert "GET /animes/{anime_id}" in exc.value.message
     assert "/animes/info" not in exc.value.message
 
 
-async def test_update_dependency_enforces_cooldown(raw_conn):
+async def test_refresh_enforces_cooldown(raw_conn):
     from exceptions import TooManyRequestsError
-    from packages.animes.dependencies import valid_anime_for_update
+    from packages.animes.service import assert_anime_refreshable
 
     await create_anime(
         raw_conn,
@@ -248,11 +248,11 @@ async def test_update_dependency_enforces_cooldown(raw_conn):
     )
 
     with pytest.raises(TooManyRequestsError):
-        await valid_anime_for_update("recent", current_user={"id": "u"})
+        await assert_anime_refreshable("recent")
 
 
-async def test_update_dependency_allows_after_cooldown(raw_conn):
-    from packages.animes.dependencies import valid_anime_for_update
+async def test_refresh_allows_after_cooldown(raw_conn):
+    from packages.animes.service import assert_anime_refreshable
 
     await create_anime(
         raw_conn,
@@ -261,9 +261,7 @@ async def test_update_dependency_allows_after_cooldown(raw_conn):
         last_scraped_at=datetime.now(timezone.utc) - timedelta(minutes=10),
     )
 
-    data = await valid_anime_for_update("old", current_user={"id": "u"})
-
-    assert data == {"anime_id": "old", "user_id": "u"}
+    await assert_anime_refreshable("old")
 
 
 # --- single-flight ----------------------------------------------------------

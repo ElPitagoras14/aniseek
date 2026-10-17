@@ -3,11 +3,6 @@ from fastapi import APIRouter, Depends
 from packages.auth import auth_scheme
 from responses import SuccessResponse
 
-from .dependencies import (
-    anime_is_saved_by_user,
-    user_not_saved_anime,
-    valid_anime_for_update,
-)
 from .responses import (
     AnimeOut,
     InEmissionAnimeListOut,
@@ -63,26 +58,26 @@ async def get_anime(
 
 @animes_router.put("/{anime_id}", response_model=AnimeOut)
 async def update_anime(
-    anime_data: dict = Depends(valid_anime_for_update),
+    anime_id: str,
+    current_user: dict = Depends(auth_scheme),
 ):
-    anime_id = anime_data["anime_id"]
-    user_id = anime_data["user_id"]
-
-    payload = await update_anime_controller(anime_id, user_id)
+    payload = await update_anime_controller(anime_id, current_user["id"])
     return SuccessResponse(payload=payload, message="Anime updated successfully")
 
 
 @animes_router.put("/{anime_id}/save", response_model=SuccessResponse)
 async def save_anime(
-    anime_data: dict = Depends(user_not_saved_anime),
+    anime_id: str,
+    current_user: dict = Depends(auth_scheme),
 ):
-    await save_anime_controller(anime_data["anime_id"], anime_data["user_id"])
+    await save_anime_controller(anime_id, current_user["id"])
     return SuccessResponse(payload=None, message="Anime saved successfully")
 
 
 @animes_router.put("/{anime_id}/unsave", response_model=SuccessResponse)
 async def unsave_anime(
-    anime_data: dict = Depends(anime_is_saved_by_user),
+    anime_id: str,
+    current_user: dict = Depends(auth_scheme),
 ):
-    await unsave_anime_controller(anime_data["anime_id"], anime_data["user_id"])
+    await unsave_anime_controller(anime_id, current_user["id"])
     return SuccessResponse(payload=None, message="Anime unsaved successfully")

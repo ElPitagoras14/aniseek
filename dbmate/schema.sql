@@ -165,6 +165,7 @@ CREATE TABLE public.instance_settings (
     registration_policy text DEFAULT 'invite'::text NOT NULL,
     updated_by uuid,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    mcp_enabled boolean DEFAULT false NOT NULL,
     CONSTRAINT instance_settings_id_check CHECK (id),
     CONSTRAINT instance_settings_registration_policy_check CHECK ((registration_policy = ANY (ARRAY['invite'::text, 'open'::text])))
 );
@@ -706,4 +707,5 @@ ALTER TABLE ONLY public.users
 INSERT INTO public.schema_migrations (version) VALUES
     ('0001'),
     ('0002'),
-    ('0003');
+    ('0003'),
+    ('0004');

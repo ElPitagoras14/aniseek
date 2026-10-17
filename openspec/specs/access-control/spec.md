@@ -97,6 +97,9 @@ Cada operación SHALL exigir como mínimo el rol indicado:
 | Administrar usuarios, invitaciones y la política de registro | `admin` (con los límites de `user-administration` y `user-registration`) |
 | Listar las API keys de todos los usuarios y revocar las ajenas | `owner` |
 | Transferir el rol de owner | `owner` |
+| Activar y desactivar el MCP de la instancia | `owner` |
+
+Una operación hecha a través del MCP SHALL exigir el mismo rol mínimo que la operación equivalente de esta tabla.
 
 #### Scenario: Member crea una franquicia
 
@@ -127,3 +130,13 @@ Cada operación SHALL exigir como mínimo el rol indicado:
 
 - **WHEN** un `admin` solicita revocar la API key de otro usuario
 - **THEN** el sistema responde 403
+
+#### Scenario: Admin intenta activar el MCP
+
+- **WHEN** un `admin` solicita activar o desactivar el MCP de la instancia
+- **THEN** el sistema responde 403 y el estado del MCP no cambia
+
+#### Scenario: Member borra archivos desde el MCP
+
+- **WHEN** un `member` invoca a través del MCP la operación de borrar los archivos descargados de un anime
+- **THEN** la operación se rechaza por permisos insuficientes y los archivos permanecen intactos

@@ -18,6 +18,11 @@ export interface UserList {
 
 export type RegistrationPolicy = "invite" | "open";
 
+export interface InstanceSettings {
+	registrationPolicy: RegistrationPolicy;
+	mcpEnabled: boolean;
+}
+
 export interface Invitation {
 	id: string;
 	role: Role;

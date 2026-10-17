@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { CopyButton } from "@/components/copy-button";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -13,12 +14,14 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
 	generateApiKey,
 	ownApiKeyQueryOptions,
 	revokeOwnApiKey,
 } from "@/features/access/api";
+import { claudeCodeCommand } from "@/features/access/lib/mcp";
 import { parseApiError } from "@/features/access/lib/parse-error";
 
 function formatDateTime(iso: string | null) {
@@ -38,7 +41,6 @@ export function ApiKeySection() {
 	// The full key is only ever returned by the generate call: keep it here,
 	// show it once and drop it when the dialog closes.
 	const [newKey, setNewKey] = useState<string | null>(null);
-	const [copied, setCopied] = useState(false);
 
 	const invalidate = () =>
 		queryClient.invalidateQueries({ queryKey: ["api-keys"] });
@@ -65,20 +67,7 @@ export function ApiKeySection() {
 		},
 	});
 
-	const closeKeyDialog = () => {
-		setNewKey(null);
-		setCopied(false);
-	};
-
-	const copy = async () => {
-		if (!newKey) return;
-		try {
-			await navigator.clipboard.writeText(newKey);
-			setCopied(true);
-		} catch {
-			toast.error("Could not copy. Select the key and copy it manually.");
-		}
-	};
+	const closeKeyDialog = () => setNewKey(null);
 
 	return (
 		<>
@@ -157,7 +146,7 @@ export function ApiKeySection() {
 				open={newKey !== null}
 				onOpenChange={(open) => !open && closeKeyDialog()}
 			>
-				<DialogContent>
+				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
 						<DialogTitle>API key ready</DialogTitle>
 						<DialogDescription>
@@ -171,15 +160,24 @@ export function ApiKeySection() {
 							onFocus={(e) => e.target.select()}
 							className="font-mono"
 						/>
-						<Button
-							type="button"
-							variant="outline"
-							size="icon"
-							onClick={copy}
-							aria-label="Copy key"
-						>
-							{copied ? <Check /> : <Copy />}
-						</Button>
+						<CopyButton text={newKey ?? ""} label="Copy key" />
+					</div>
+					<div className="flex min-w-0 flex-col gap-2">
+						<Label htmlFor="new-key-claude-code">
+							Or add it to Claude Code
+						</Label>
+						<div className="flex items-start gap-2">
+							<pre
+								id="new-key-claude-code"
+								className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed"
+							>
+								<code>{claudeCodeCommand(newKey ?? "")}</code>
+							</pre>
+							<CopyButton
+								text={claudeCodeCommand(newKey ?? "")}
+								label="Copy Claude Code command"
+							/>
+						</div>
 					</div>
 					<DialogFooter>
 						<Button onClick={closeKeyDialog}>Done</Button>

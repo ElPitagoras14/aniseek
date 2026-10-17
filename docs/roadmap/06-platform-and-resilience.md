@@ -26,6 +26,15 @@ Known gaps found during planning (codegraph reported no covering tests):
 
 Existing backend tests include `backend/tests/test_animes_sync.py` and `test_infra_smoke.py`.
 
+## Unauthenticated endpoints (found in Phase 1)
+
+Two REST endpoints answer without any credential, by design or by omission. Decide whether they stay public:
+
+- `GET /episodes/stream/status?job_ids=...` (SSE of download progress): anyone who knows or guesses a job id can follow it.
+- `GET /episodes/{anime_id}/{episode_number}/file` (`valid_downloaded_episode_by_number_public`): serves any downloaded episode file to anyone who can reach the API.
+
+The MCP does not return file URLs, so Phase 1 does not widen this surface.
+
 ## Observability
 
 - Metrics and alerts when a provider fails (builds on the per-provider health from Phase 2).

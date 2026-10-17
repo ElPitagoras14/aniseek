@@ -41,6 +41,8 @@ export interface BulkDownloadItem {
 	jobId: string | null;
 	episodeNumber: number;
 	success: boolean;
+	// Why the episode was not enqueued; null when it was.
+	reason: "already_downloaded" | "not_found" | "enqueue_failed" | null;
 }
 
 export interface BulkDownloadResult {

@@ -5,7 +5,7 @@ Planning notes for Ani Seek, agreed on 2026-10-16. Each phase has its own file w
 | Phase | Deliverable | Effort | Depends on | Status |
 |---|---|---|---|---|
 | [0](00-users-and-access.md) | Users and access: roles, owner, controlled registration | Medium-high | — | Done |
-| [1](01-mcp.md) | MCP server for AI agents, enabled per instance | Medium | Phase 0 | In progress |
+| [1](01-mcp.md) | MCP server for AI agents, enabled per instance | Medium | Phase 0 | Done |
 | [2](02-multi-provider.md) | Multi-provider scraping (AnimeAV1 + JKAnime fallback) | High | — | Not started |
 | [3](03-anilist-metadata.md) | AniList metadata and cross-provider identity | Medium | Phase 2 | Not started |
 | [4](04-automation.md) | Auto-download, notifications, download queue | Medium | Phases 2, 3 | Not started |

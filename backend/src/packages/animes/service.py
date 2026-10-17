@@ -1,11 +1,12 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import unquote
 
 from loguru import logger
 
 from database.client import engine
 from database.utils import related_types_id
+from exceptions import ConflictError, NotFoundError, TooManyRequestsError
 
 from . import repository
 from .catalog import episode_url
@@ -168,19 +169,62 @@ async def ensure_anime_scraped(anime_id: str) -> None:
         await sync_anime(anime_id)
 
 
-async def update_anime_controller(anime_id: str, user_id: str) -> dict:
-    await sync_anime(anime_id)
+REFRESH_COOLDOWN = timedelta(minutes=5)
+
+
+async def assert_anime_exists(anime_id: str) -> None:
+    """404 unless the anime has a row (placeholder or scraped)."""
     async with engine.connect() as conn:
-        anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
-    return build_anime_response(anime_db)
+        anime = await repository.get_anime_by_id(conn, anime_id)
+    if not anime:
+        raise NotFoundError(f"Anime {anime_id} not found")
+
+
+async def assert_anime_refreshable(anime_id: str) -> None:
+    """The anime must be scraped and its last sync older than the cooldown."""
+    async with engine.connect() as conn:
+        anime = await repository.get_anime_by_id(conn, anime_id)
+
+    if not is_scraped(anime):
+        raise NotFoundError(
+            "Anime not found or not yet created. "
+            "Use GET /animes/{anime_id} to create it first."
+        )
+
+    last_scraped = anime["last_scraped_at"]
+    if last_scraped.tzinfo is None:
+        last_scraped = last_scraped.replace(tzinfo=timezone.utc)
+
+    elapsed = datetime.now(timezone.utc) - last_scraped
+    if elapsed < REFRESH_COOLDOWN:
+        remaining_seconds = int((REFRESH_COOLDOWN - elapsed).total_seconds())
+        raise TooManyRequestsError(
+            f"Anime was updated recently. "
+            f"Please wait {remaining_seconds} seconds before updating."
+        )
+
+
+async def load_anime_detail(anime_id: str, user_id: str) -> dict:
+    """The anime row with genres, relations, saved info and its episodes
+    (number, status and the user's download flag), as the repository returns it."""
+    async with engine.connect() as conn:
+        return await repository.get_anime_with_relations(conn, anime_id, user_id)
+
+
+async def refresh_anime(anime_id: str) -> None:
+    await assert_anime_refreshable(anime_id)
+    await sync_anime(anime_id)
+
+
+async def update_anime_controller(anime_id: str, user_id: str) -> dict:
+    await refresh_anime(anime_id)
+    return build_anime_response(await load_anime_detail(anime_id, user_id))
 
 
 async def get_anime_controller(anime_id: str, user_id: str) -> dict:
     logger.debug(f"Getting anime with id: {anime_id}")
     await ensure_anime_scraped(anime_id)
-    async with engine.connect() as conn:
-        anime_db = await repository.get_anime_with_relations(conn, anime_id, user_id)
-    return build_anime_response(anime_db)
+    return build_anime_response(await load_anime_detail(anime_id, user_id))
 
 
 async def search_anime_controller(query: str, user_id: str):
@@ -231,6 +275,12 @@ async def get_saved_animes_controller(user_id: str) -> dict:
 
 async def save_anime_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Saving anime with id: {anime_id}")
+    # Does not require the anime to exist yet: saving one creates it.
+    async with engine.connect() as conn:
+        saved = await repository.get_user_saved_anime(conn, user_id, anime_id)
+    if saved:
+        raise ConflictError("Anime already saved by user")
+
     await ensure_anime_scraped(anime_id)
 
     async with engine.begin() as conn:
@@ -241,6 +291,12 @@ async def save_anime_controller(anime_id: str, user_id: str) -> str:
 
 async def unsave_anime_controller(anime_id: str, user_id: str) -> str:
     logger.debug(f"Unsaving anime with id: {anime_id}")
+    await assert_anime_exists(anime_id)
+    async with engine.connect() as conn:
+        saved = await repository.get_user_saved_anime(conn, user_id, anime_id)
+    if not saved:
+        raise NotFoundError("Anime not saved by user")
+
     async with engine.begin() as conn:
         await repository.delete_user_saved_anime(conn, user_id, anime_id)
     logger.debug(f"Unsaved anime with id: {anime_id}")

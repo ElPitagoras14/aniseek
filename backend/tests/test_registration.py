@@ -58,7 +58,7 @@ async def test_admin_and_owner_change_the_policy_and_it_persists(client, raw_con
     get = await client.get("/api/settings", headers=auth_headers(user))
 
     assert put.status_code == 200
-    assert get.json()["payload"] == {"registrationPolicy": "open"}
+    assert get.json()["payload"]["registrationPolicy"] == "open"
     row = await raw_conn.fetchrow(
         "SELECT registration_policy, updated_by FROM instance_settings"
     )

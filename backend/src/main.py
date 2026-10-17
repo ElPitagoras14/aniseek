@@ -10,6 +10,7 @@ from database import connect_db, disconnect_db
 from exceptions import AppError
 from handlers import app_error_handler, unhandled_error_handler
 from log import configure_logs
+from mcp_server import McpGate, mcp_lifespan
 from middleware import TracingMiddleware
 from packages.auth import ensure_owner
 from routes import router
@@ -26,7 +27,10 @@ async def lifespan(app: FastAPI):
     await connect_db()
     await ensure_owner()
     logger.info("Application starting up...")
-    yield
+    # A mounted app's lifespan never runs: the MCP session manager has to run
+    # in this one (mcp-server, design D3).
+    async with mcp_lifespan():
+        yield
     await disconnect_db()
     logger.info("Application shutting down...")
 
@@ -50,6 +54,10 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, unhandled_error_handler)
 
 app.include_router(router, prefix="/api")
+
+# The MCP endpoint (mcp-server, design D2). A plain route rather than a mount,
+# so "/api/mcp" matches exactly instead of redirecting to "/api/mcp/".
+app.add_route("/api/mcp", McpGate(), include_in_schema=False)
 
 
 @app.get("/api/health")
