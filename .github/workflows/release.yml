@@ -208,6 +208,11 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.detect.outputs.version }}
+          # El tag va al commit que se construyó, no al HEAD de main al momento
+          # de crear el release: si main avanzó (otro merge, o relanzar una
+          # corrida vieja), el tag caería en código que las imágenes no tienen
+          # y el próximo release reutilizaría imágenes viejas (pasó en 3.2.0).
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
