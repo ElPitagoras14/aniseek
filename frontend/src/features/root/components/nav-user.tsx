@@ -1,16 +1,16 @@
 import { LogOut, UserRound } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useCurrentUser } from "@/features/access/hooks/use-current-user";
 import { LogoutDialog } from "./logout-dialog";
 
 export function NavUser() {
-	const { user } = useAuth();
+	const { data: user } = useCurrentUser();
 	const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
 	return (

@@ -13,6 +13,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
 import { Route as AppStorageRouteImport } from './routes/_app/storage'
 import { Route as AppSearchRouteImport } from './routes/_app/search'
 import { Route as AppSavedRouteImport } from './routes/_app/saved'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppUserManagementRoute = AppUserManagementRouteImport.update({
+  id: '/user-management',
+  path: '/user-management',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppStorageRoute = AppStorageRouteImport.update({
   id: '/storage',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/saved': typeof AppSavedRoute
   '/search': typeof AppSearchRoute
   '/storage': typeof AppStorageRoute
+  '/user-management': typeof AppUserManagementRoute
   '/anime/$slug': typeof AppAnimeSlugRoute
 }
 export interface FileRoutesByTo {
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/saved': typeof AppSavedRoute
   '/search': typeof AppSearchRoute
   '/storage': typeof AppStorageRoute
+  '/user-management': typeof AppUserManagementRoute
   '/anime/$slug': typeof AppAnimeSlugRoute
 }
 export interface FileRoutesById {
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_app/saved': typeof AppSavedRoute
   '/_app/search': typeof AppSearchRoute
   '/_app/storage': typeof AppStorageRoute
+  '/_app/user-management': typeof AppUserManagementRoute
   '/_app/anime/$slug': typeof AppAnimeSlugRoute
 }
 export interface FileRouteTypes {
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/search'
     | '/storage'
+    | '/user-management'
     | '/anime/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/search'
     | '/storage'
+    | '/user-management'
     | '/anime/$slug'
   id:
     | '__root__'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_app/saved'
     | '/_app/search'
     | '/_app/storage'
+    | '/_app/user-management'
     | '/_app/anime/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -214,6 +226,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/user-management': {
+      id: '/_app/user-management'
+      path: '/user-management'
+      fullPath: '/user-management'
+      preLoaderRoute: typeof AppUserManagementRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/storage': {
       id: '/_app/storage'
@@ -290,6 +309,7 @@ interface AppRouteRouteChildren {
   AppSavedRoute: typeof AppSavedRoute
   AppSearchRoute: typeof AppSearchRoute
   AppStorageRoute: typeof AppStorageRoute
+  AppUserManagementRoute: typeof AppUserManagementRoute
   AppAnimeSlugRoute: typeof AppAnimeSlugRoute
 }
 
@@ -302,6 +322,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSavedRoute: AppSavedRoute,
   AppSearchRoute: AppSearchRoute,
   AppStorageRoute: AppStorageRoute,
+  AppUserManagementRoute: AppUserManagementRoute,
   AppAnimeSlugRoute: AppAnimeSlugRoute,
 }
 

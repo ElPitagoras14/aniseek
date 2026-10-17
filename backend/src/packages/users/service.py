@@ -1,11 +1,13 @@
 from loguru import logger
 
 from database.client import engine
-from packages.auth import get_hash, verify_password
-from exceptions import ConflictError, NotFoundError
+from packages.auth import assert_can_manage, get_hash, insert_user, verify_password
+from packages.auth import repository as auth_repository
+from packages.auth.utils import validate_credentials, validate_password
+from exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 
 from . import repository
-from .schemas import UserUpdateInfo
+from .schemas import UserAdminUpdateInfo, UserCreateInfo, UserUpdateInfo
 from .utils import cast_avatars, cast_statistics, cast_user, cast_users
 
 
@@ -55,14 +57,12 @@ async def get_me_controller(user_id: str):
             if user["avatar_id"]
             else None
         )
-    if not avatar:
-        raise NotFoundError("Avatar not found")
 
     user_data = {
         "id": user["id"],
         "username": user["username"],
-        "avatar_url": avatar["url"],
-        "avatar_label": avatar["label"],
+        "avatar_url": avatar["url"] if avatar else None,
+        "avatar_label": avatar["label"] if avatar else None,
         "role": user["role_name"],
         "is_active": user["is_active"],
         "created_at": user["created_at"],
@@ -97,6 +97,7 @@ async def update_user_controller(user_info: UserUpdateInfo, user_id: str):
             await repository.update_user_username(conn, user_id, user_info.username)
 
     if user_info.password:
+        validate_password(user_info.password.new_password)
         async with engine.connect() as conn:
             current_hashed = await repository.get_user_current_password(conn, user_id)
         if not verify_password(user_info.password.current_password, current_hashed):
@@ -126,3 +127,72 @@ async def get_user_statistics_controller(user_id: str):
             ),
         }
     return cast_statistics(statistics)
+
+
+ASSIGNABLE_ROLES = ("member", "admin")
+
+
+async def _get_target(conn, user_id: str) -> dict:
+    user = await repository.get_user_with_role(conn, user_id)
+    if not user:
+        raise NotFoundError("User not found")
+    return {"id": str(user["id"]), "role": user["role_name"]}
+
+
+async def _get_user_out(user_id: str):
+    async with engine.connect() as conn:
+        row = await repository.get_user_by_id_with_role_and_avatar(conn, user_id)
+    return cast_user(_build_user_data(row))
+
+
+async def create_user_controller(actor: dict, info: UserCreateInfo):
+    logger.debug(f"{actor['username']} is creating user {info.username}")
+    if info.role not in ASSIGNABLE_ROLES:
+        raise BadRequestError("Role must be 'member' or 'admin'")
+    if actor["role"] != "owner" and info.role != "member":
+        raise ForbiddenError("Only the owner can create admins")
+    validate_credentials(info.username, info.password)
+
+    async with engine.connect() as conn:
+        if await repository.username_exists(conn, info.username):
+            raise ConflictError("User already exists")
+    async with engine.begin() as conn:
+        user_id = await insert_user(
+            conn, info.username, get_hash(info.password), info.role
+        )
+    logger.info(f"User {info.username} created as {info.role} by {actor['username']}")
+    return await _get_user_out(str(user_id))
+
+
+async def update_managed_user_controller(
+    actor: dict, user_id: str, info: UserAdminUpdateInfo
+):
+    async with engine.connect() as conn:
+        target = await _get_target(conn, user_id)
+    assert_can_manage(actor, target)
+
+    if info.role is not None:
+        if actor["role"] != "owner":
+            raise ForbiddenError("Only the owner can change roles")
+        if info.role not in ASSIGNABLE_ROLES:
+            raise BadRequestError("Role must be 'member' or 'admin'")
+
+    async with engine.begin() as conn:
+        if info.is_active is not None:
+            await repository.set_user_active(conn, user_id, info.is_active)
+        if info.role is not None:
+            await auth_repository.set_user_role(conn, user_id, info.role)
+    logger.info(f"User {user_id} updated by {actor['username']}")
+    return await _get_user_out(user_id)
+
+
+async def reset_user_password_controller(actor: dict, user_id: str, password: str):
+    async with engine.connect() as conn:
+        target = await _get_target(conn, user_id)
+    assert_can_manage(actor, target)
+    validate_password(password)
+
+    async with engine.begin() as conn:
+        await repository.update_user_password(conn, user_id, get_hash(password))
+    logger.info(f"Password of user {user_id} reset by {actor['username']}")
+    return "Password updated successfully"

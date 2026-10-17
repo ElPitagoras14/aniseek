@@ -1,13 +1,13 @@
-import { useAuth } from "@/auth";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useCurrentUser } from "@/features/access/hooks/use-current-user";
 
 interface HomeWelcomeProps {
 	className?: string;
 }
 
 export function HomeWelcome({ className }: HomeWelcomeProps) {
-	const { user } = useAuth();
+	const { data: user } = useCurrentUser();
 	const username = user?.username ?? "there";
 	const role = user?.role ?? "user";
 	const longDate = new Intl.DateTimeFormat("en-US", {

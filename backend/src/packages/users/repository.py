@@ -67,7 +67,9 @@ async def update_user_password(
 ) -> None:
     query = """
         UPDATE users
-        SET password = :password, updated_at = CURRENT_TIMESTAMP
+        SET password = :password,
+            credentials_changed_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = :user_id
     """
     await execute(conn, query, {"user_id": UUID(user_id), "password": hashed_password})
@@ -134,3 +136,12 @@ async def count_in_emission_saved_animes(conn: AsyncConnection, user_id: str) ->
           AND a.is_finished IS FALSE
     """
     return await fetch_val(conn, query, {"user_id": UUID(user_id)}) or 0
+
+
+async def set_user_active(conn: AsyncConnection, user_id: str, is_active: bool) -> None:
+    query = """
+        UPDATE users
+        SET is_active = :is_active, updated_at = CURRENT_TIMESTAMP
+        WHERE id = :user_id
+    """
+    await execute(conn, query, {"user_id": UUID(user_id), "is_active": is_active})

@@ -7,12 +7,3 @@ export async function updateUserRequest(
 	const { data } = await api.put<{ payload: string }>("/users", payload);
 	return data.payload;
 }
-
-export interface UserProfile {
-	createdAt: string;
-}
-
-export async function getUserProfile(): Promise<UserProfile> {
-	const { data } = await api.get<UserProfile>("/users/me");
-	return data;
-}

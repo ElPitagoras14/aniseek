@@ -8,7 +8,10 @@ import {
 	type LucideIcon,
 	Search,
 	UserRound,
+	Users,
 } from "lucide-react";
+import { hasRole } from "@/features/access/lib/roles";
+import type { Role } from "@/features/access/types";
 
 export type NavSection = {
 	title: string;
@@ -17,6 +20,8 @@ export type NavSection = {
 	disabled?: boolean;
 	// Where the section lives below the mobile breakpoint; omitted = hidden on mobile
 	mobile?: "bottom" | "account";
+	// Hidden below this role. Only a convenience: the backend enforces.
+	minRole?: Role;
 };
 
 export type NavGroup = {
@@ -70,6 +75,13 @@ const administrationSection: NavSection[] = [
 		icon: Database,
 		url: "/storage",
 	},
+	{
+		title: "User Management",
+		mobile: "account",
+		icon: Users,
+		url: "/user-management",
+		minRole: "admin",
+	},
 ];
 
 export const mainNavigationData: NavGroup[] = [
@@ -104,3 +116,7 @@ export const accountNavigationData: NavSection[] = [
 	...secondaryNavigationData,
 	...mainSections,
 ].filter((section) => section.mobile === "account");
+
+export function isVisibleTo(section: NavSection, role: string | undefined) {
+	return !section.minRole || hasRole(role, section.minRole);
+}

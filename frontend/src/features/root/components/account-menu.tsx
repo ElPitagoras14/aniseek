@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { LogOut, UserRound } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -11,11 +10,12 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { accountNavigationData } from "../sidebar-data";
+import { useCurrentUser } from "@/features/access/hooks/use-current-user";
+import { accountNavigationData, isVisibleTo } from "../sidebar-data";
 import { LogoutDialog } from "./logout-dialog";
 
 export function AccountMenu() {
-	const { user } = useAuth();
+	const { data: user } = useCurrentUser();
 	const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
 	return (
@@ -42,14 +42,16 @@ export function AccountMenu() {
 						</span>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
-					{accountNavigationData.map((section) => (
-						<DropdownMenuItem key={section.title} asChild>
-							<Link to={section.url}>
-								<section.icon />
-								<span>{section.title}</span>
-							</Link>
-						</DropdownMenuItem>
-					))}
+					{accountNavigationData
+						.filter((section) => isVisibleTo(section, user?.role))
+						.map((section) => (
+							<DropdownMenuItem key={section.title} asChild>
+								<Link to={section.url}>
+									<section.icon />
+									<span>{section.title}</span>
+								</Link>
+							</DropdownMenuItem>
+						))}
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						variant="destructive"

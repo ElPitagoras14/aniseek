@@ -11,3 +11,18 @@ class UserUpdateInfo(CamelCaseModel):
     password: PasswordInfo | None = None
     avatar_id: int | None = None
     role: str | None = None
+
+
+class UserCreateInfo(CamelCaseModel):
+    username: str
+    password: str
+    role: str = "member"
+
+
+class UserAdminUpdateInfo(CamelCaseModel):
+    is_active: bool | None = None
+    role: str | None = None
+
+
+class PasswordResetInfo(CamelCaseModel):
+    password: str

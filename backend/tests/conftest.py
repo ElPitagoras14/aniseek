@@ -105,6 +105,11 @@ def pytest_configure(config: pytest.Config) -> None:
     os.environ["ACCESS_TOKEN_EXP_MIN"] = "60"
     os.environ["REFRESH_TOKEN_EXP_DAY"] = "10"
     os.environ["ANIMES_FOLDER"] = _animes_folder
+    # Pinned so a developer's local .env (single-user mode) can't change what
+    # the auth tests exercise; single-user tests flip auth_settings explicitly.
+    os.environ["AUTH_ENABLED"] = "true"
+    os.environ.pop("OWNER_USERNAME", None)
+    os.environ.pop("OWNER_PASSWORD", None)
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
@@ -182,3 +187,15 @@ def mock_dramatiq(monkeypatch):
     monkeypatch.setattr(order_franchise, "send", order_send)
 
     return {"download_anime_episode": download_send, "order_franchise": order_send}
+
+
+@pytest.fixture
+async def client():
+    """The real FastAPI app over ASGI (no server, no lifespan: tests seed their
+    own users, so `ensure_owner` is exercised directly where it matters)."""
+    import httpx
+    from main import app
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c

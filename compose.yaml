@@ -30,6 +30,11 @@ services:
       - AUTH_ENABLED=${AUTH_ENABLED}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
+      # Only read when the instance has no owner yet (fresh install). The
+      # `:-` default keeps existing instances from a "variable is not set"
+      # warning on every `up`.
+      - OWNER_USERNAME=${OWNER_USERNAME:-}
+      - OWNER_PASSWORD=${OWNER_PASSWORD:-}
       - DB_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@aniseek-db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://aniseek-redis:6379
       - ANIMES_FOLDER=${ANIMES_FOLDER}

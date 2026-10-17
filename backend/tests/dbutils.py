@@ -8,7 +8,9 @@ imported from test modules too (see test_infra_smoke.py)."""
 # think its migrations need re-applying. Keep this in sync with dbmate/migrations/
 # when a new reference table is added (see spec: "Una tabla nueva queda cubierta
 # sin tocar la infraestructura").
-PRESERVED_TABLES = frozenset({"role_types", "related_types", "avatars", "schema_migrations"})
+PRESERVED_TABLES = frozenset(
+    {"role_types", "related_types", "avatars", "instance_settings", "schema_migrations"}
+)
 
 
 async def truncate_mutable_tables(conn) -> None:
@@ -27,3 +29,9 @@ async def truncate_mutable_tables(conn) -> None:
     # what TRUNCATE itself opens and commits immediately: this runs *before* the
     # test, never around it (design D4).
     await conn.execute(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE")
+    # instance_settings is a preserved table, but its FK to users makes CASCADE
+    # truncate it anyway. Restore the single seeded row (migration 0002) so
+    # each test starts from the default 'invite' policy.
+    await conn.execute(
+        "INSERT INTO instance_settings DEFAULT VALUES ON CONFLICT DO NOTHING"
+    )

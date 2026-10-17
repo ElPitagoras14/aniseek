@@ -4,7 +4,7 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 
-from packages.auth import auth_scheme
+from packages.auth import auth_scheme, require_role
 from packages.animes.dependencies import valid_anime_id
 from responses import SuccessResponse
 
@@ -79,7 +79,11 @@ async def get_animes_storage(
     return SuccessResponse(payload=payload, message="Animes storage retrieved")
 
 
-@episodes_router.delete("/storage/{anime_id}", response_model=SuccessResponse)
+@episodes_router.delete(
+    "/storage/{anime_id}",
+    response_model=SuccessResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
 async def delete_anime_storage(
     anime_data: dict = Depends(valid_anime_id),
     current_user: dict = Depends(auth_scheme),

@@ -209,6 +209,38 @@ CREATE TABLE public.genres (
 
 
 --
+-- Name: instance_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.instance_settings (
+    id boolean DEFAULT true NOT NULL,
+    registration_policy text DEFAULT 'invite'::text NOT NULL,
+    updated_by uuid,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT instance_settings_id_check CHECK (id),
+    CONSTRAINT instance_settings_registration_policy_check CHECK ((registration_policy = ANY (ARRAY['invite'::text, 'open'::text])))
+);
+
+
+--
+-- Name: invitations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invitations (
+    id uuid NOT NULL,
+    token_hash character(64) NOT NULL,
+    role_id integer NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    used_by uuid,
+    revoked_at timestamp with time zone,
+    CONSTRAINT invitations_check CHECK (((used_at IS NULL) OR (revoked_at IS NULL)))
+);
+
+
+--
 -- Name: related_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -313,7 +345,8 @@ CREATE TABLE public.users (
     role_id integer NOT NULL,
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    credentials_changed_at timestamp with time zone
 );
 
 
@@ -432,6 +465,30 @@ ALTER TABLE ONLY public.genres
 
 
 --
+-- Name: instance_settings instance_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.instance_settings
+    ADD CONSTRAINT instance_settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invitations invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invitations invitations_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_token_hash_key UNIQUE (token_hash);
+
+
+--
 -- Name: related_types related_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -461,6 +518,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.episodes
     ADD CONSTRAINT uq_episode_anime_number UNIQUE (anime_id, ep_number);
+
+
+--
+-- Name: role_types uq_role_types_name; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.role_types
+    ADD CONSTRAINT uq_role_types_name UNIQUE (name);
 
 
 --
@@ -531,6 +596,13 @@ CREATE INDEX idx_episodes_created_at ON public.episodes USING btree (created_at)
 
 
 --
+-- Name: idx_invitations_pending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_invitations_pending ON public.invitations USING btree (expires_at) WHERE ((used_at IS NULL) AND (revoked_at IS NULL));
+
+
+--
 -- Name: idx_user_download_episode_created; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -556,6 +628,13 @@ CREATE INDEX idx_user_save_anime_created ON public.user_save_anime USING btree (
 --
 
 CREATE INDEX idx_users_created_at ON public.users USING btree (created_at);
+
+
+--
+-- Name: uq_users_single_owner; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_users_single_owner ON public.users USING btree ((true)) WHERE (role_id = 6);
 
 
 --
@@ -612,6 +691,38 @@ ALTER TABLE ONLY public.episodes
 
 ALTER TABLE ONLY public.genres
     ADD CONSTRAINT genres_anime_id_fkey FOREIGN KEY (anime_id) REFERENCES public.animes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: instance_settings instance_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.instance_settings
+    ADD CONSTRAINT instance_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: invitations invitations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: invitations invitations_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role_types(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: invitations invitations_used_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_used_by_fkey FOREIGN KEY (used_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -674,4 +785,5 @@ ALTER TABLE ONLY public.users
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('0001');
+    ('0001'),
+    ('0002');

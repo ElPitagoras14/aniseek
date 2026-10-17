@@ -3,14 +3,28 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from database.client import engine
-from .config import auth_settings, ADMIN_USER
+from .config import auth_settings
 from .repository import (
+    get_owner_user,
     get_user_by_id,
-    get_user_by_username,
 )
+from .utils import is_token_stale
 
 SECRET_KEY = auth_settings.SECRET_KEY
 ALGORITHM = auth_settings.ALGORITHM
+
+
+def _unauthorized(detail: str) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
+
+def _current_user(user: dict) -> dict:
+    return {
+        "id": str(user["id"]),
+        "username": user["username"],
+        "isActive": user["is_active"],
+        "role": user["role_name"],
+    }
 
 
 class JWTBearer(HTTPBearer):
@@ -19,19 +33,16 @@ class JWTBearer(HTTPBearer):
 
     async def __call__(self, request: Request) -> dict:
         if not auth_settings.AUTH_ENABLED:
+            # Single-user mode: every request is the instance owner, whatever
+            # its username is (access-control, design D6).
             async with engine.connect() as conn:
-                user = await get_user_by_username(conn, ADMIN_USER)
+                user = await get_owner_user(conn)
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Admin user not seeded",
+                    detail="Instance owner not found",
                 )
-            return {
-                "id": str(user["id"]),
-                "username": user["username"],
-                "isActive": user["is_active"],
-                "role": user["role_name"],
-            }
+            return _current_user(user)
 
         credentials: HTTPAuthorizationCredentials = await super().__call__(request)
         if credentials and credentials.scheme.lower() == "bearer":
@@ -41,38 +52,25 @@ class JWTBearer(HTTPBearer):
                     SECRET_KEY,
                     algorithms=[ALGORITHM],
                 )
-                user_id = payload.get("id")
-                if not user_id:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid token",
-                    )
-
-                async with engine.connect() as conn:
-                    user = await get_user_by_id(conn, user_id)
-                if not user:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="User not found",
-                    )
-
-                return {
-                    "id": str(user["id"]),
-                    "username": user["username"],
-                    "isActive": user["is_active"],
-                    "role": user["role_name"],
-                }
-
             except JWTError:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token",
-                )
+                raise _unauthorized("Invalid token")
 
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No valid Bearer token provided",
-        )
+            user_id = payload.get("id")
+            if not user_id:
+                raise _unauthorized("Invalid token")
+
+            async with engine.connect() as conn:
+                user = await get_user_by_id(conn, user_id)
+            if not user:
+                raise _unauthorized("User not found")
+            if not user["is_active"]:
+                raise _unauthorized("User is not active")
+            if is_token_stale(payload, user["credentials_changed_at"]):
+                raise _unauthorized("Token no longer valid")
+
+            return _current_user(user)
+
+        raise _unauthorized("No valid Bearer token provided")
 
 
 auth_scheme = JWTBearer()
