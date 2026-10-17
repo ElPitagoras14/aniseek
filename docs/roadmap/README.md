@@ -2,15 +2,15 @@
 
 Planning notes for Ani Seek, agreed on 2026-10-16. Each phase has its own file with the context, decisions and open questions needed to pick it up in a new session.
 
-| Phase | Deliverable | Effort | Depends on |
-|---|---|---|---|
-| [0](00-users-and-access.md) | Users and access: roles, owner, controlled registration | Medium-high | — |
-| [1](01-mcp.md) | MCP server for AI agents, enabled per instance | Medium | Phase 0 |
-| [2](02-multi-provider.md) | Multi-provider scraping (AnimeAV1 + JKAnime fallback) | High | — |
-| [3](03-anilist-metadata.md) | AniList metadata and cross-provider identity | Medium | Phase 2 |
-| [4](04-automation.md) | Auto-download, notifications, download queue | Medium | Phases 2, 3 |
-| [5](05-player-and-progress.md) | Built-in player and watch progress | Medium-high | — |
-| [6](06-platform-and-resilience.md) | Quotas, observability, backups, test coverage | Continuous | Cross-cutting |
+| Phase | Deliverable | Effort | Depends on | Status |
+|---|---|---|---|---|
+| [0](00-users-and-access.md) | Users and access: roles, owner, controlled registration | Medium-high | — | Done |
+| [1](01-mcp.md) | MCP server for AI agents, enabled per instance | Medium | Phase 0 | In progress |
+| [2](02-multi-provider.md) | Multi-provider scraping (AnimeAV1 + JKAnime fallback) | High | — | Not started |
+| [3](03-anilist-metadata.md) | AniList metadata and cross-provider identity | Medium | Phase 2 | Not started |
+| [4](04-automation.md) | Auto-download, notifications, download queue | Medium | Phases 2, 3 | Not started |
+| [5](05-player-and-progress.md) | Built-in player and watch progress | Medium-high | — | Not started |
+| [6](06-platform-and-resilience.md) | Quotas, observability, backups, test coverage | Continuous | Cross-cutting | Not started |
 
 ## Order rationale
 

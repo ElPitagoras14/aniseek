@@ -1,6 +1,6 @@
 # Phase 0: Users and access
 
-**Status:** in progress (OpenSpec change `users-and-access`). **Depends on:** nothing. **Blocks:** Phase 1.
+**Status:** done (OpenSpec change `users-and-access`, archived 2026-10-16, PR #48). **Depends on:** nothing. **Blocks:** Phase 1.
 
 ## Goal
 

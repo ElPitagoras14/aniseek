@@ -106,9 +106,10 @@ def is_token_stale(payload: dict, credentials_changed_at: datetime | None) -> bo
     return iat < int(credentials_changed_at.timestamp())
 
 
-def hash_invitation_token(token: str) -> str:
-    """SHA-256 is enough here: the token is 32 random bytes, not a
-    human-chosen secret, so there is nothing to brute-force."""
+def hash_secret_token(token: str) -> str:
+    """Hash for invitation tokens and API keys. SHA-256 is enough here: both
+    are 32 random bytes, not a human-chosen secret, so there is nothing to
+    brute-force."""
     return hashlib.sha256(token.encode()).hexdigest()
 
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from packages.animes import animes_router
+from packages.api_keys import api_keys_router
 from packages.auth import auth_router
 from packages.episodes import episodes_router
 from packages.franchises import franchises_router
@@ -19,3 +20,4 @@ router.include_router(franchises_router, prefix="/franchises", tags=["Franchises
 router.include_router(invitations_router, prefix="/invitations", tags=["Invitations"])
 router.include_router(settings_router, prefix="/settings", tags=["Settings"])
 router.include_router(owner_router, prefix="/owner", tags=["Owner"])
+router.include_router(api_keys_router, prefix="/api-keys", tags=["API keys"])

@@ -12,6 +12,15 @@ def role_rank(role: str | None) -> int:
     return ROLE_RANK.get(role, -1)
 
 
+def assert_min_role(current_user: dict, min_role: str) -> None:
+    """403 unless `current_user` has at least `min_role`. Independent of how the
+    user was authenticated (session or API key)."""
+    if min_role not in ROLE_RANK:
+        raise ValueError(f"Unknown role: {min_role!r}")
+    if role_rank(current_user["role"]) < ROLE_RANK[min_role]:
+        raise ForbiddenError("Insufficient permissions")
+
+
 def require_role(min_role: str):
     """Dependency factory: 403 unless the request's user has at least `min_role`.
 
@@ -21,8 +30,7 @@ def require_role(min_role: str):
         raise ValueError(f"Unknown role: {min_role!r}")
 
     async def dependency(current_user: dict = Depends(auth_scheme)) -> dict:
-        if role_rank(current_user["role"]) < ROLE_RANK[min_role]:
-            raise ForbiddenError("Insufficient permissions")
+        assert_min_role(current_user, min_role)
         return current_user
 
     return dependency

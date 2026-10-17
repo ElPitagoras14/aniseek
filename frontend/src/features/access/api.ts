@@ -3,10 +3,13 @@ import { api } from "@/api";
 import type { ApiEnvelope } from "@/features/anime/types";
 import type {
 	AccessUser,
+	ApiKey,
+	CreatedApiKey,
 	CreatedInvitation,
 	InvitationList,
 	RegistrationPolicy,
 	Role,
+	UserApiKeyList,
 	UserList,
 } from "./types";
 
@@ -104,6 +107,37 @@ export async function updateRegistrationPolicy(
 	registrationPolicy: RegistrationPolicy,
 ): Promise<void> {
 	await api.put("/settings", { registrationPolicy });
+}
+
+export const ownApiKeyQueryOptions = queryOptions({
+	queryKey: ["api-keys", "me"] as const,
+	queryFn: async (): Promise<ApiKey | null> => {
+		const { data } = await api.get<ApiEnvelope<ApiKey | null>>("/api-keys/me");
+		return data.payload;
+	},
+});
+
+// Owner only.
+export const apiKeysQueryOptions = queryOptions({
+	queryKey: ["api-keys", "list"] as const,
+	queryFn: async (): Promise<UserApiKeyList> => {
+		const { data } = await api.get<ApiEnvelope<UserApiKeyList>>("/api-keys");
+		return data.payload;
+	},
+});
+
+// Generates the key, or replaces the current one.
+export async function generateApiKey(): Promise<CreatedApiKey> {
+	const { data } = await api.post<ApiEnvelope<CreatedApiKey>>("/api-keys/me");
+	return data.payload;
+}
+
+export async function revokeOwnApiKey(): Promise<void> {
+	await api.delete("/api-keys/me");
+}
+
+export async function revokeUserApiKey(userId: string): Promise<void> {
+	await api.delete(`/api-keys/${userId}`);
 }
 
 export async function transferOwner(payload: {
