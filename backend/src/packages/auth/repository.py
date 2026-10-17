@@ -37,6 +37,28 @@ async def get_owner_user(conn: AsyncConnection) -> dict | None:
     return dict(row) if row else None
 
 
+async def get_user_by_api_key_hash(conn: AsyncConnection, key_hash: str) -> dict | None:
+    query = f"""
+        SELECT {_USER_COLUMNS} {_USER_JOINS}
+        JOIN api_keys k ON k.user_id = u.id
+        WHERE k.key_hash = :key_hash
+    """
+    row = await fetch_one(conn, query, {"key_hash": key_hash})
+    return dict(row) if row else None
+
+
+async def touch_api_key(conn: AsyncConnection, user_id: str | UUID) -> None:
+    """Records the key's last use, at most once a minute (design D5): an MCP
+    session sends bursts of calls and each one shouldn't be a write."""
+    query = """
+        UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP
+        WHERE user_id = :user_id
+          AND (last_used_at IS NULL
+               OR last_used_at < CURRENT_TIMESTAMP - INTERVAL '1 minute')
+    """
+    await execute(conn, query, {"user_id": UUID(str(user_id))})
+
+
 async def get_user_id_by_username(conn: AsyncConnection, username: str) -> str | None:
     query = "SELECT id FROM users WHERE username = :username"
     return await fetch_val(conn, query, {"username": username})

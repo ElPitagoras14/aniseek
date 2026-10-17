@@ -48,6 +48,12 @@ Skipping step 3 makes `aniseek-migrate` fail with a "relation already exists" er
 
 If your deployment never set `AUTH_ENABLED`: an unset value now makes the frontend require login, matching what the backend has always enforced. Previously an unset value silently disabled the login screen while the API still rejected every request. If you rely on running without login, set `AUTH_ENABLED=false` explicitly before upgrading.
 
+## 3.1.0: API keys
+
+Migration `0003` drops the `api_keys` and `api_scopes` tables from the initial schema and creates a new `api_keys` table (one key per user, stored as a hash). No code ever used the old tables, so nothing is lost unless you inserted rows into them by hand. Users generate their key from **Profile** (see [Deployment](deployment.md#api-keys)).
+
+To roll back, run `dbmate down` for migration `0003` before starting the previous image; any keys generated in the meantime are lost.
+
 ## 3.0.0: users and access
 
 3.0.0 introduces roles that the API actually enforces. Read this before upgrading; **registration changes behaviour**.

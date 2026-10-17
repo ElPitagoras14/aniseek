@@ -18,7 +18,7 @@ from .utils import (
     create_access_token,
     create_refresh_token,
     get_hash,
-    hash_invitation_token,
+    hash_secret_token,
     is_token_stale,
     validate_credentials,
     verify_password,
@@ -81,7 +81,7 @@ async def register_controller(
             invitation = None
             if invitation_token:
                 invitation = await repository.consume_invitation(
-                    conn, hash_invitation_token(invitation_token)
+                    conn, hash_secret_token(invitation_token)
                 )
                 if not invitation:
                     raise ForbiddenError("Invitation is invalid, expired or already used")

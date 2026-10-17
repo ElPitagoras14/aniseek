@@ -6,9 +6,11 @@ from database.client import engine
 from .config import auth_settings
 from .repository import (
     get_owner_user,
+    get_user_by_api_key_hash,
     get_user_by_id,
+    touch_api_key,
 )
-from .utils import is_token_stale
+from .utils import hash_secret_token, is_token_stale
 
 SECRET_KEY = auth_settings.SECRET_KEY
 ALGORITHM = auth_settings.ALGORITHM
@@ -73,4 +75,37 @@ class JWTBearer(HTTPBearer):
         raise _unauthorized("No valid Bearer token provided")
 
 
+class ApiKeyBearer(HTTPBearer):
+    """Authenticates a request by the user's API key (`Authorization: Bearer
+    ask_...`) and resolves it to the same `current_user` as `JWTBearer`, with
+    the user's current role (api-keys, design D4).
+
+    It never looks at AUTH_ENABLED: the key is required in single-user mode
+    too. It is separate from `JWTBearer`, so a key never opens the routes that
+    expect the web session."""
+
+    def __init__(self):
+        super().__init__(auto_error=False)
+
+    async def __call__(self, request: Request) -> dict:
+        credentials: HTTPAuthorizationCredentials | None = await super().__call__(
+            request
+        )
+        if not credentials or credentials.scheme.lower() != "bearer":
+            raise _unauthorized("No valid API key provided")
+
+        async with engine.begin() as conn:
+            user = await get_user_by_api_key_hash(
+                conn, hash_secret_token(credentials.credentials)
+            )
+            if not user:
+                raise _unauthorized("Invalid API key")
+            if not user["is_active"]:
+                raise _unauthorized("User is not active")
+            await touch_api_key(conn, user["id"])
+
+        return _current_user(user)
+
+
 auth_scheme = JWTBearer()
+api_key_scheme = ApiKeyBearer()

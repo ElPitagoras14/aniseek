@@ -90,10 +90,12 @@ Cada operación SHALL exigir como mínimo el rol indicado:
 | Ver el uso de almacenamiento | `member` |
 | Ver franquicias | `member` |
 | Ver y editar el perfil propio, ver estadísticas propias | `member` |
+| Ver, generar, regenerar y revocar la API key propia | `member` |
 | Borrar los archivos descargados de un anime (`DELETE /episodes/storage/{anime_id}`) | `admin` |
 | Crear franquicias (`POST /franchises`) | `admin` |
 | Listar todos los usuarios (`GET /users`) | `admin` |
 | Administrar usuarios, invitaciones y la política de registro | `admin` (con los límites de `user-administration` y `user-registration`) |
+| Listar las API keys de todos los usuarios y revocar las ajenas | `owner` |
 | Transferir el rol de owner | `owner` |
 
 #### Scenario: Member crea una franquicia
@@ -115,3 +117,13 @@ Cada operación SHALL exigir como mínimo el rol indicado:
 
 - **WHEN** un `member` guarda un anime, solicita una descarga o consulta sus estadísticas
 - **THEN** la operación se ejecuta con éxito
+
+#### Scenario: Member gestiona su API key
+
+- **WHEN** un `member` genera, consulta o revoca su propia API key
+- **THEN** la operación se ejecuta con éxito
+
+#### Scenario: Admin revoca una API key ajena
+
+- **WHEN** un `admin` solicita revocar la API key de otro usuario
+- **THEN** el sistema responde 403

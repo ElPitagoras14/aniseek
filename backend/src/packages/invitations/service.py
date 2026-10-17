@@ -7,7 +7,7 @@ from loguru import logger
 
 from database.client import engine
 from exceptions import BadRequestError, ForbiddenError, NotFoundError
-from packages.auth.utils import hash_invitation_token
+from packages.auth.utils import hash_secret_token
 
 from . import repository
 from .schemas import InvitationCreateInfo
@@ -38,7 +38,7 @@ async def create_invitation_controller(actor: dict, info: InvitationCreateInfo) 
         await repository.insert_invitation(
             conn,
             invitation_id,
-            hash_invitation_token(token),
+            hash_secret_token(token),
             info.role,
             actor["id"],
             expires_at,

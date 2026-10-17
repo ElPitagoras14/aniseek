@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleCheck, CircleX, Search } from "lucide-react";
+import { CircleCheck, CircleX, KeyRound, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,16 +13,23 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { updateManagedUser, usersQueryOptions } from "@/features/access/api";
+import {
+	apiKeysQueryOptions,
+	revokeUserApiKey,
+	updateManagedUser,
+	usersQueryOptions,
+} from "@/features/access/api";
 import { parseApiError } from "@/features/access/lib/parse-error";
 import { ROLE_LABELS } from "@/features/access/lib/roles";
-import type { AccessUser, Role } from "@/features/access/types";
+import type { AccessUser, Role, UserApiKey } from "@/features/access/types";
 import { CreateUserDialog } from "./create-user-dialog";
 import { GridMessage, GridRow, GridTable } from "./grid-table";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 import { RolePermissionsDialog } from "./role-permissions-dialog";
 
 const COLS = "md:grid-cols-[1fr_180px_120px_130px_90px_120px]";
+// The owner also sees each user's API key (api-keys, design D7).
+const OWNER_COLS = "md:grid-cols-[1fr_180px_120px_130px_90px_120px_170px]";
 
 // Mirror of the backend rule (assert_can_manage): the owner manages admins
 // and members, an admin only members, nobody manages the owner or themself.
@@ -39,9 +47,63 @@ function formatDate(iso: string | null) {
 	});
 }
 
+function ApiKeyCell({ apiKey }: { apiKey: UserApiKey | undefined }) {
+	const queryClient = useQueryClient();
+
+	if (!apiKey) {
+		return <span className="text-sm text-muted-foreground">—</span>;
+	}
+
+	const revoke = () =>
+		revokeUserApiKey(apiKey.userId)
+			.then(() => {
+				queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+				toast.success("API key revoked");
+			})
+			.catch((error) => {
+				toast.error(parseApiError(error, "Could not revoke the API key"));
+			});
+
+	return (
+		<div className="flex min-w-0 items-center gap-1">
+			<div className="flex min-w-0 flex-col md:items-center">
+				<code className="truncate text-xs font-medium">{apiKey.prefix}…</code>
+				<span className="text-xs text-muted-foreground">
+					{apiKey.lastUsedAt
+						? `Used ${formatDate(apiKey.lastUsedAt)}`
+						: "Never used"}
+				</span>
+			</div>
+			<ConfirmDialog
+				trigger={
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label={`Revoke API key of ${apiKey.username}`}
+					>
+						<KeyRound className="text-destructive" />
+					</Button>
+				}
+				title="Revoke API key?"
+				description={`${apiKey.username}'s key stops working right away. They can generate a new one from their profile.`}
+				confirmLabel="Revoke"
+				destructive
+				onConfirm={revoke}
+			/>
+		</div>
+	);
+}
+
 export function UsersTab({ me }: { me: AccessUser }) {
 	const queryClient = useQueryClient();
 	const users = useQuery(usersQueryOptions);
+	const isOwner = me.role === "owner";
+	const cols = isOwner ? OWNER_COLS : COLS;
+	const apiKeys = useQuery({ ...apiKeysQueryOptions, enabled: isOwner });
+	const apiKeyByUser = useMemo(
+		() => new Map((apiKeys.data?.items ?? []).map((k) => [k.userId, k])),
+		[apiKeys.data],
+	);
 	const [search, setSearch] = useState("");
 	const [direction, setDirection] = useState<"asc" | "desc">("asc");
 
@@ -103,7 +165,8 @@ export function UsersTab({ me }: { me: AccessUser }) {
 			</div>
 
 			<GridTable
-				cols={COLS}
+				cols={cols}
+				minWidth={isOwner ? "md:min-w-[1050px]" : undefined}
 				headers={[
 					{
 						label: "User",
@@ -118,18 +181,20 @@ export function UsersTab({ me }: { me: AccessUser }) {
 					{ label: "Created", center: true },
 					{ label: "Password", center: true },
 					{ label: "Access", center: true },
+					...(isOwner ? [{ label: "API key", center: true }] : []),
 				]}
 			>
 				{users.isLoading ? (
 					Array.from({ length: 4 }).map((_, i) => (
 						// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
-						<GridRow key={i} cols={COLS}>
+						<GridRow key={i} cols={cols}>
 							<Skeleton className="h-4 w-40" />
 							<Skeleton className="h-7 w-28 md:mx-auto" />
 							<Skeleton className="h-7 w-20 md:mx-auto" />
 							<Skeleton className="hidden h-4 w-20 md:mx-auto md:block" />
 							<Skeleton className="size-8 md:mx-auto" />
 							<Skeleton className="h-7 w-20 md:mx-auto" />
+							{isOwner && <Skeleton className="h-7 w-24 md:mx-auto" />}
 						</GridRow>
 					))
 				) : users.isError ? (
@@ -150,7 +215,7 @@ export function UsersTab({ me }: { me: AccessUser }) {
 					rows.map((user) => {
 						const manageable = canManage(me, user);
 						return (
-							<GridRow key={user.id} cols={COLS}>
+							<GridRow key={user.id} cols={cols}>
 								<div className="min-w-0 flex-1 truncate font-medium md:flex-none">
 									{user.username}
 									{user.id === me.id && (
@@ -219,6 +284,11 @@ export function UsersTab({ me }: { me: AccessUser }) {
 										</Button>
 									)}
 								</div>
+								{isOwner && (
+									<div className="flex items-center max-md:basis-full md:justify-center">
+										<ApiKeyCell apiKey={apiKeyByUser.get(user.id)} />
+									</div>
+								)}
 							</GridRow>
 						);
 					})

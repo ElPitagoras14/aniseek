@@ -34,6 +34,29 @@ export interface InvitationList {
 	total: number;
 }
 
+export interface ApiKey {
+	prefix: string;
+	createdAt: string;
+	lastUsedAt: string | null;
+}
+
+// Only returned by the call that generates the key: never fetched again.
+export interface CreatedApiKey {
+	key: string;
+	prefix: string;
+	createdAt: string;
+}
+
+export interface UserApiKey extends ApiKey {
+	userId: string;
+	username: string;
+}
+
+export interface UserApiKeyList {
+	items: UserApiKey[];
+	total: number;
+}
+
 export interface CreatedInvitation {
 	id: string;
 	token: string;

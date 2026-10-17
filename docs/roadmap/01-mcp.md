@@ -1,47 +1,75 @@
 # Phase 1: MCP server for AI agents
 
-**Status:** not started. **Depends on:** Phase 0 (roles, owner, instance settings).
+**Status:** in progress. `api-keys` implemented (branch `feat/api-keys`); `mcp-server` not started. **Depends on:** Phase 0 (done).
 
 ## Goal
 
 Let an AI agent search, organize and download anime through the Model Context Protocol. It is an **instance-level** feature, switched on by the owner, not a per-user toggle.
 
-## Decisions (confirmed)
+## Decisions (confirmed 2026-10-16)
 
-- **Activation:** a single instance switch that only the owner can change. With MCP off, the endpoint does not exist.
-- **Location:** a module inside the API (reuses services and auth, no extra container). Transport: Streamable HTTP, with optional stdio for local use.
-- **API keys belong to a user.** The agent acts as someone, because the saved list and download history are per user.
-- **Keys never exceed their owner's role.** Suggested scopes: `read`, `library` (save/unsave), `download`, `admin`.
-- **Who issues keys:** each user can generate their own while MCP is enabled. The owner can view and revoke any key.
-- **Single-user mode** (`AUTH_ENABLED=false`) still requires an API key for the MCP. An unauthenticated MCP on an app with no login would be full access for anyone on the network.
-- **Exposed IDs must not assume AnimeAV1**, so the tool contract survives Phase 2 (provider-namespaced ids such as `jkanime:slug`).
+### Identity and permissions
+
+- **An API key belongs to a user and inherits that user's role.** The role is read on every call, never stored in the key, so a role change or deactivation takes effect on the next call.
+- **No scopes in v1.** A key can do exactly what its user can do through the REST API. Restricting a key below its user's role may come later as an optional limit.
+- **One key per user, no expiration in v1.** Regenerating replaces it (the old key stops working immediately; the new one is shown once). Revoking deletes it. No history of revoked keys.
+- **Hashed storage.** Only a SHA-256 hash and a short display prefix are stored. Keys are long random tokens, so a slow hash is not needed.
+- **Who manages keys:** each user generates, regenerates and revokes their own. The owner can view and revoke any user's key.
+- **Deactivated users:** their key stops working (checked on every call, like `JWTBearer` does for JWTs).
+- **Single-user mode** (`AUTH_ENABLED=false`) still requires an API key for the MCP. The owner generates it from the Profile page. An unauthenticated MCP on an app with no login would be full access for anyone on the network.
+
+### Activation
+
+- **A single instance switch, owner only:** `instance_settings.mcp_enabled`, changed through a dedicated `PUT /settings/mcp` guarded by `require_role("owner")`. `PUT /settings` stays admin-level for the registration policy.
+- **Always mounted, guarded:** with MCP off, a guard answers 404, so the endpoint behaves as if it did not exist. Turning it on takes effect without a restart.
+- **Keys survive the switch:** turning MCP off keeps existing keys; they just do not work until it is turned back on.
+
+### Transport and location
+
+- A module inside the API (reuses services and auth, no extra container).
+- **Streamable HTTP only**, mounted at `/api/mcp`. `frontend/nginx.conf` already proxies `/api/` with `proxy_buffering off`, so no proxy or compose change is needed.
+- **No stdio in v1.** Clients that only speak stdio can use a bridge such as `mcp-remote`.
+- The MCP session manager runs inside the API `lifespan` (`backend/src/main.py`).
+
+### Tools
+
+- Tools call the existing service controllers directly with the user id, not the REST API over HTTP.
+- **Exposed ids are provider-namespaced (`animeav1:slug`) in the MCP only.** A translation layer parses them and rejects unsupported providers; the REST API keeps plain slugs for now. This keeps the tool contract stable for Phase 2.
+- **No administration tools in v1** (users, invitations, settings stay in the UI).
+- **`download_episodes`:** at most 25 episodes per call, fixed in code. A larger request is rejected whole with a message telling the agent to split it. Episodes already downloaded are skipped and reported, and do not count against the cap. Quotas belong to Phase 6.
+- **`delete_anime_files`:** admin and owner only, annotated as destructive (`destructiveHint`) so clients ask for confirmation. No `confirm` parameter, since an agent would fill it in by itself.
+- Tools a role cannot use are hidden from `list_tools`; the role is still checked at execution time because it can change mid-session.
 
 ## Current state (verified 2026-10-16)
 
 The REST API already covers most of what the tools need:
 
 - Animes: `GET /animes/search`, `/saved`, `/in-emission`, `/{anime_id}`, `PUT /{anime_id}` (refresh), `/{anime_id}/save`, `/{anime_id}/unsave`.
-- Episodes: `GET /episodes/downloads`, `/downloads/last`, `/downloads/animes`, `/storage`, `DELETE /storage/{anime_id}`, `GET /stream/status` (SSE), `GET /{anime_id}/{episode_number}/file`, `POST /{anime_id}/download/bulk`.
+- Episodes: `GET /episodes/downloads`, `/downloads/last`, `/downloads/animes`, `/storage`, `DELETE /storage/{anime_id}` (admin), `GET /stream/status` (SSE), `GET /{anime_id}/{episode_number}/file`, `POST /{anime_id}/download/bulk`.
 - Users: `GET /users/statistics`, `/users/me`, and others.
 - Franchises: `GET/POST /franchises`, `GET /franchises/animes`.
-- `api_keys` (`user_id`, `key`, `expired_at`, `last_used_at`) and `api_scopes` (`name`) tables exist in the initial migration. Usage in code was not verified. `api_keys` has no scope column, so scopes need a link table or a column. The `key` column should hold a **hash**, not the plain key; this needs a migration.
+- Phase 0 left `instance_settings` (single row, `registration_policy`), `require_role` / `ROLE_RANK` in `backend/src/packages/auth/roles.py`, and `JWTBearer` building the `current_user` dict in `auth/middleware.py`. API key auth must build the same dict and must **not** go through the single-user shortcut in `JWTBearer`.
+- `api_keys` (`id SERIAL`, plain `key`, `expired_at`, `last_used_at`) and `api_scopes` (`name`) exist in `0001` but no code uses them. They are dropped and replaced by a new `api_keys` table (one row per user, `prefix`, `key_hash`, `created_at`, `last_used_at`; no expiration in v1) in a new migration.
+- The `mcp` Python SDK is not a dependency yet.
 
 ## Proposed tools
 
-- **Read-only:** `search_anime`, `get_anime`, `list_saved`, `list_airing` (filterable by weekday), `list_downloads`, `get_storage_usage`, `get_stats`.
-- **Low-risk writes:** `save_anime`, `unsave_anime`, `refresh_anime`.
-- **Costly actions:** `download_episodes` (with a per-call cap), `get_download_status`.
-- **Destructive:** `delete_anime_files`. Leave it out of the first version, or require explicit confirmation and an admin scope.
-- **Resources and prompts:** `aniseek://saved`, `aniseek://calendar`; prompts such as "what am I missing from what I follow".
+| Tool | Member | Admin | Owner |
+|---|:-:|:-:|:-:|
+| `search_anime`, `get_anime`, `list_saved`, `list_airing` (by weekday), `list_downloads`, `get_storage_usage`, `get_stats` | yes | yes | yes |
+| `save_anime`, `unsave_anime`, `refresh_anime` | yes | yes | yes |
+| `download_episodes` (cap 25), `get_download_status` | yes | yes | yes |
+| `delete_anime_files` | no | yes | yes |
 
-## Deliverables
+Resources and prompts: `aniseek://saved`, `aniseek://calendar`; prompts such as "what am I missing from what I follow".
 
-- Instance MCP switch (owner only) backed by instance settings from Phase 0.
-- API key management: create, list, revoke, scopes, hashed storage, `last_used_at`.
-- The MCP module with the tools above, authenticated by API key.
-- Tests, `docs/mcp.md`, and example configuration for Claude Desktop and Claude Code.
+## Breakdown into OpenSpec changes
+
+1. **`api-keys`:** migration (drop old tables, create the new one), generate / regenerate / revoke endpoints, owner listing and revocation, API key authentication building `current_user`, UI in Profile and in User management. No new dependency.
+2. **`mcp-server`:** `mcp_enabled` column and `PUT /settings/mcp`, 404 guard, MCP session manager in the lifespan, tools and id translation, `mcp` SDK dependency, toggle in the Settings tab, `docs/mcp.md` with Claude Desktop and Claude Code examples.
+
+Both deserve a `VERSION` bump.
 
 ## Open questions
 
-- Per-tool rate limiting and the cap for `download_episodes`.
-- Whether the MCP shares the API process and port or mounts under a prefix.
+- Per-tool rate limiting (deferred to Phase 6 with quotas).

@@ -56,64 +56,12 @@ CREATE TABLE public.animes (
 --
 
 CREATE TABLE public.api_keys (
-    id integer NOT NULL,
     user_id uuid NOT NULL,
-    key character varying(255) NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    expired_at timestamp with time zone,
+    prefix character varying(16) NOT NULL,
+    key_hash character(64) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     last_used_at timestamp with time zone
 );
-
-
---
--- Name: api_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.api_keys_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: api_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.api_keys_id_seq OWNED BY public.api_keys.id;
-
-
---
--- Name: api_scopes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.api_scopes (
-    id integer NOT NULL,
-    name character varying(255) NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-
---
--- Name: api_scopes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.api_scopes_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: api_scopes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.api_scopes_id_seq OWNED BY public.api_scopes.id;
 
 
 --
@@ -351,20 +299,6 @@ CREATE TABLE public.users (
 
 
 --
--- Name: api_keys id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.api_keys ALTER COLUMN id SET DEFAULT nextval('public.api_keys_id_seq'::regclass);
-
-
---
--- Name: api_scopes id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.api_scopes ALTER COLUMN id SET DEFAULT nextval('public.api_scopes_id_seq'::regclass);
-
-
---
 -- Name: avatars id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -409,11 +343,11 @@ ALTER TABLE ONLY public.animes
 
 
 --
--- Name: api_keys api_keys_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: api_keys api_keys_key_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.api_keys
-    ADD CONSTRAINT api_keys_key_key UNIQUE (key);
+    ADD CONSTRAINT api_keys_key_hash_key UNIQUE (key_hash);
 
 
 --
@@ -421,15 +355,7 @@ ALTER TABLE ONLY public.api_keys
 --
 
 ALTER TABLE ONLY public.api_keys
-    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
-
-
---
--- Name: api_scopes api_scopes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.api_scopes
-    ADD CONSTRAINT api_scopes_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (user_id);
 
 
 --
@@ -579,13 +505,6 @@ CREATE INDEX idx_animes_franchise_id ON public.animes USING btree (franchise_id)
 --
 
 CREATE INDEX idx_animes_last_scraped ON public.animes USING btree (last_scraped_at);
-
-
---
--- Name: idx_api_keys_expired; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_api_keys_expired ON public.api_keys USING btree (expired_at);
 
 
 --
@@ -786,4 +705,5 @@ ALTER TABLE ONLY public.users
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('0001'),
-    ('0002');
+    ('0002'),
+    ('0003');

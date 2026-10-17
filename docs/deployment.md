@@ -20,3 +20,9 @@ If you forget them, the symptom is easy to recognise:
 - The cause is in the logs: `docker compose logs aniseek-api` shows an error naming the missing or invalid variable (`OWNER_USERNAME` or `OWNER_PASSWORD`), or telling you the username is already taken by an existing user.
 
 Add the variables to `.env` and run `docker compose up -d` again. No user is created while the error persists.
+
+## API keys
+
+Each user can generate one API key from the **Profile** page, so AI agents can act as them over MCP with their current role. Only a hash is stored: the key is shown once, and regenerating it invalidates the previous one. The owner can see and revoke every user's key from **User Management**.
+
+With `AUTH_ENABLED=false` (single-user mode) there is no login, so **anyone who can open the web UI can generate the owner's key**. Use that mode only on a trusted network.
