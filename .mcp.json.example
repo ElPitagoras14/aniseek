@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "aniseek": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${ANISEEK_API_KEY}"
+      }
+    }
+  }
+}

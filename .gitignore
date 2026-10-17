@@ -7,6 +7,9 @@ __pycache__/
 .env
 .ruff_cache/
 
+# Local MCP client config (copy .mcp.json.example)
+.mcp.json
+
 # C extensions
 *.so
 
