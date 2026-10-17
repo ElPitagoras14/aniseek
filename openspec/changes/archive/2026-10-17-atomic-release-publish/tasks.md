@@ -18,4 +18,4 @@
 - [x] 3.1 Revisar `docs/` y `CONTRIBUTING.md` por referencias al flujo de publicación (`promote-latest`, publicación por servicio) y actualizarlas
 - [x] 3.2 Bumpear `VERSION` de 3.2.0 a 3.2.1
 - [x] 3.3 Correr `openspec validate atomic-release-publish --strict` y verificar que pasa
-- [ ] 3.4 Después del merge, seguir la corrida del release 3.2.1: las cuatro candidatas se publican antes que cualquier `:3.2.1`, `publish` mueve versión y `:latest`, y el release y el deploy se crean
+- [x] 3.4 Después del merge, seguir la corrida del release 3.2.1: las cuatro candidatas se publican antes que cualquier `:3.2.1`, `publish` mueve versión y `:latest`, y el release y el deploy se crean
