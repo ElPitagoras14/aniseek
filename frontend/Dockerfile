@@ -1,4 +1,7 @@
-FROM node:20-alpine AS builder
+# Runs once, on the build host's architecture: the output is static files that
+# are the same for every platform. Running it under QEMU for arm64 made Node
+# crash with SIGILL and hang the release (atomic-release-publish, design D3).
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
