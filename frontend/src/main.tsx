@@ -7,7 +7,15 @@ import { AuthProvider, useAuth } from "./auth";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			// Queries that need live data set their own staleTime (downloads).
+			staleTime: 30_000,
+			gcTime: 30 * 60_000,
+		},
+	},
+});
 
 const router = createRouter({
 	routeTree,
