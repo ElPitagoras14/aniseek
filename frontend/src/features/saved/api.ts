@@ -10,5 +10,4 @@ export const fetchSavedAnimes = async (): Promise<SavedAnime[]> => {
 export const savedAnimesQueryOptions = queryOptions({
 	queryKey: ["animes", "saved"] as const,
 	queryFn: fetchSavedAnimes,
-	staleTime: 0,
 });

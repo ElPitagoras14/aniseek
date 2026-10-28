@@ -13,6 +13,7 @@ FROM python:3.12-slim-bookworm AS production
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+  curl \
   libpq5 \
   && rm -rf /var/lib/apt/lists/*
 
