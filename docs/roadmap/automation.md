@@ -1,6 +1,6 @@
-# Phase 4: Automation
+# Automation
 
-**Status:** not started. **Depends on:** Phase 2 (provider fallback) and Phase 3 (stable identity).
+**Status:** not started. **Related:** [multi-provider](multi-provider.md) (provider fallback) and [anilist-metadata](anilist-metadata.md) (stable identity). Automating on a single provider multiplies the damage when it goes down, so the first is a strong precondition.
 
 ## Goal
 
@@ -19,10 +19,10 @@ Make the app proactive: new episodes are detected and downloaded without the use
 
 - The download flow is documented in `docs/architecture.md` (API creates a task in PostgreSQL, dispatches to the worker through Redis, the worker updates status).
 - Who owns an auto-download (which user it is attributed to) must be defined; downloads are recorded per user in `user_download_episode`, while files are global.
-- Downloads are limited by the disk shared at `ANIMES_FOLDER`; disk quotas arrive in Phase 6.
+- Downloads are limited by the disk shared at `ANIMES_FOLDER`; disk quotas are in [platform-and-resilience](platform-and-resilience.md).
 
 ## Open questions
 
 - Scheduling mechanism (Dramatiq periodiq, cron in the worker, or an external scheduler).
 - Notification channels to support first.
-- Whether rules are per user or per anime, and who can create instance-wide rules (owner/admin per Phase 0).
+- Whether rules are per user or per anime, and who can create instance-wide rules (owner/admin, see [users-and-access](users-and-access.md)).

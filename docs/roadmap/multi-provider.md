@@ -1,6 +1,6 @@
-# Phase 2: Multi-provider scraping
+# Multi-provider scraping
 
-**Status:** not started. **Depends on:** nothing (Phase 0 and 1 are independent). **Blocks:** Phases 3 and 4.
+**Status:** not started. **Depends on:** nothing. **Related:** [anilist-metadata](anilist-metadata.md) and [automation](automation.md) build on it.
 
 ## Goal
 

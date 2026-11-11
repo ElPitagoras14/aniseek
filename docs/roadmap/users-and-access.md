@@ -1,6 +1,6 @@
-# Phase 0: Users and access
+# Users and access
 
-**Status:** done (OpenSpec change `users-and-access`, archived 2026-10-16, PR #48). **Depends on:** nothing. **Blocks:** Phase 1.
+**Status:** done (OpenSpec change `users-and-access`, archived 2026-10-16, PR #48). **Depends on:** nothing.
 
 ## Goal
 
@@ -40,7 +40,7 @@ Define a real access model for single-user and multi-user instances, enforce it 
 - **Owner:** exactly one. Created at startup, cannot be deleted or demoted, can transfer the role.
 - **Admin:** day-to-day user and content management; cannot change instance-critical settings.
 - **Member:** regular user. No management permissions.
-- Quotas are **not** part of this phase (see Phase 6).
+- Quotas are **not** part of this item (see [platform-and-resilience](platform-and-resilience.md)).
 
 ### No seeded admin; owner created at startup
 
