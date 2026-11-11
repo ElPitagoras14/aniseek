@@ -16,6 +16,11 @@ Usar **codegraph** (`codegraph_explore`) como herramienta por defecto para explo
 
 Recurrir a `Grep` o `Read` cuando codegraph no aplica: archivos que no son código (`.env`, `compose.yaml`, `Dockerfile`, `.gitignore`, Markdown), búsquedas de texto literal en configuración, o inspección de dependencias en `node_modules` y `.venv`.
 
+## ani-scrapy
+
+- La skill de `ani-scrapy` no vive en este repo: se lee siempre desde upstream, para no duplicarla ni dejarla desfasada. Antes de escribir o modificar código que use la librería, leerla con `gh api repos/ElPitagoras14/ani-scrapy/contents/.claude/skills/ani-scrapy/SKILL.md --jq .content | base64 -d`.
+- Sin `gh`: `https://raw.githubusercontent.com/ElPitagoras14/ani-scrapy/main/.claude/skills/ani-scrapy/SKILL.md` (con `WebFetch` o `curl`).
+
 ## Commits
 
 - No hacer commit automáticamente después de cada cambio. Solo hacer commit cuando el usuario lo pida explícitamente.
