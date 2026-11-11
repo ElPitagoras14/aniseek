@@ -28,6 +28,9 @@ CHUNK_SIZE = 1024 * 1024
 MAX_CHUNK_RETRIES = 3
 UPDATE_INTERVAL = 1
 
+# MP4Upload answers 403 to downloads that lack this Referer.
+MP4UPLOAD_HEADERS = {"Referer": "https://www.mp4upload.com/"}
+
 
 async def _notify_job(job_id: str, state: str, meta: dict) -> None:
     payload = {"job_id": job_id, "state": state, "meta": meta}
@@ -66,6 +69,7 @@ async def _download_file(
     season: int,
     episode_number: int,
     download_link: str,
+    link_headers: dict[str, str] | None = None,
 ) -> tuple[bool, int | None]:
     """Asynchronous download using aiohttp. Returns (success, total_size)."""
     start_time = time.time()
@@ -79,15 +83,17 @@ async def _download_file(
 
     file_exists = save_path.exists()
     downloaded = save_path.stat().st_size if file_exists else 0
-    headers: dict[str, str] = {}
+    headers: dict[str, str] = dict(link_headers or {})
     resume_mode = False
 
-    supports_range, total_size = await _server_supports_range(download_link)
+    supports_range, total_size = await _server_supports_range(
+        download_link, headers
+    )
 
     if supports_range and file_exists:
         if downloaded < (total_size or 0):
             resume_mode = True
-            headers = {"Range": f"bytes={downloaded}-"}
+            headers["Range"] = f"bytes={downloaded}-"
             logger.debug(f"[{job_id}] Resuming from byte {downloaded}/{total_size}")
         else:
             logger.warning(f"[{job_id}] Local >= remote, redownloading from start")
@@ -161,9 +167,12 @@ async def _download_file(
         return False, None
 
 
-async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int):
-    """Tries scrapers in priority order. Returns the download link or None."""
-    # Priority 1: AnimeAV1 -> PDrain
+async def _resolve_download_link(
+    job_id: str, anime_id: str, episode_number: int
+) -> tuple[str, dict[str, str]] | None:
+    """Tries scrapers in priority order. Returns the download link with the
+    headers the download needs, or None."""
+    # Priority 1: AnimeAV1 -> PDrain, then MP4Upload (needs a Referer)
     try:
         async with AnimeAV1Scraper(
             executable_path=general_settings.BRAVE_PATH
@@ -172,15 +181,17 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
             logger.debug(
                 f"[{job_id}] AnimeAV1 servers: {[link.server for link in info.download_links]}"
             )
-            for link in info.download_links:
-                if link.server.lower() != "pdrain":
-                    continue
-                logger.debug(f"[{job_id}] Trying AnimeAV1/PDrain")
-                file_link = await scraper.get_file_download_link(link)
-                if file_link:
-                    return file_link
+            for target in ("pdrain", "mp4upload"):
+                for link in info.download_links:
+                    if link.server.lower() != target:
+                        continue
+                    logger.debug(f"[{job_id}] Trying AnimeAV1/{target}")
+                    file_link = await scraper.get_file_download_link(link)
+                    if file_link:
+                        headers = MP4UPLOAD_HEADERS if target == "mp4upload" else {}
+                        return file_link, headers
     except Exception as e:
-        logger.warning(f"[{job_id}] AnimeAV1/PDrain failed: {e}")
+        logger.warning(f"[{job_id}] AnimeAV1 (PDrain/MP4Upload) failed: {e}")
 
     # Priority 2 & 3: JKAnime -> Mediafire / Streamwish (table)
     try:
@@ -198,7 +209,7 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
                     logger.debug(f"[{job_id}] Trying JKAnime/{target} (table)")
                     file_link = await scraper.get_file_download_link(link)
                     if file_link:
-                        return file_link
+                        return file_link, {}
     except Exception as e:
         logger.warning(f"[{job_id}] JKAnime (table) failed: {e}")
 
@@ -214,7 +225,7 @@ async def _resolve_download_link(job_id: str, anime_id: str, episode_number: int
                     continue
                 file_link = await scraper.get_file_download_link(link)
                 if file_link:
-                    return file_link
+                    return file_link, {}
     except Exception as e:
         logger.warning(f"[{job_id}] JKAnime/Streamwish (iframe) failed: {e}")
 
@@ -249,11 +260,13 @@ async def download_anime_episode_controller(
             )
             await _notify_job(job_id, "GETTING-LINK", {})
 
-            valid_link = await _resolve_download_link(job_id, anime_id, episode_number)
-            if not valid_link:
+            resolved = await _resolve_download_link(job_id, anime_id, episode_number)
+            if not resolved:
                 raise Exception(
                     f"No download link available for {anime_id} E{episode_number}"
                 )
+
+            valid_link, link_headers = resolved
 
             await update_episode_status(anime_id, episode_number, "DOWNLOADING")
 
@@ -264,6 +277,7 @@ async def download_anime_episode_controller(
                 season,
                 episode_number,
                 valid_link,
+                link_headers,
             )
             if not success:
                 raise Exception(f"Download failed for {anime_id} E{episode_number}")

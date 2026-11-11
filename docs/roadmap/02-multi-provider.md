@@ -9,7 +9,7 @@ Stop depending on a single catalog source. AnimeAV1 stays the primary provider; 
 ## Current state (verified 2026-10-16)
 
 - The backend scrapes only through `AnimeAV1Scraper` (`backend/src/packages/animes/scraper.py`), and `_normalize_anime_id` assumes AnimeAV1 slugs/URLs.
-- `ani-scrapy==0.8.1` is pinned in `backend/pyproject.toml` and `worker/pyproject.toml` (latest on PyPI, published 2026-10-14). The author of `ani-scrapy` is the same as Ani Seek's, so a missing provider or a bug (for example upstream issue #25) can be contributed upstream.
+- `ani-scrapy==0.10.0` is pinned in `backend/pyproject.toml` and `worker/pyproject.toml` (latest on PyPI, published 2026-11-11). The author of `ani-scrapy` is the same as Ani Seek's, so a missing provider or a bug (for example upstream issue #25) can be contributed upstream.
 
 ## Provider facts (from PyPI, the upstream README, releases and issues)
 
