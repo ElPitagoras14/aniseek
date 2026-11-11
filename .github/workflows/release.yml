@@ -57,6 +57,21 @@ jobs:
             echo "should-release=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Falla antes de construir nada si el release no tiene sección en el
+      # CHANGELOG: sus notas salen de ahí.
+      - name: Require a changelog entry
+        if: steps.compare.outputs.should-release == 'true'
+        run: |
+          awk -v v="${{ steps.compare.outputs.version }}" '
+            $0 == "## " v { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "CHANGELOG.md has no non-empty '## ${{ steps.compare.outputs.version }}' section"
+            exit 1
+          fi
+
   # Fase 1: cada servicio deja su imagen como :candidate-<sha>. Nada se
   # publica todavía bajo :<versión> ni :latest, así que si una leg falla (o
   # vence el timeout) fail-fast cancela las demás y el registro no cambia.
@@ -204,6 +219,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Extract release notes
+        run: |
+          awk -v v="${{ needs.detect.outputs.version }}" '
+            $0 == "## " v { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -213,7 +240,7 @@ jobs:
           # corrida vieja), el tag caería en código que las imágenes no tienen
           # y el próximo release reutilizaría imágenes viejas (pasó en 3.2.0).
           target_commitish: ${{ github.sha }}
-          generate_release_notes: true
+          body_path: release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
