@@ -1,6 +1,6 @@
-# Phase 1: MCP server for AI agents
+# MCP server for AI agents
 
-**Status:** done. OpenSpec changes `api-keys` (3.1.0) and `mcp-server` (3.2.0). Usage in [`docs/mcp.md`](../mcp.md). **Depends on:** Phase 0 (done).
+**Status:** done. OpenSpec changes `api-keys` (3.1.0) and `mcp-server` (3.2.0). Usage in [`docs/mcp.md`](../mcp.md). **Depends on:** [users-and-access](users-and-access.md) (done).
 
 ## Goal
 
@@ -34,9 +34,9 @@ Let an AI agent search, organize and download anime through the Model Context Pr
 ### Tools
 
 - Tools call the existing service controllers directly with the user id, not the REST API over HTTP.
-- **Exposed ids are provider-namespaced (`animeav1:slug`) in the MCP only.** A translation layer parses them and rejects unsupported providers; the REST API keeps plain slugs for now. This keeps the tool contract stable for Phase 2.
+- **Exposed ids are provider-namespaced (`animeav1:slug`) in the MCP only.** A translation layer parses them and rejects unsupported providers; the REST API keeps plain slugs for now. This keeps the tool contract stable for [multi-provider](multi-provider.md).
 - **No administration tools in v1** (users, invitations, settings stay in the UI).
-- **`download_episodes`:** at most 25 episodes per call, fixed in code. A larger request is rejected whole with a message telling the agent to split it. Episodes already downloaded are skipped and reported, and do not count against the cap. Quotas belong to Phase 6.
+- **`download_episodes`:** at most 25 episodes per call, fixed in code. A larger request is rejected whole with a message telling the agent to split it. Episodes already downloaded are skipped and reported, and do not count against the cap. Quotas belong to [platform-and-resilience](platform-and-resilience.md).
 - **`delete_anime_files`:** admin and owner only, annotated as destructive (`destructiveHint`) so clients ask for confirmation. No `confirm` parameter, since an agent would fill it in by itself.
 - Tools a role cannot use are hidden from `list_tools`; the role is still checked at execution time because it can change mid-session.
 
@@ -48,7 +48,7 @@ Kept as the starting point the plan was written against; what changed is under "
 - Episodes: `GET /episodes/downloads`, `/downloads/last`, `/downloads/animes`, `/storage`, `DELETE /storage/{anime_id}` (admin), `GET /stream/status` (SSE), `GET /{anime_id}/{episode_number}/file`, `POST /{anime_id}/download/bulk`.
 - Users: `GET /users/statistics`, `/users/me`, and others.
 - Franchises: `GET/POST /franchises`, `GET /franchises/animes`.
-- Phase 0 left `instance_settings` (single row, `registration_policy`), `require_role` / `ROLE_RANK` in `backend/src/packages/auth/roles.py`, and `JWTBearer` building the `current_user` dict in `auth/middleware.py`. API key auth must build the same dict and must **not** go through the single-user shortcut in `JWTBearer`.
+- `users-and-access` left `instance_settings` (single row, `registration_policy`), `require_role` / `ROLE_RANK` in `backend/src/packages/auth/roles.py`, and `JWTBearer` building the `current_user` dict in `auth/middleware.py`. API key auth must build the same dict and must **not** go through the single-user shortcut in `JWTBearer`.
 - `api_keys` (`id SERIAL`, plain `key`, `expired_at`, `last_used_at`) and `api_scopes` (`name`) exist in `0001` but no code uses them. They are dropped and replaced by a new `api_keys` table (one row per user, `prefix`, `key_hash`, `created_at`, `last_used_at`; no expiration in v1) in a new migration.
 - The `mcp` Python SDK is not a dependency yet.
 
@@ -83,5 +83,5 @@ Both deserve a `VERSION` bump.
 
 ## Open questions
 
-- Per-tool rate limiting (deferred to Phase 6 with quotas).
+- Per-tool rate limiting (deferred to [platform-and-resilience](platform-and-resilience.md) with quotas).
 - Resources (`aniseek://saved`, `aniseek://calendar`) and prompts ("what am I missing from what I follow"): not built in `mcp-server`; a follow-up change if agents need them.

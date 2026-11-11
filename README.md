@@ -85,21 +85,19 @@ Claude Desktop, the full list of tools and other details are in [`docs/mcp.md`](
 
 ## Roadmap
 
-| Phase | Deliverable |
-|---|---|
-| 0 | **Users and access** — owner, admin and member roles, controlled registration |
-| 1 | **MCP server** for AI agents, enabled per instance by the owner |
-| 2 | **Multi-provider** scraping with fallback |
-| 3 | **AniList metadata** and provider-independent identity |
-| 4 | **Automation** — auto-download, notifications, download queue |
-| 5 | **Player and watch progress** |
-| 6 | **Platform** — quotas, observability, backups, test coverage |
+Planned work is an unordered pool, not a sequence of phases:
 
-Details for each phase live in [docs/roadmap](docs/roadmap/README.md).
+- **Multi-provider** scraping with fallback
+- **AniList metadata** and provider-independent identity
+- **Automation** — auto-download, notifications, download queue
+- **Franchises** — create, update, delete and relate animes
+- **Platform** — quotas, observability, backups, test coverage
+
+Already shipped: **users and access** (owner, admin and member roles, controlled registration) and the **MCP server** for AI agents. Details for each item live in [docs/roadmap](docs/roadmap/README.md).
 
 ## Documentation
 
-- [Roadmap](docs/roadmap/README.md) — planned phases, one file per phase
+- [Roadmap](docs/roadmap/README.md) — pool of planned work, one file per item
 - [Architecture](docs/architecture.md) — components, data flow and startup order
 - [Deployment](docs/deployment.md) — HTTPS and internet-facing setups
 - [MCP server](docs/mcp.md) — connect AI agents (Claude Code, Claude Desktop)

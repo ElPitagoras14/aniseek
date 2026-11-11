@@ -350,7 +350,7 @@ async def test_detail_has_episode_url_and_no_platform(raw_conn):
     assert dumped["episodes"][0]["url"] == "https://animeav1.com/media/contract-anime/1"
 
 
-# --- provider error translation (Phase 2) -----------------------------------
+# --- provider error translation -----------------------------------
 
 
 class _RaisingScraper:

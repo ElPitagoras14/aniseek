@@ -1,5 +1,5 @@
 """Provider-namespaced anime ids, used only by the MCP (mcp-server, design D6).
-Phase 2 resolves the provider here; the tools do not change."""
+Multi-provider support resolves the provider here; the tools do not change."""
 
 import re
 

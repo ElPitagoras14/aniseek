@@ -1,6 +1,6 @@
-# Phase 3: AniList metadata
+# AniList metadata
 
-**Status:** not started. **Depends on:** Phase 2 (provider-namespaced ids).
+**Status:** not started. **Related:** [multi-provider](multi-provider.md) (provider-namespaced ids), [franchises](franchises.md) (automatic grouping from relations).
 
 ## Goal
 
@@ -9,7 +9,7 @@ Give every anime an identity that is independent of the scraping provider, and e
 ## Why
 
 - Switching provider must not lose history or downloads; a stable common id lets the same anime map across sources.
-- `related_info` currently depends on whatever the scraper returns. AniList relations enable automatic franchises (franchises are created manually today via `POST /franchises`).
+- `related_info` currently depends on whatever the scraper returns. AniList relations enable automatic franchises (franchises are created manually today via `POST /franchises`; see [franchises](franchises.md)).
 - JKAnime's `next_episode_date` can be stale (upstream issue #25); AniList airing schedules are a better source for the calendar.
 
 ## Scope
