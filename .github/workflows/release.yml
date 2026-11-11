@@ -253,7 +253,7 @@ jobs:
         id: dokploy
         continue-on-error: true
         run: |
-          curl -X 'POST' \
+          curl --fail-with-body -X 'POST' \
             'https://dokploy.pitagoraslab.qzz.io/api/compose.deploy' \
             -H 'accept: application/json' \
             -H 'Content-Type: application/json' \
