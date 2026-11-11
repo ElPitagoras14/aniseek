@@ -47,4 +47,4 @@ The MCP does not return file URLs, so Phase 1 does not widen this surface.
 
 ## Dependencies
 
-- `ani-scrapy` is pinned to `==0.8.1` in `backend/` and `worker/`. Review upstream releases regularly and watch for the removal of AnimeFLV.
+- `ani-scrapy` is pinned to `==0.10.0` in `backend/` and `worker/`. Review upstream releases regularly and watch for the removal of AnimeFLV.
